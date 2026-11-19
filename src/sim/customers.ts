@@ -15,7 +15,8 @@
 // Within a tick this runs after the buildings update (so a dish pushed onto the shelf this
 // tick can be sold this tick) and before `tick` and `dayTick` advance. At day end,
 // leftover customers are dropped without a rating or a loss (`dropLeftovers`, economy.ts, Q6).
-// Only the `arrivals` stream is used here; `reviews` is Step 12.
+// Each sale or loss then writes a rating and a review (reviews.ts) on the `reviews` stream,
+// which never feeds back into the `arrivals` draws (only the reputation it changes does).
 
 import {
   ARRIVAL_GAP_QUIET,
@@ -34,6 +35,7 @@ import {
 } from './constants.ts'
 import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
+import { rateLost, rateServed, submitRating } from './reviews.ts'
 import { nextFloat, nextInt, pickWeighted } from './rng.ts'
 import type { Customer, Defs, DishId, GameState, Weighted } from './types.ts'
 
@@ -102,11 +104,13 @@ export function stepArrivals(state: GameState, defs: Defs): void {
   }
   if (choice === null) {
     recordLoss(state, 'noMatch', first)
+    submitRating(state, defs, c, rateLost('noMatch'))
     state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'noMatch', dish: null })
     return
   }
   if (state.waiting.length >= WAITING_CAP[state.tier]) {
     recordLoss(state, 'full', first)
+    submitRating(state, defs, c, rateLost('full'))
     state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'full', dish: choice.dish })
     return
   }
@@ -117,12 +121,13 @@ export function stepArrivals(state: GameState, defs: Defs): void {
 }
 
 /** Mutates `state`: customers whose patience has run out leave (lostPatience). */
-function expirePatience(state: GameState): void {
+function expirePatience(state: GameState, defs: Defs): void {
   if (state.waiting.length === 0) return
   const staying: Customer[] = []
   for (const c of state.waiting) {
     if (state.tick - c.arriveTick >= c.patience) {
       recordLoss(state, 'patience', c.dish)
+      submitRating(state, defs, c, rateLost('patience'))
       state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'patience', dish: c.dish })
     } else {
       staying.push(c)
@@ -132,7 +137,7 @@ function expirePatience(state: GameState): void {
 }
 
 /** Mutates `state`: sell shelf dishes to the oldest waiting customer who ordered exactly that dish. */
-function matchShelf(state: GameState): void {
+function matchShelf(state: GameState, defs: Defs): void {
   if (state.waiting.length === 0) return
   const ids = Object.keys(state.buildings)
     .map(Number)
@@ -149,6 +154,7 @@ function matchShelf(state: GameState): void {
       }
       const [customer] = state.waiting.splice(at, 1)
       recordSale(state, customer)
+      submitRating(state, defs, customer, rateServed(customer, state.tick - customer.arriveTick))
     }
     b.shelf = kept
   }
@@ -156,7 +162,7 @@ function matchShelf(state: GameState): void {
 
 /** Mutates `state`: one tick of customer logic (header comment has the order). */
 export function stepCustomers(state: GameState, defs: Defs): void {
-  expirePatience(state)
+  expirePatience(state, defs)
   stepArrivals(state, defs)
-  matchShelf(state)
+  matchShelf(state, defs)
 }

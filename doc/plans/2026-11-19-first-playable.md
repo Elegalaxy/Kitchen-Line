@@ -438,7 +438,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 12: Ratings, reputation, reviews
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/sim/reviews.ts` (`rateServed`, `rateLost`, `submitRating`), `src/content/reviewText.ts` (2 variants per reason, optional `Defs.reviewTemplates`; without it the text is the reason key), constants in `constants.ts`, calls in `customers.ts` after every sale or loss. Main reason of a served rating = the biggest penalty (ties: wait, price, choice); 5 stars = `great`. `state.ratings` keeps the last 50, reputation is their mean (arrivals already used it). `today.reviews` (type `Review` now has `reason`) keeps 20: the lowest always, plus a reservoir sample; `reviews` stream draws are one variant pick per rating, plus one slot draw once the list is full (order in the `reviews.ts` header). New state field `repAtDayStart`, set in `openService`, drives the TopBar `3.2★ ▲` readout (`reputationView` in `format.ts`; arrow plus screen-reader text, `--good`/`--bad`). Day-end leftovers stay unrated (Q6). `totals.profit` is still not updated (Step 15/16). No existing test changed; typecheck, test, lint and build pass; checked in the in-app browser (desktop and 375 px), no console errors.
 - Depends on: 11
 - Files: `src/sim/reviews.ts`, `src/content/reviewText.ts`, `src/sim/customers.ts`, `src/sim/reviews.test.ts`, `src/ui/TopBar.tsx`
 - What changes:

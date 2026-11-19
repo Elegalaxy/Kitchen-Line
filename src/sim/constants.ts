@@ -65,3 +65,24 @@ export const PREFS_MAX = 3
 /** Plan 2.5: budget = reference price of the first-choice dish x a uniform 90 to 140 percent. */
 export const BUDGET_PERCENT_MIN = 90
 export const BUDGET_PERCENT_MAX = 140
+
+/** Plan 2.5 / GAME_DESIGN 6.3: ratings are integers 1 to 5; a served customer starts at 5. */
+export const RATING_MAX = 5
+export const RATING_MIN = 1
+/** Plan 2.5: wait over 50% of patience -1, over 80% -2 (not added together). */
+export const WAIT_LONG_FRACTION = 0.5
+export const WAIT_VERY_LONG_FRACTION = 0.8
+export const WAIT_LONG_PENALTY = 1
+export const WAIT_VERY_LONG_PENALTY = 2
+/** Plan 2.5: price over 90% of budget -1; not the first choice -1. */
+export const OVERPRICED_FRACTION = 0.9
+export const OVERPRICED_PENALTY = 1
+export const NOT_FIRST_CHOICE_PENALTY = 1
+/** Plan 2.5: patience ran out -> 1; nothing affordable liked, or queue full -> 2. */
+export const RATING_GAVE_UP = 1
+export const RATING_NO_MATCH = 2
+export const RATING_QUEUE_FULL = 2
+/** Plan 2.5: reputation is the average of the last 50 ratings. */
+export const RATINGS_KEPT = 50
+/** Plan Step 12: up to 20 reviews are kept per day (the lowest-rated always, plus a sample). */
+export const REVIEWS_PER_DAY = 20

@@ -9,6 +9,7 @@
 // 'Menu is locked during service' during service. The other types are rejected for now.
 
 import { START_INGREDIENT, WARMUP_TICKS } from './constants.ts'
+import { reputationOf } from './customers.ts'
 import { emptyDayStats, newBuilding } from './game.ts'
 import {
   buildingAt,
@@ -201,6 +202,7 @@ function openService(state: GameState, cmd: Command): ApplyOutcome {
   next.phase = 'service'
   next.dayTick = 0
   next.today = emptyDayStats(next.day)
+  next.repAtDayStart = reputationOf(next)
   return { state: next, result: { ok: true } }
 }
 

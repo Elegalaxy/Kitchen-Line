@@ -34,7 +34,7 @@ export function recordSale(state: GameState, customer: Customer): void {
 /**
  * Mutates `state`: a customer left unserved. `dish` is the dish the loss is booked to in
  * `byDish`: the ordered dish for lost patience, the first-choice dish when nothing matched
- * or the queue was full. No money moves. Ratings for losses arrive in Step 12.
+ * or the queue was full. No money moves. The rating is written by the caller (reviews.ts).
  */
 export function recordLoss(state: GameState, reason: LostReason, dish: DishId): void {
   if (reason === 'patience') state.today.lostPatience += 1

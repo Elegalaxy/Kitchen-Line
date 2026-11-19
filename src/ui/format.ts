@@ -74,3 +74,10 @@ export const PHASE_TEXT: Record<DayPhase | 'build' | 'summary' | 'won', { icon: 
 export function phaseKey(state: Pick<GameState, 'phase' | 'dayTick'>): keyof typeof PHASE_TEXT {
   return state.phase === 'service' ? phaseAt(state.dayTick) : state.phase
 }
+
+/** Reputation text plus the change since the day started (compared at the one decimal shown). */
+export function reputationView(rep: number, atDayStart: number): { text: string; dir: 'up' | 'down' | null } {
+  const now = Math.round(rep * 10)
+  const before = Math.round(atDayStart * 10)
+  return { text: rep.toFixed(1), dir: now > before ? 'up' : now < before ? 'down' : null }
+}

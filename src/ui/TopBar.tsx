@@ -1,8 +1,9 @@
-// Top bar: day, money, clock, phase badge, day bar, the "Open for service" button (build
+// Top bar: day, money, reputation (4.2★ with a change arrow since the day started), clock, phase badge, day bar, the "Open for service" button (build
 // phase only) and the speed segmented control (pause / 1x / 2x / 4x).
 
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
-import { clockText, formatMoney, PHASE_TEXT, phaseKey } from './format.ts'
+import { reputationOf } from '../sim/customers.ts'
+import { clockText, formatMoney, PHASE_TEXT, phaseKey, reputationView } from './format.ts'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
 
@@ -21,6 +22,8 @@ export default function TopBar({ store, snap }: { store: GameStore; snap: Snapsh
   const s = snap.state
   const phase = PHASE_TEXT[phaseKey(s)]
   const pct = (Math.min(s.dayTick, DAY_TICKS) / DAY_TICKS) * 100
+  const rep = reputationView(reputationOf(s), s.repAtDayStart)
+  const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
       <dl className="stat">
@@ -30,6 +33,16 @@ export default function TopBar({ store, snap }: { store: GameStore; snap: Snapsh
       <dl className="stat">
         <dt>Money</dt>
         <dd className="num money">{formatMoney(s.money)}</dd>
+      </dl>
+      <dl className="stat" title={repLabel}>
+        <dt>Rating</dt>
+        <dd className="num rep">
+          <span aria-hidden="true">{rep.text}★</span>
+          <span className="sr-only">{repLabel}</span>
+          <span className={`rep-delta${rep.dir === null ? '' : ` ${rep.dir}`}`} aria-hidden="true">
+            {rep.dir === 'up' ? '▲' : rep.dir === 'down' ? '▼' : ''}
+          </span>
+        </dd>
       </dl>
       <dl className="stat">
         <dt>Time</dt>

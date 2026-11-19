@@ -101,6 +101,7 @@ export function createGame(defs: Defs, seed: string): GameState {
     menu: fries === undefined ? [] : [{ dish: fries.id, price: fries.refPrice }],
     waiting: [],
     ratings: new Array<number>(INITIAL_RATING_COUNT).fill(INITIAL_RATING_VALUE),
+    repAtDayStart: INITIAL_RATING_VALUE,
     today: emptyDayStats(1),
     lastDay: null,
     totals: { served: 0, profit: 0, days: 0 },

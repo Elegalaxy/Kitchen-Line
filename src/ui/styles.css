@@ -392,6 +392,36 @@ kbd {
   }
 }
 
+/* Reputation (Step 12): fixed width so the arrow never shifts the bar */
+.stat .rep {
+  min-width: 7ch;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.rep-delta {
+  display: inline-block;
+  width: 2ch;
+  margin-left: 0.5ch;
+  font-size: 0.75rem;
+}
+
+.rep-delta.up {
+  color: var(--good);
+}
+
+.rep-delta.down {
+  color: var(--bad);
+}
+
 /* Day cycle (Step 10): clock, phase badge, day bar, primary and summary */
 .stat .clock {
   min-width: 5ch;

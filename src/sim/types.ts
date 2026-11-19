@@ -92,8 +92,14 @@ export type DayStats = {
   wasteBinned: number
   wasteDestroyed: number
   byDish: Record<DishId, { served: number; lost: number; sales: number }>
-  reviews: { stars: number; text: string; dish: DishId | null }[]
+  reviews: Review[]
 }
+
+/** The main reason behind a rating (plan Step 12); picks the review template. */
+export type ReviewReason = 'waitedLong' | 'overpriced' | 'notFirstChoice' | 'noMatch' | 'queueFull' | 'gaveUp' | 'great'
+
+/** A written review kept in `DayStats.reviews`. */
+export type Review = { stars: number; text: string; dish: DishId | null; reason: ReviewReason }
 
 /** Parts of a service day (plan 2.5). */
 export type DayPhase = 'open' | 'lunchRush' | 'quiet' | 'dinnerRush' | 'closing'
@@ -163,6 +169,8 @@ export type GameState = {
   menu: { dish: DishId; price: number }[]
   waiting: Customer[]
   ratings: number[]
+  /** Reputation when today's service opened (the TopBar change arrow compares against it). */
+  repAtDayStart: number
   today: DayStats
   lastDay: DayStats | null
   totals: { served: number; profit: number; days: number }
@@ -226,6 +234,11 @@ export type Defs = {
   buildings: Record<BuildingKind, BuildingDef>
   stationRecipes: StationRecipe[]
   dishes: Record<DishId, DishDef>
+  /**
+   * Review text variants per reason, with `{dish}` and `{pref}` placeholders (content/reviewText.ts).
+   * Optional so test fixtures can omit it; without it the review text is the reason key.
+   */
+  reviewTemplates?: Record<ReviewReason, string[]>
 }
 
 // ---- Commands -----------------------------------------------------------
