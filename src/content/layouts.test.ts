@@ -4,6 +4,7 @@
 // that need unlocked recipes or extra money get them from LAYOUT_SETUP (dev loader).
 
 import { describe, expect, it } from 'vitest'
+import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import { applyLayout } from '../sim/layout.ts'
 import { runTicks } from '../sim/tick.ts'
@@ -20,7 +21,7 @@ function load(name: string): GameState {
   if (commands === undefined) throw new Error(`no layout ${name}`)
   const out = applyLayout(createGame(DEFS, 'test'), DEFS, commands, LAYOUT_SETUP[name])
   expect(out.rejected, `${name} rejected commands`).toEqual([])
-  return out.state
+  return applyCommand(out.state, DEFS, { type: 'openService' }).state // time only passes in service (Step 10)
 }
 
 const DISH_LINES: [layout: string, dish: string][] = [

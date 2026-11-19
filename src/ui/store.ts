@@ -174,7 +174,7 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
   return store
 }
 
-/** Fresh game with the named layout's commands applied; unknown names are ignored. */
+/** Fresh game with the named layout's commands applied and service open; unknown names are ignored. */
 export function newGameState(defs: Defs, layout: string | null, seed = 'kitchen-line'): GameState {
   const state = createGame(defs, seed)
   if (layout === null) return state
@@ -185,7 +185,9 @@ export function newGameState(defs: Defs, layout: string | null, seed = 'kitchen-
   }
   const out = applyLayout(state, defs, commands, LAYOUT_SETUP[layout])
   for (const why of out.rejected) debugLog('[store]', `layout ${layout}: ${why}`)
-  return out.state
+  // Time only passes in service, so a dev layout opens service right after it is built
+  // (nothing warms up: the layout was placed in the build phase).
+  return applyCommand(out.state, defs, { type: 'openService' }).state
 }
 
 let singleton: GameStore | null = null

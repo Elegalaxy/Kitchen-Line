@@ -209,7 +209,7 @@ describe('place and remove', () => {
   it('rejects commands in the wrong phase and not-yet-built commands', () => {
     const summary = deepFreeze({ ...structuredClone(createGame(DEFS, 't')), phase: 'summary' as const })
     expectRejected(summary, { type: 'place', kind: 'bin', x: 1, y: 1, dir: 0 }, 'wrong phase')
-    expectRejected(fresh(), { type: 'openService' }, 'not implemented')
+    expectRejected(fresh(), { type: 'buyExpansion' }, 'not implemented')
   })
 
   it('counts destroyed items on remove and warms up non-belt buildings during service', () => {

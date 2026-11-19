@@ -52,6 +52,7 @@ function empty(): GameState {
   s.tiles = new Array<number | null>(81).fill(null)
   s.buildings = {}
   s.nextId = 1
+  s.phase = 'service' // time only passes in service (Step 10)
   return s
 }
 

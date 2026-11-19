@@ -72,6 +72,7 @@ function line(dir: Dir, end: 'pass' | 'bin' | 'none'): GameState {
   for (let i = 0; i < BELTS; i += 1) put('belt')
   if (end === 'pass') put('pass')
   if (end === 'bin') put('bin')
+  s.phase = 'service' // time only passes in service (Step 10)
   return s
 }
 

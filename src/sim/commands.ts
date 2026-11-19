@@ -2,13 +2,14 @@
 // Commands are untrusted. The input state is never mutated: a valid command works on one
 // structuredClone; a rejected command returns the ORIGINAL state object untouched and a
 // `commandRejected` event inside the result (not in state.events, so the state hash is
-// unchanged). Handled now: place, remove, rotate, configure. Money is integer cents:
+// unchanged). Handled now: place, remove, rotate, configure, openService, dismissSummary. Money is integer cents:
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
-// do not). The other command types arrive in later steps and are rejected for now.
+// do not). setMenu, setPrice and unlockRecipe arrive in Step 14: until then they are rejected, with
+// 'Menu is locked during service' during service. The other types are rejected for now.
 
 import { START_INGREDIENT, WARMUP_TICKS } from './constants.ts'
-import { newBuilding } from './game.ts'
+import { emptyDayStats, newBuilding } from './game.ts'
 import {
   buildingAt,
   canPlace,
@@ -193,6 +194,26 @@ function configure(state: GameState, defs: Defs, cmd: Extract<Command, { type: '
   return { state: next, result: { ok: true } }
 }
 
+/** build -> service: the clock restarts at 0 and today's stats are fresh. */
+function openService(state: GameState, cmd: Command): ApplyOutcome {
+  if (state.phase !== 'build') return reject(state, cmd, 'wrong phase')
+  const next = structuredClone(state)
+  next.phase = 'service'
+  next.dayTick = 0
+  next.today = emptyDayStats(next.day)
+  return { state: next, result: { ok: true } }
+}
+
+/** summary -> build: the next day starts (day + 1, clock back to 0). */
+function dismissSummary(state: GameState, cmd: Command): ApplyOutcome {
+  if (state.phase !== 'summary') return reject(state, cmd, 'wrong phase')
+  const next = structuredClone(state)
+  next.phase = 'build'
+  next.day += 1
+  next.dayTick = 0
+  return { state: next, result: { ok: true } }
+}
+
 export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
   if (typeof cmd !== 'object' || cmd === null) return reject(state, cmd, 'invalid command')
   switch (cmd.type) {
@@ -207,10 +228,14 @@ export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyO
     case 'setMenu':
     case 'setPrice':
     case 'unlockRecipe':
+      // The menu is locked while service runs. The commands themselves arrive in Step 14.
+      return reject(state, cmd, state.phase === 'service' ? 'Menu is locked during service' : 'not implemented')
+    case 'openService':
+      return openService(state, cmd)
+    case 'dismissSummary':
+      return dismissSummary(state, cmd)
     case 'buyExpansion':
     case 'upgradeTier':
-    case 'openService':
-    case 'dismissSummary':
       return reject(state, cmd, 'not implemented')
     default:
       return reject(state, cmd, 'invalid command')

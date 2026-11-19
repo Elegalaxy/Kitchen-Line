@@ -86,6 +86,9 @@ export type DayStats = {
   reviews: { stars: number; text: string; dish: DishId | null }[]
 }
 
+/** Parts of a service day (plan 2.5). */
+export type DayPhase = 'open' | 'lunchRush' | 'quiet' | 'dinnerRush' | 'closing'
+
 export type RejectReason =
   | 'invalid command'
   | 'invalid config'
@@ -99,6 +102,7 @@ export type RejectReason =
   | 'pass cannot be removed'
   | 'pass cannot be placed'
   | 'not implemented'
+  | 'Menu is locked during service'
 
 /**
  * Events are cleared at the start of each tick (Step 3). `applyCommand` does not

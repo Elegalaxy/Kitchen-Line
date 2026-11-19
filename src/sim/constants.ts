@@ -32,3 +32,14 @@ export const PASS_SHELF_CAP = 4
 /** Plan 2.5 / GAME_DESIGN 5.3: an assembler takes 30 ticks per dish and holds up to 2 of each input. */
 export const ASSEMBLER_TICKS = 30
 export const ASSEMBLER_INPUT_CAP = 2
+/** Plan 2.5 / GAME_DESIGN 4: a day is 2400 ticks of service (4 min at 1x). Clock shows 11:00 to 22:00. */
+export const DAY_TICKS = 2400
+/** Plan 2.5: phase start ticks within a day (GAME_DESIGN 4). Each phase runs until the next start. */
+export const DAY_PHASE_STARTS = [
+  { phase: 'open', from: 0 },
+  { phase: 'lunchRush', from: 240 },
+  { phase: 'quiet', from: 840 },
+  { phase: 'dinnerRush', from: 1380 },
+  { phase: 'quiet', from: 1980 },
+  { phase: 'closing', from: 2280 },
+] as const

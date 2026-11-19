@@ -86,6 +86,7 @@ function build(cmds: Command[]): GameState {
     if (!out.result.ok) throw new Error(`command failed: ${out.result.reason}`)
     s = out.state
   }
+  s.phase = 'service' // time only passes in service (Step 10); set after building so nothing warms up
   return s
 }
 

@@ -13,9 +13,11 @@
 //   - Assembler (stations.ts): same pattern with a recipe; 30 ticks once every input is held.
 //   - Splitter/merger/filter (logistics.ts): push the one-item buffer out, non-belts first.
 //   - Pass and bin accept items via transfer.ts. Buildings still warming up are skipped.
-// Updates depend on belt chains only, never on coordinates, so every facing behaves alike.
+// Time only passes in the `service` phase (day.ts): `runTicks` does nothing otherwise and
+// stops the tick the day ends. Updates depend on belt chains only, never on coordinates, so every facing behaves alike.
 
 import { BELT_STEP_TICKS, FAST_BELT_STEP_TICKS } from './constants.ts'
+import { advanceDayClock } from './day.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { stepRouting } from './logistics.ts'
 import { updateOrder } from './order.ts'
@@ -130,17 +132,19 @@ export function stepTick(state: GameState, defs: Defs): void {
     }
   }
   state.tick += 1
+  advanceDayClock(state)
 }
 
 /**
- * Run `n` ticks on a clone of `state`. The input is never mutated. `onTickEvents`, if
+ * Run up to `n` ticks of service on a clone of `state` (none outside the service phase). The input is never mutated. `onTickEvents`, if
  * given, is called after every tick with that tick's events (`state.events` only keeps
  * the last tick's), so a caller running a batch can still see every event.
  */
 export function runTicks(state: GameState, defs: Defs, n: number, onTickEvents?: (events: SimEvent[]) => void): GameState {
   const draft = structuredClone(state)
   if (!Number.isInteger(n) || n < 0) return draft
-  for (let i = 0; i < n; i += 1) {
+  // Time only passes during service; the loop stops when the day ends (phase -> summary).
+  for (let i = 0; i < n && draft.phase === 'service'; i += 1) {
     stepTick(draft, defs)
     if (onTickEvents !== undefined && draft.events.length > 0) onTickEvents(draft.events)
   }

@@ -32,6 +32,7 @@ describe('itemMotion', () => {
   it('tracks belt items, glides them, and forgets removed ones', () => {
     let s = createGame(DEFS, 'seed')
     for (const c of LAYOUTS['demoBeltLine']) s = applyCommand(s, DEFS, c).state
+    s = applyCommand(s, DEFS, { type: 'openService' }).state // time only passes in service (Step 10)
     const motion = createItemMotion()
     s = runTicks(s, DEFS, 1)
     const first = motion.update(s, 16, 1)

@@ -74,6 +74,17 @@ export default function App() {
   return (
     <main className="app">
       <TopBar store={store} snap={snap} />
+      {snap.state.phase === 'summary' && (
+        <section className="panel summary" aria-label="Day summary">
+          {/* Placeholder: the real end-of-day summary arrives in Step 15. */}
+          <p className="summary-text">
+            <strong>Day {snap.state.day} is over.</strong> The full summary comes later; continue to build for the next day.
+          </p>
+          <button type="button" className="btn-primary" onClick={() => store.dispatch({ type: 'dismissSummary' })}>
+            Continue
+          </button>
+        </section>
+      )}
       <div className="workspace">
         <div className="stage">
           <GridCanvas store={store} ui={uiStore} />

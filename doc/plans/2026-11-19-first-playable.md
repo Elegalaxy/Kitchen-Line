@@ -395,7 +395,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 10: Day cycle, phases, warm-up, clock
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/sim/day.ts` (`phaseAt`, `endDay`, `advanceDayClock`) plus `DAY_TICKS` and `DAY_PHASE_STARTS` in `constants.ts`; `stepTick` advances `dayTick` and ends the day at 2400 (`lastDay = today`, `totals.days++`, phase `summary`, `dayTick` stays 2400); `runTicks` runs only in `service` and stops when the day ends. `openService` (build only, `dayTick = 0`, fresh `today`) and `dismissSummary` (summary only, `day++`, `dayTick = 0`) are in `commands.ts` (not `day.ts`, to avoid an import cycle with `game.ts`). Warm-up was already in Step 2. `setMenu`, `setPrice` and `unlockRecipe` do not exist yet (Step 14): they are rejected with the new reason 'Menu is locked during service' in service and 'not implemented' otherwise. TopBar: `HH:MM` clock, phase badge (icon plus word), day bar with striped, labelled rush bands, primary 'Open for service' (build only); a placeholder summary banner with 'Continue' in `App.tsx` (real summary: Step 15). Dev `?layout=` loader (`newGameState`) opens service after the layout. `day.test.ts` (7 tests); existing sim, layout and canvas tests got a service phase in their fixtures, no asserted numbers changed. typecheck, test, lint and build pass; in the in-app browser the clock ran, the badge and bar updated, the day ended at 22:00 at 4x, Continue went to day 2 build, no console errors, 375 px width checked.
 - Depends on: 9
 - Files: `src/sim/day.ts`, `src/sim/game.ts`, `src/sim/tick.ts`, `src/sim/day.test.ts`, `src/ui/TopBar.tsx`, `src/ui/App.tsx`
 - What changes:
