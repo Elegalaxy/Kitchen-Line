@@ -53,7 +53,7 @@ export type Building = Base &
         output: Item | null
         progress: number
       }
-    | { kind: 'pass'; shelf: Item[] }
+    | { kind: 'pass'; shelf: Item[]; delivered: number }
     | { kind: 'bin' }
   )
 
@@ -115,6 +115,9 @@ export type SimEvent =
       refund: number
       destroyed: number
     }
+  | { type: 'emit'; tick: number; x: number; y: number; item: ItemId; cost: number }
+  | { type: 'delivered'; tick: number; x: number; y: number; item: ItemId }
+  | { type: 'binned'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
 export type GameState = {
@@ -133,6 +136,8 @@ export type GameState = {
   tiles: (number | null)[]
   buildings: Record<number, Building>
   nextId: number
+  /** Next item id; items are created by pantries. */
+  nextItemId: number
   money: number
   unlocked: DishId[]
   menu: { dish: DishId; price: number }[]

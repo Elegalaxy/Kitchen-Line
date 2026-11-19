@@ -23,3 +23,6 @@ export const INITIAL_RATING_COUNT = 10
 export const INITIAL_RATING_VALUE = 3
 /** Plan 2.5: a building placed during service is offline for 30 ticks. */
 export const WARMUP_TICKS = 30
+/** Plan Step 3 / 2.5: a belt moves a half-tile step every 3 ticks (fast belt: 2). */
+export const BELT_STEP_TICKS = 3
+export const FAST_BELT_STEP_TICKS = 2

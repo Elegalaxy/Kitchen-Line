@@ -69,7 +69,7 @@ export function newBuilding(
     case 'assembler':
       return { ...base, kind, recipe: null, inputs: {}, output: null, progress: 0 }
     case 'pass':
-      return { ...base, kind, shelf: [] }
+      return { ...base, kind, shelf: [], delivered: 0 }
     case 'bin':
       return { ...base, kind }
   }
@@ -95,6 +95,7 @@ export function createGame(defs: Defs, seed: string): GameState {
     tiles: new Array<number | null>(START_WIDTH * START_HEIGHT).fill(null),
     buildings: {},
     nextId: 1,
+    nextItemId: 1,
     money: START_MONEY,
     unlocked,
     menu: fries === undefined ? [] : [{ dish: fries.id, price: fries.refPrice }],
@@ -115,3 +116,5 @@ export function createGame(defs: Defs, seed: string): GameState {
   }
   return state
 }
+
+export { runTicks } from './tick.ts'
