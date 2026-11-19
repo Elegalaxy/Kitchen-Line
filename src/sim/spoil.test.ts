@@ -86,6 +86,7 @@ describe('spoilage', () => {
     const after = runTo(s, 601)
     expect(buildingItems(after.buildings[belt.id]).length).toBe(0)
     expect(after.today.wasteSpoiled).toBe(1)
+    expect(after.today.spoiledByItem).toEqual({ slicedTomato: 1 })
     expect(after.events).toEqual([{ type: 'spoiled', tick: 600, x: 3, y: 4, item: 'slicedTomato' }])
     // The event lives only in the tick it happened; the count stays 1.
     expect(runTo(s, 602).events).toEqual([])

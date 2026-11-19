@@ -19,6 +19,7 @@ export function phaseAt(dayTick: number): DayPhase {
 /** Mutates `state`: end the day (service -> summary). Called when dayTick reaches DAY_TICKS. */
 export function endDay(state: GameState): void {
   dropLeftovers(state) // Q6: still-waiting customers leave unrated and uncounted
+  state.prevDay = state.lastDay
   state.lastDay = state.today
   state.totals.days += 1
   state.phase = 'summary'

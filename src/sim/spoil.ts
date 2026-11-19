@@ -96,6 +96,7 @@ export function stepSpoilage(state: GameState, defs: Defs): void {
     if (b === undefined) continue
     for (const item of removeSpoiled(b, defs, state.tick)) {
       state.today.wasteSpoiled += 1
+      state.today.spoiledByItem[item.type] = (state.today.spoiledByItem[item.type] ?? 0) + 1
       state.events.push({ type: 'spoiled', tick: state.tick, x: b.x, y: b.y, item: item.type })
     }
   }

@@ -89,6 +89,8 @@ export type DayStats = {
   lostFull: number
   waitTicksTotal: number
   wasteSpoiled: number
+  /** Spoiled items today per item type (sums to wasteSpoiled); feeds the summary hint (Step 15). */
+  spoiledByItem: Record<ItemId, number>
   wasteBinned: number
   wasteDestroyed: number
   byDish: Record<DishId, { served: number; lost: number; sales: number }>
@@ -178,6 +180,8 @@ export type GameState = {
   repAtDayStart: number
   today: DayStats
   lastDay: DayStats | null
+  /** The day before `lastDay` (set when a day ends); the summary shows deltas against it (Step 15). */
+  prevDay: DayStats | null
   totals: { served: number; profit: number; days: number }
   goalsDone: string[]
   events: SimEvent[]

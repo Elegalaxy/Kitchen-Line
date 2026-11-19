@@ -1,0 +1,257 @@
+// End-of-day summary modal (plan Step 15), shown when the phase is `summary`. KPI cards,
+// a key-value block, a per-dish table, up to 3 reviews (lowest first), the bottleneck hint
+// and one primary button. Esc does not dismiss; focus starts on the button and is trapped.
+// Layout is fixed from day to day: all dishes always get a row, there are always 3 review
+// slots and the delta lines are always reserved, so the dialog does not change size.
+
+import { useEffect, useMemo, useRef } from 'react'
+import type { KeyboardEvent } from 'react'
+import { reputationOf } from '../sim/customers.ts'
+import { summarizeDay } from '../sim/summary.ts'
+import type { Defs, GameState } from '../sim/types.ts'
+import {
+  countDelta,
+  hintText,
+  MAX_REVIEWS,
+  moneyDelta,
+  pickReviews,
+  pointsDelta,
+  secondsDelta,
+  starsDelta,
+  starsText,
+} from './daySummaryView.ts'
+import type { DeltaView } from './daySummaryView.ts'
+import { formatMoney } from './format.ts'
+
+function Delta({ d }: { d: DeltaView | null }) {
+  if (d === null) return <span className="sum-delta flat">&nbsp;</span>
+  return (
+    <span className={`sum-delta ${d.tone}`}>
+      <span aria-hidden="true">{d.arrow}</span> {d.text}
+    </span>
+  )
+}
+
+function Card(props: { label: string; value: string; sub?: string; delta: DeltaView | null; tone?: string }) {
+  return (
+    <div className="sum-card">
+      <dt>{props.label}</dt>
+      <dd className={`num sum-value ${props.tone ?? ''}`}>{props.value}</dd>
+      <dd className="num sum-sub">{props.sub ?? ' '}</dd>
+      <dd className="sum-deltarow num">
+        <Delta d={props.delta} />
+      </dd>
+    </div>
+  )
+}
+
+function Row({ k, v }: { k: string; v: string | number }) {
+  return (
+    <div className="sum-row">
+      <dt>{k}</dt>
+      <dd className="num">{v}</dd>
+    </div>
+  )
+}
+
+export default function DaySummary({ state, defs, onDismiss }: { state: GameState; defs: Defs; onDismiss: () => void }) {
+  const last = state.lastDay
+  const rep = reputationOf(state)
+  const sum = useMemo(
+    () => (last === null ? null : summarizeDay(last, state.prevDay, { now: rep, atDayStart: state.repAtDayStart })),
+    [last, state.prevDay, rep, state.repAtDayStart],
+  )
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    buttonRef.current?.focus()
+  }, [])
+
+  if (last === null || sum === null) return null
+
+  // Keep every key inside the dialog (no hotkeys behind it). Esc does nothing. Tab cycles
+  // between the dialog's focusable elements.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
+    e.stopPropagation()
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      return
+    }
+    if (e.key !== 'Tab') return
+    const nodes = dialogRef.current?.querySelectorAll<HTMLElement>('button, [tabindex="0"]')
+    if (nodes === undefined || nodes.length === 0) return
+    const first = nodes[0]
+    const lastNode = nodes[nodes.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      lastNode.focus()
+    } else if (!e.shiftKey && document.activeElement === lastNode) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
+  const hint = hintText(sum.bottleneckHint, defs)
+  const reviews = pickReviews(last.reviews)
+  const d = sum.deltas
+  const dishName = (id: string): string => defs.dishes[id]?.name ?? id
+  const stats = new Map(sum.dishes.map((r) => [r.dish, r]))
+  const dishIds = [...Object.keys(defs.dishes), ...sum.dishes.map((r) => r.dish).filter((id) => defs.dishes[id] === undefined)]
+
+  return (
+    <div className="modal-backdrop">
+      <div
+        ref={dialogRef}
+        className="modal summary-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sum-title"
+        onKeyDown={onKeyDown}
+      >
+        <h2 id="sum-title" className="sum-title">
+          Day {sum.day} summary
+        </h2>
+
+        <dl className="sum-cards">
+          <Card
+            label="Profit"
+            value={formatMoney(sum.profit)}
+            tone={sum.profit < 0 ? 'bad' : 'money'}
+            delta={moneyDelta(d === null ? null : d.profit)}
+          />
+          <Card
+            label="Served / Customers"
+            value={`${sum.served} / ${sum.customers}`}
+            sub={sum.servedPct === null ? '–' : `${sum.servedPct}% served`}
+            delta={countDelta(d === null ? null : d.served)}
+          />
+          <Card
+            label="Reputation"
+            value={`${sum.reputation.toFixed(1)}★`}
+            sub="change over the day"
+            delta={starsDelta(sum.reputationDelta)}
+          />
+          <Card
+            label="Average wait"
+            value={sum.avgWaitSec === null ? '–' : `${sum.avgWaitSec.toFixed(1)} s`}
+            delta={secondsDelta(d === null ? null : d.avgWaitSec)}
+          />
+        </dl>
+        <p className="sum-note num">
+          {d === null ? (
+            'First day: nothing to compare with yet.'
+          ) : (
+            <>
+              Versus day {sum.day - 1}. Served rate: <Delta d={pointsDelta(d.servedPct)} />
+              {d.servedPct === null && '–'}
+            </>
+          )}
+        </p>
+
+        <div className="sum-grid">
+          <section aria-labelledby="sum-money">
+            <h3 id="sum-money" className="panel-title">
+              Money, losses and waste
+            </h3>
+            <dl className="sum-kv">
+              <Row k="Sales" v={formatMoney(sum.sales)} />
+              <Row k="Ingredient cost" v={formatMoney(sum.ingredientCost)} />
+              <Row k="Lost: ran out of patience" v={last.lostPatience} />
+              <Row k="Lost: no match" v={last.lostNoMatch} />
+              <Row k="Lost: queue full" v={last.lostFull} />
+              <Row k="Waste: spoiled" v={last.wasteSpoiled} />
+              <Row k="Waste: binned" v={last.wasteBinned} />
+              <Row k="Waste: destroyed" v={last.wasteDestroyed} />
+            </dl>
+          </section>
+
+          <section aria-labelledby="sum-dishes">
+            <h3 id="sum-dishes" className="panel-title">
+              By dish
+            </h3>
+            <table className="sum-table">
+              <thead>
+                <tr>
+                  <th scope="col">Dish</th>
+                  <th scope="col" className="num">
+                    Served
+                  </th>
+                  <th scope="col" className="num">
+                    Lost
+                  </th>
+                  <th scope="col" className="num">
+                    Sales
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {dishIds.map((id) => {
+                  const r = stats.get(id)
+                  return (
+                    <tr key={id} className={r === undefined ? 'idle' : ''}>
+                      <th scope="row" title={dishName(id)}>
+                        <span className="sum-dishname">{dishName(id)}</span>
+                        {sum.worstDish === id && (
+                          <span title="Most customers lost on this dish">
+                            <span aria-hidden="true"> ⚠</span>
+                            <span className="sr-only"> most lost</span>
+                          </span>
+                        )}
+                      </th>
+                      <td className="num">{r?.served ?? 0}</td>
+                      <td className="num">{r?.lost ?? 0}</td>
+                      <td className="num">{formatMoney(r?.sales ?? 0)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <section aria-labelledby="sum-reviews">
+          <h3 id="sum-reviews" className="panel-title">
+            Reviews (lowest first)
+          </h3>
+          <ul className="sum-reviews">
+            {Array.from({ length: MAX_REVIEWS }, (_, i) => {
+              const r = reviews[i]
+              if (r === undefined) {
+                return (
+                  <li key={i} className="sum-review empty">
+                    {i === 0 ? 'No reviews today.' : ' '}
+                  </li>
+                )
+              }
+              return (
+                <li key={i} className="sum-review">
+                  <span className="sum-stars num" aria-label={`${r.stars} of 5 stars`}>
+                    <span aria-hidden="true">
+                      {starsText(r.stars)} {r.stars}
+                    </span>
+                  </span>
+                  <span className="sum-reviewtext" title={r.text}>
+                    {r.text}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+
+        <p className={`sum-hint${hint === null ? ' none' : ''}`}>
+          <span aria-hidden="true">{hint === null ? 'ℹ' : '💡'}</span>{' '}
+          {hint ??
+            (sum.customers === 0
+              ? 'No customers came today. Check your menu, prices and reputation.'
+              : 'No bottleneck: nobody was lost and nothing spoiled.')}
+        </p>
+
+        <button ref={buttonRef} type="button" className="btn-primary sum-button" onClick={onDismiss}>
+          Back to kitchen
+        </button>
+      </div>
+    </div>
+  )
+}

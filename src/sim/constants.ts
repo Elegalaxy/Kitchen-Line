@@ -93,3 +93,6 @@ export const MENU_CAP: Record<Tier, number> = { stall: 4, restaurant: 6 }
 export const PRICE_MIN_PERCENT = 50
 export const PRICE_MAX_PERCENT = 300
 export const PRICE_STEP = 10
+
+/** Ticks per second at 1x (plan 2.5). Used to show waits in seconds. */
+export const TICKS_PER_SECOND = 10

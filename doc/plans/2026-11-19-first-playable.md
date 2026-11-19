@@ -479,7 +479,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 15: End-of-day summary
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/sim/summary.ts` (`summarizeDay(stats, prevStats, {now, atDayStart})`, `bottleneckHintOf`, `worstDishOf`; rule: largest of lostPatience / lostNoMatch / wasteSpoiled wins, ties patience then noMatch then waste, no hint when all 0; the dish for patience is the dish with the most losses, the item for waste is the most-spoiled item) with `summary.test.ts`; modal `src/ui/DaySummary.tsx` plus helpers `daySummaryView.ts` (tested) replace the Step 10 placeholder banner in `App.tsx`. Sim additions: `DayStats.spoiledByItem` (recorded in `spoil.ts`), `GameState.prevDay` (set in `endDay`, feeds the deltas), `TICKS_PER_SECOND` constant; hashes change (no fixtures held any). `totals.profit` is still not updated (no step says where; Step 16 goals will need it). No existing test changed except one added assertion in `spoil.test.ts`. typecheck, test, lint and build pass; checked in the in-app browser (friesLine day 1 and 2 at 4x: all numbers filled, focus on the primary button, Esc ignored, Tab trapped, Back to kitchen returns to build, deltas on day 2, dialog size identical on both days, 375 px scrolls inside the modal with no page scroll, no console errors).
 - Depends on: 14
 - Files: `src/ui/DaySummary.tsx`, `src/sim/summary.ts`, `src/sim/summary.test.ts`, `src/ui/App.tsx`
 - What changes:

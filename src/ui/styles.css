@@ -513,16 +513,255 @@ kbd {
   background: color-mix(in srgb, var(--info) 28%, transparent);
 }
 
-.summary {
+/* End-of-day summary modal (Step 15). Fixed width and reserved rows so the size does not
+   change between days; on narrow screens the modal scrolls inside itself. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
 }
 
-.summary-text {
+.modal {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 680px;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  border: 1px solid var(--text-faint);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sum-title {
   margin: 0;
-  flex: 1 1 200px;
+  font-size: 1.25rem;
+}
+
+.sum-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.sum-card {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.sum-card dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  min-height: 2.4em;
+}
+
+.sum-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sum-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  min-height: 1.5em;
+}
+
+.sum-value.money {
+  color: var(--money);
+}
+
+.sum-value.bad {
+  color: var(--bad);
+}
+
+.sum-sub {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  min-height: 1.3em;
+}
+
+.sum-deltarow {
+  min-height: 1.4em;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sum-delta.good {
+  color: var(--good);
+}
+
+.sum-delta.bad {
+  color: var(--bad);
+}
+
+.sum-delta.flat {
+  color: var(--text-muted);
+}
+
+.sum-note {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sum-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.sum-kv {
+  margin: 0;
+}
+
+.sum-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-faint) 40%, transparent);
+  font-size: 0.875rem;
+}
+
+.sum-row dt {
+  color: var(--text-muted);
+}
+
+.sum-row dd {
+  margin: 0;
+  min-width: 6ch;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.sum-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.sum-table th,
+.sum-table td {
+  padding: 3px 0 3px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-faint) 40%, transparent);
+  text-align: left;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sum-table thead th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.sum-table th:first-child {
+  width: 34%;
+  padding-left: 0;
+}
+
+.sum-table .num {
+  text-align: right;
+}
+
+.sum-table tr.idle td,
+.sum-table tr.idle th {
+  color: var(--text-faint);
+}
+
+.sum-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sum-review {
+  box-sizing: border-box;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  height: 2.9em;
+  overflow: hidden;
+  padding: 4px 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.sum-review.empty {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.sum-stars {
+  flex: none;
+  min-width: 9ch;
+  color: var(--warn);
+  white-space: nowrap;
+}
+
+.sum-reviewtext {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.sum-hint {
+  box-sizing: border-box;
+  margin: 0;
+  min-height: 3em;
+  padding: 8px 10px;
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.sum-hint.none {
+  border-color: var(--text-faint);
+  color: var(--text-muted);
+}
+
+.sum-button {
+  align-self: flex-end;
+}
+
+@media (max-width: 560px) {
+  .sum-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sum-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sum-button {
+    align-self: stretch;
+  }
 }
 
 /* Orders strip (Step 11): fixed-size chips, so capacity is shown as empty slots and nothing

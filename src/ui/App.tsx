@@ -3,6 +3,7 @@ import type { Defs } from '../sim/types.ts'
 import { handleHotkey } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import GridCanvas from './canvas/GridCanvas.tsx'
+import DaySummary from './DaySummary.tsx'
 import { debugLog } from './debug.ts'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
@@ -75,15 +76,7 @@ export default function App() {
     <main className="app">
       <TopBar store={store} snap={snap} />
       {snap.state.phase === 'summary' && (
-        <section className="panel summary" aria-label="Day summary">
-          {/* Placeholder: the real end-of-day summary arrives in Step 15. */}
-          <p className="summary-text">
-            <strong>Day {snap.state.day} is over.</strong> The full summary comes later; continue to build for the next day.
-          </p>
-          <button type="button" className="btn-primary" onClick={() => store.dispatch({ type: 'dismissSummary' })}>
-            Continue
-          </button>
-        </section>
+        <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })} />
       )}
       <div className="workspace">
         <div className="stage">
