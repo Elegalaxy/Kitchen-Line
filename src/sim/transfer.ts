@@ -11,8 +11,10 @@
 //         shelf, from any side. Until customers exist (Step 11) a dish is served at once:
 //         it counts in `delivered` and `today.served` and never stays on the shelf.
 //   bin:  accepts any item from any side and counts it as binned waste.
+//   splitter/merger/filter: one-item buffer, see logistics.ts (`acceptRouting`).
 // Every other kind refuses for now (their steps add acceptance).
 
+import { acceptRouting } from './logistics.ts'
 import { PASS_SHELF_CAP, STATION_INPUT_CAP } from './constants.ts'
 import type { Building, Defs, Dir, GameState, Item, ItemId, StationRecipe } from './types.ts'
 
@@ -43,6 +45,10 @@ export function tryInsert(state: GameState, defs: Defs, building: Building, item
       building.input.push(item)
       return true
     }
+    case 'splitter':
+    case 'merger':
+    case 'filter':
+      return acceptRouting(state, building, item, fromDir)
     case 'pass': {
       if (defs.items[item.type]?.kind !== 'dish') return false
       if (building.shelf.length >= PASS_SHELF_CAP) return false

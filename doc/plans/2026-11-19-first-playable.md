@@ -354,7 +354,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 7: Splitter, merger, filter
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `logistics.ts` (splitter/merger/filter, one-item buffers, `rr` round-robin), acceptance via `transfer.ts`, drawn with exit/entrance arrows, `routingDemo` layout; `logistics.test.ts` shows splitter 20/20 and 40/0 (one side blocked), merger 98/98 (two inputs) and 99/99/98 (three), filter routes only tomatoes left; typecheck, test, lint and build pass; `?layout=routingDemo` loaded in the in-app browser with no console errors, items seen moving on the tomato branch and main line.
 - Depends on: 6
 - Files: `src/sim/logistics.ts`, `src/sim/transfer.ts`, `src/sim/tick.ts`, `src/sim/logistics.test.ts`, `src/ui/canvas/draw.ts`, `src/ui/Inspector.tsx`
 - What changes:

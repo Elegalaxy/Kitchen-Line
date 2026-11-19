@@ -43,7 +43,8 @@ export type Building = Base &
   (
     | { kind: 'belt'; fast: boolean; slots: [Item | null, Item | null]; stalled: boolean }
     | { kind: 'pantry'; ingredient: ItemId; interval: number; cooldown: number }
-    | { kind: 'splitter' | 'merger'; buf: Item | null; rr: number }
+    | { kind: 'splitter'; buf: Item | null; rr: number }
+    | { kind: 'merger'; buf: Item | null; rr: number }
     | { kind: 'filter'; filterItem: ItemId | null; buf: Item | null }
     | { kind: 'chopper' | 'fryer' | 'stove'; input: Item[]; output: Item | null; progress: number }
     | {

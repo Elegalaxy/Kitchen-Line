@@ -106,6 +106,47 @@ function drawArrow(ctx: CanvasRenderingContext2D, cx: number, cy: number, dir: D
   ctx.restore()
 }
 
+/** Small arrow at a tile edge: `side` is the edge (from the tile centre); `outward` points it away from the tile. */
+function drawEdgeArrow(ctx: CanvasRenderingContext2D, cx: number, cy: number, side: Dir, outward: boolean, tile: number, color: string): void {
+  const ux = [0, 1, 0, -1][side] ?? 0
+  const uy = [-1, 0, 1, 0][side] ?? 0
+  if (outward) drawArrow(ctx, cx, cy, side, tile, color)
+  else drawArrow(ctx, cx + ux * tile * 0.85, cy + uy * tile * 0.85, ((side + 2) % 4) as Dir, tile, color)
+}
+
+/**
+ * Exits and entrances of the routing buildings (arrows beside the glyph, so the shape
+ * differs even without colour): splitter = out left and right, merger = in from left,
+ * right and back, filter = out left (with the chosen item's emoji, or a dash) plus the
+ * main front arrow.
+ */
+function drawRouting(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, cx: number, cy: number, tile: number, color: string): void {
+  if (b.kind !== 'splitter' && b.kind !== 'merger' && b.kind !== 'filter') return
+  const left = ((b.dir + 3) % 4) as Dir
+  const right = ((b.dir + 1) % 4) as Dir
+  const back = ((b.dir + 2) % 4) as Dir
+  if (b.kind === 'splitter') {
+    drawEdgeArrow(ctx, cx, cy, left, true, tile, color)
+    drawEdgeArrow(ctx, cx, cy, right, true, tile, color)
+  } else if (b.kind === 'merger') {
+    for (const side of [left, right, back]) drawEdgeArrow(ctx, cx, cy, side, false, tile, color)
+  } else {
+    drawEdgeArrow(ctx, cx, cy, left, true, tile, color)
+    const ux = [0, 1, 0, -1][left] ?? 0
+    const uy = [-1, 0, 1, 0][left] ?? 0
+    const item = b.filterItem === null ? undefined : defs.items[b.filterItem]
+    ctx.fillStyle = color
+    if (item === undefined) {
+      ctx.font = `bold ${Math.round(tile * 0.2)}px system-ui, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('–', cx + ux * tile * 0.3, cy + uy * tile * 0.3)
+    } else {
+      glyph(ctx, item.emoji, cx + ux * tile * 0.3, cy + uy * tile * 0.3, tile * 0.22)
+    }
+  }
+}
+
 function drawBelt(ctx: CanvasRenderingContext2D, x: number, y: number, dir: Dir, fast: boolean, stalled: boolean, tile: number, p: Palette): void {
   const cx = x * tile + tile / 2
   const cy = y * tile + tile / 2
@@ -250,6 +291,7 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   ctx.fillStyle = p.text
   glyph(ctx, defs.buildings[b.kind].emoji, cx, cy, tile * 0.46)
   drawArrow(ctx, cx, cy, b.dir, tile, tint)
+  drawRouting(ctx, b, defs, cx, cy, tile, tint)
   // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
   if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
   drawProgress(ctx, b, defs, tile, p)
