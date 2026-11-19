@@ -383,7 +383,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 9: Freshness, spoilage and waste
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/sim/spoil.ts` (`stepSpoilage`, `buildingItems`, `isSpoiled`) runs at the start of every tick after events are cleared; an item born at B spoils during tick B + `spoilTicks` (field is `spoilTicks`, not `shelfTicks`), wherever it is (belt, station input/output, assembler inputs/output, routing buffer, pass shelf), adding `today.wasteSpoiled` and a `spoiled` event with the building's anchor tile; the bin already counted `wasteBinned`. `runTicks` got an optional per-tick events callback so the store can collect `spoiled` events across a batch (`store.takeSpoils()`), which the canvas turns into 600 ms 🗑 puffs (UI only); items and stations in the last third of shelf life get a ⚠ badge and a pulsing `--warn` outline (steady under `prefers-reduced-motion`). `spoil.test.ts`: sliced tomato on a dead-end belt spoils at tick 600 exactly, a dish put on the pass shelf directly (the pass still serves at once) at 300, potatoes never, every holder kind, event positions, determinism; no existing test numbers changed; typecheck, test, lint and build pass; `?layout=soupLine` with the chopper removed in the in-app browser showed ⚠ plus outline, then the 🗑 puff, no console errors.
 - Depends on: 8
 - Files: `src/sim/spoil.ts`, `src/sim/tick.ts`, `src/sim/spoil.test.ts`, `src/ui/canvas/draw.ts`
 - What changes:

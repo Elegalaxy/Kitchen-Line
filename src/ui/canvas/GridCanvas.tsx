@@ -9,7 +9,8 @@ import { beginDrag, cancelAction, endDrag, primaryAt, removeAt } from '../action
 import { debugLog } from '../debug.ts'
 import type { GameStore } from '../store.ts'
 import type { UiStore } from '../uiState.ts'
-import { drawOverlay, drawScene, fitTile, readPalette } from './draw.ts'
+import { drawOverlay, drawScene, fitTile, PUFF_MS, readPalette } from './draw.ts'
+import type { Puff } from './draw.ts'
 import { computeOverlay, tileAt } from './input.ts'
 import { createItemMotion } from './itemMotion.ts'
 
@@ -28,6 +29,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
     }
     const palette = readPalette()
     const motion = createItemMotion()
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let puffs: Puff[] = []
     const box = { w: wrap.clientWidth, h: wrap.clientHeight }
     const ro = new ResizeObserver(() => {
       box.w = wrap.clientWidth
@@ -54,7 +57,9 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const items = motion.update(state, dt, store.getSpeed())
-      drawScene(ctx, state, store.defs, items, tile, palette)
+      for (const s of store.takeSpoils()) puffs.push({ x: s.x, y: s.y, start: t })
+      puffs = puffs.filter((pf) => t - pf.start < PUFF_MS)
+      drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, puffs })
       const uiState = ui.get()
       const overlay = computeOverlay(state, store.defs, uiState)
       drawOverlay(ctx, overlay, store.defs, uiState.cursor, tile, state.width, state.height, palette)

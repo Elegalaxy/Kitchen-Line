@@ -1,5 +1,5 @@
 // The tick loop (plan Step 3). `runTicks` clones the state once and steps the clone.
-// Each tick: events are cleared, buildings update in `updateOrder` order, then
+// Each tick: events are cleared, spoiled items are removed (spoil.ts), buildings update in `updateOrder` order, then
 // `state.tick` advances. Rules:
 //   - Belt: every 3 ticks (fast belt: 2) on the global tick, slot 1 pushes to the front
 //     neighbour with tryInsert, then slot 0 moves to slot 1 if empty. An item moves at
@@ -19,9 +19,10 @@ import { BELT_STEP_TICKS, FAST_BELT_STEP_TICKS } from './constants.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { stepRouting } from './logistics.ts'
 import { updateOrder } from './order.ts'
+import { stepSpoilage } from './spoil.ts'
 import { stepAssembler, stepStation } from './stations.ts'
 import { opposite, tryInsert } from './transfer.ts'
-import type { Building, Defs, GameState } from './types.ts'
+import type { Building, Defs, GameState, SimEvent } from './types.ts'
 
 type BeltBuilding = Extract<Building, { kind: 'belt' }>
 type PantryBuilding = Extract<Building, { kind: 'pantry' }>
@@ -89,6 +90,7 @@ function stepPantry(state: GameState, defs: Defs, b: PantryBuilding, moved: Set<
 /** Advance the (already cloned) state by one tick. Mutates `state`. */
 export function stepTick(state: GameState, defs: Defs): void {
   state.events = []
+  stepSpoilage(state, defs)
   const moved = new Set<number>()
   for (const id of updateOrder(state)) {
     const b = state.buildings[id]
@@ -130,10 +132,17 @@ export function stepTick(state: GameState, defs: Defs): void {
   state.tick += 1
 }
 
-/** Run `n` ticks on a clone of `state`. The input is never mutated. */
-export function runTicks(state: GameState, defs: Defs, n: number): GameState {
+/**
+ * Run `n` ticks on a clone of `state`. The input is never mutated. `onTickEvents`, if
+ * given, is called after every tick with that tick's events (`state.events` only keeps
+ * the last tick's), so a caller running a batch can still see every event.
+ */
+export function runTicks(state: GameState, defs: Defs, n: number, onTickEvents?: (events: SimEvent[]) => void): GameState {
   const draft = structuredClone(state)
   if (!Number.isInteger(n) || n < 0) return draft
-  for (let i = 0; i < n; i += 1) stepTick(draft, defs)
+  for (let i = 0; i < n; i += 1) {
+    stepTick(draft, defs)
+    if (onTickEvents !== undefined && draft.events.length > 0) onTickEvents(draft.events)
+  }
   return draft
 }

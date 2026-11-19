@@ -1,18 +1,17 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 8, 2026-11-20)
-- **Current Goal:** Step 9 of `doc/plans/2026-11-19-first-playable.md`: freshness, spoilage and waste.
-- **Recent Changes & Files Touched (Step 8, done):**
-  - `src/sim/stations.ts`: `stepAssembler`. With no recipe: `noRecipe`. Starts when the output is empty and every recipe input holds at least 1; `progress` counts up to `ASSEMBLER_TICKS` (30), then one of each input is consumed and the dish is made (bornTick = now) and pushed out the front of the anchor. Status `blocked` (dish stuck), `ok`, `idle` (input missing). New event `assembled`.
-  - `src/sim/transfer.ts`: assembler accepts only recipe inputs, fewer than `ASSEMBLER_INPUT_CAP` (2) of that input, never from `dir` (front). `constants.ts` has both constants; `tick.ts` calls `stepAssembler` with the non-belts.
-  - `src/sim/layout.ts` (new): `applyLayout(state, defs, commands, setup?)`, the dev loader. `LAYOUT_SETUP` in `src/content/layouts.ts` unlocks the dish and sets money to $300 (no sales exist until Step 11, so $150 runs dry). `src/ui/store.ts` `newGameState` uses it.
-  - `src/content/layouts.ts`: `saladLine`, `soupLine`, `sandwichLine`, `burgerLine`, `riceBowlLine`, all inside 8x6; each assembler input has its own feed (anchor (4,2) facing E, second tile (4,3); 3-input lines add pantry (4,0) and a processor (4,1) facing S).
-  - `src/ui/canvas/draw.ts`: pips on the assembler's second tile, ❓ badge, progress bar, recipe emoji. `Inspector.tsx`: recipe select lists unlocked dishes only, shows assembler progress.
-  - Tests: `stations.test.ts` (assembler block), `src/content/layouts.test.ts` (6 dish lines on real DEFS, 5+ dishes in 1200 ticks, missing ingredient idle).
+- **Last Updated By:** Claude (implementer, Step 9, 2026-11-20)
+- **Current Goal:** Step 10 of `doc/plans/2026-11-19-first-playable.md`: day cycle, phases, warm-up, clock.
+- **Recent Changes & Files Touched (Step 9, done):**
+  - `src/sim/spoil.ts` (new): `stepSpoilage` runs at the start of every `stepTick` (after events are cleared, before anything moves). An item with `spoilTicks` and `tick - bornTick >= spoilTicks` is removed wherever it is (belt slots, station input/output, assembler inputs/output, routing buffer, pass shelf). Adds `today.wasteSpoiled` and a `spoiled` event (tick, x, y, item) at the building's anchor tile. Exports `buildingItems(b)` and `isSpoiled`. A station whose first input spoils resets `progress` to 0.
+  - `src/sim/tick.ts`: calls `stepSpoilage`; `runTicks(state, defs, n, onTickEvents?)` has an optional callback with each tick's events. `types.ts`: `spoiled` SimEvent.
+  - `src/ui/store.ts`: `advance` collects `spoiled` events through that callback; `takeSpoils()` returns and clears them (cap 200). `GridCanvas.tsx` drains them every frame into 600 ms puffs.
+  - `src/ui/canvas/draw.ts`: optional `Fx` (clock, reduced-motion, puffs). Item or station holding an item in the last third of its life: ⚠ badge plus pulsing `--warn` outline (steady under `prefers-reduced-motion`). 🗑 puff rises and fades.
+  - Tests: `src/sim/spoil.test.ts` (7 tests). No existing test numbers or hashes changed.
 - **Active Decisions / Constraints:**
-  - No grid-size change: all layouts fit the 8x6 start grid (plan said 10x8). Expansion is Step 16.
-  - Assembler accepts from any side except `dir`, for both of its tiles. The second tile's front side is also refused.
-  - Spoilage is not built: `ItemDef.spoilTicks` exists in content but the sim ignores it until Step 9. The plan text says `shelfTicks`; the field is `spoilTicks`.
-  - Banned word `process` in `src/sim`. Python edits of files with emoji need `encoding='utf-8'` on Windows.
-  - Sim tests import only `vitest` and `src/sim`; content-level tests (real DEFS) live in `src/content/*.test.ts`.
-- **Exact Next Step:** Step 9: `src/sim/spoil.ts` removes items past `spoilTicks` wherever they are (belts, buffers, station slots, assembler inputs, shelf), adds `today.wasteSpoiled` and a `spoiled` event with position; renderer shows a warning marker in the last third. Spoilage changes item lifetimes, so line tests (e.g. the 600-tick tomato on a dead-end belt) shift; note hash changes.
+  - Spoil timing: item born at B is removed during tick B + `spoilTicks` (a station or assembler output resets bornTick to now, so a sliced tomato is as fresh as it is made).
+  - The pass still serves dishes at once; its shelf stays empty until customers exist (Step 11), so the 300-tick dish test places the dish on the shelf directly.
+  - `state.events` holds only the last tick's events; use the `runTicks` callback, not history.
+  - Banned word `process` in `src/sim`. Python edits of files with emoji need `encoding='utf-8'` on Windows. Sim tests import only `vitest` and `src/sim`.
+  - Money is integer cents; provisional numbers only in `constants.ts` and `src/content/*`.
+- **Exact Next Step:** Step 10: `src/sim/day.ts` (`openService`, `dismissSummary`, `phaseAt`), `runTicks` runs only in `service`, day ends at 2400 service ticks, `place` during service sets `onlineAt = tick + 30` for non-belts, menu/price/unlock rejected in service; TopBar clock, phase badge, day bar and "Open for service". Note: the UI loop and the dev loader (`?layout=`) currently tick in build phase, which Step 10 stops; decide how dev layouts start service.

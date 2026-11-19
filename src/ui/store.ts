@@ -24,6 +24,8 @@ import type { UndoEntry } from './undo.ts'
 export type Speed = 0 | 1 | 2 | 4
 export const SPEEDS: readonly Speed[] = [0, 1, 2, 4]
 export const NOTIFY_INTERVAL_MS = 200 // 5 notifications a second
+/** Cap on spoil marks waiting for the canvas (it drains them every frame). */
+const MAX_PENDING_SPOILS = 200
 
 export type UndoInfo = { count: number; label: string | null }
 export type Snapshot = { state: GameState; speed: Speed; undo: UndoInfo }
@@ -46,6 +48,11 @@ export type GameStore = {
   togglePause(): void
   /** Run `n` ticks (called by the loop). */
   advance(n: number): void
+  /**
+   * Tiles where an item spoiled since the last call, then forgotten. `state.events` only
+   * holds the last tick's events, so `advance` collects these per tick while it runs.
+   */
+  takeSpoils(): { x: number; y: number }[]
 }
 
 export type ThrottleDeps = {
@@ -89,6 +96,7 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
     label: undoStack.length === 0 ? null : undoStack[undoStack.length - 1].label,
   })
   let snapshot: Snapshot = { state, speed, undo: undoInfo() }
+  let spoils: { x: number; y: number }[] = []
   const listeners = new Set<() => void>()
   const publish = (): void => {
     snapshot = { state, speed, undo: undoInfo() }
@@ -152,8 +160,15 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
     },
     advance(n) {
       if (n <= 0) return
-      state = runTicks(state, defs, n)
+      state = runTicks(state, defs, n, (events) => {
+        for (const e of events) if (e.type === 'spoiled' && spoils.length < MAX_PENDING_SPOILS) spoils.push({ x: e.x, y: e.y })
+      })
       throttle.fire()
+    },
+    takeSpoils() {
+      const out = spoils
+      spoils = []
+      return out
     },
   }
   return store

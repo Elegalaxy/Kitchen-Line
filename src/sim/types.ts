@@ -121,6 +121,7 @@ export type SimEvent =
   | { type: 'assembled'; tick: number; x: number; y: number; dish: DishId }
   | { type: 'delivered'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'binned'; tick: number; x: number; y: number; item: ItemId }
+  | { type: 'spoiled'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
 export type GameState = {

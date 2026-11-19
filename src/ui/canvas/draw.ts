@@ -6,6 +6,7 @@
 
 import { ASSEMBLER_TICKS } from '../../sim/constants.ts'
 import { footprint } from '../../sim/grid.ts'
+import { buildingItems } from '../../sim/spoil.ts'
 import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
 import type { Overlay } from './input.ts'
 import type { MotionItem } from './itemMotion.ts'
@@ -314,7 +315,7 @@ function drawAssemblerPips(ctx: CanvasRenderingContext2D, b: Building, defs: Def
   })
 }
 
-function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs, id: number, tile: number, p: Palette): void {
+function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs, id: number, tile: number, p: Palette, fx?: Fx): void {
   const b = state.buildings[id]
   const tint = tintOf(b.kind, p)
   const tiles = footprint(b.kind, b.x, b.y, b.dir)
@@ -347,6 +348,15 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   else if (b.kind === 'splitter' || b.kind === 'merger' || b.kind === 'filter') count = b.buf === null ? 0 : 1
   else if (b.kind === 'assembler') count = Object.values(b.inputs).reduce((n, l) => n + l.length, 0) + (b.output === null ? 0 : 1)
   if (count > 0) badge(ctx, String(count), b.x * tile + tile * 0.2, b.y * tile + tile * 0.82, tile, p)
+  // A held item in the last third of its shelf life: warning badge plus pulsing outline.
+  if (buildingItems(b).some((i) => isSpoiling(defs.items[i.type], state.tick, i.bornTick))) {
+    ctx.save()
+    ctx.globalAlpha = pulseAlpha(fx)
+    outlineTiles(ctx, tiles, tile, p.warn, 3)
+    ctx.restore()
+    ctx.fillStyle = p.text
+    glyph(ctx, '⚠️', b.x * tile + tile * 0.82, b.y * tile + tile * 0.2, tile * 0.24)
+  }
 }
 
 function isSpoiling(def: ItemDef | undefined, tick: number, bornTick: number): boolean {
@@ -354,8 +364,29 @@ function isSpoiling(def: ItemDef | undefined, tick: number, bornTick: number): b
   return tick - bornTick > (def.spoilTicks * 2) / 3
 }
 
-export function drawItem(ctx: CanvasRenderingContext2D, def: ItemDef | undefined, cx: number, cy: number, tile: number, spoiling: boolean, p: Palette): void {
+/** Per-frame effects state (UI only). `now` is a millisecond clock; puffs are brief 🗑 marks. */
+export type Fx = { now: number; reducedMotion: boolean; puffs: Puff[] }
+export type Puff = { x: number; y: number; start: number }
+export const PUFF_MS = 600
+
+/** Warn outline alpha: pulses unless the user prefers reduced motion (then steady). */
+function pulseAlpha(fx: Fx | undefined): number {
+  if (fx === undefined || fx.reducedMotion) return 1
+  return 0.55 + 0.45 * Math.sin((fx.now / 1000) * Math.PI * 2 * 1.2)
+}
+
+export function drawItem(ctx: CanvasRenderingContext2D, def: ItemDef | undefined, cx: number, cy: number, tile: number, spoiling: boolean, p: Palette, fx?: Fx): void {
   const r = tile * 0.2
+  if (spoiling) {
+    ctx.save()
+    ctx.globalAlpha = pulseAlpha(fx)
+    ctx.strokeStyle = p.warn
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+  }
   ctx.fillStyle = p.text
   ctx.strokeStyle = p.surface
   ctx.lineWidth = 1.5
@@ -487,6 +518,7 @@ export function drawScene(
   items: MotionItem[],
   tile: number,
   p: Palette,
+  fx?: Fx,
 ): void {
   drawFloor(ctx, state, tile, p)
   const stations: number[] = []
@@ -494,9 +526,23 @@ export function drawScene(
     if (b.kind === 'belt') drawBelt(ctx, b.x, b.y, b.dir, b.fast, b.stalled, tile, p)
     else stations.push(b.id)
   }
-  for (const id of stations) drawStation(ctx, state, defs, id, tile, p)
+  for (const id of stations) drawStation(ctx, state, defs, id, tile, p, fx)
   for (const it of items) {
     const def = defs.items[it.type]
-    drawItem(ctx, def, it.pos.x * tile, it.pos.y * tile, tile, isSpoiling(def, state.tick, it.bornTick), p)
+    drawItem(ctx, def, it.pos.x * tile, it.pos.y * tile, tile, isSpoiling(def, state.tick, it.bornTick), p, fx)
+  }
+  if (fx !== undefined) drawPuffs(ctx, fx, tile)
+}
+
+/** A 🗑 that rises and fades over PUFF_MS at the tile where an item spoiled. */
+function drawPuffs(ctx: CanvasRenderingContext2D, fx: Fx, tile: number): void {
+  for (const pf of fx.puffs) {
+    const t = (fx.now - pf.start) / PUFF_MS
+    if (t < 0 || t >= 1) continue
+    ctx.save()
+    ctx.globalAlpha = 1 - t
+    const rise = fx.reducedMotion ? 0 : t * tile * 0.35
+    glyph(ctx, '🗑️', pf.x * tile + tile / 2, pf.y * tile + tile * 0.4 - rise, tile * (fx.reducedMotion ? 0.5 : 0.4 + 0.2 * t))
+    ctx.restore()
   }
 }
