@@ -112,6 +112,21 @@ body {
   cursor: not-allowed;
 }
 
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .grid-wrap {
   flex: 1;
   min-height: 0;
@@ -119,7 +134,15 @@ body {
   overflow: auto;
 }
 
+.hint {
+  margin: 0;
+  min-height: 2.8em;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
 .grid-canvas {
+  touch-action: none;
   margin: auto;
   flex: none;
   border-radius: 8px;
@@ -133,4 +156,238 @@ body {
 
 .num {
   font-variant-numeric: tabular-nums;
+}
+
+/* Side panels: palette and inspector */
+.side {
+  flex: none;
+  width: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel {
+  background: var(--surface-raised);
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.panel-title {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled):not([aria-pressed='true']) {
+  background: color-mix(in srgb, var(--text) 10%, var(--surface));
+}
+
+.btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 18%, var(--surface));
+}
+
+.btn[aria-pressed='true'] {
+  background: var(--info);
+  border-color: var(--info);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+.btn:disabled {
+  color: var(--text-faint);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.btn-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.btn-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.btn:disabled .btn-sub {
+  color: var(--text-faint);
+}
+
+.btn[aria-pressed='true'] .btn-sub,
+.btn[aria-pressed='true'] kbd {
+  color: inherit;
+}
+
+kbd {
+  margin-left: auto;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 0.7rem/1.4 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: var(--text-muted);
+}
+
+.btn:disabled kbd {
+  color: var(--text-faint);
+}
+
+.tool-row,
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.actions {
+  margin: 12px 0 0;
+}
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pal-glyph {
+  font-size: 1.25rem;
+}
+
+.pal-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pal-reason {
+  min-height: 1.1em;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--warn);
+}
+
+.kv {
+  margin: 0;
+}
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-faint) 35%, transparent);
+}
+
+.kv-row dt {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.kv-row dd {
+  margin: 0;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.field select {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.field select:hover {
+  background: color-mix(in srgb, var(--text) 10%, var(--surface));
+}
+
+/* Toast: fixed overlay, so showing it never shifts the layout */
+.toast-host {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.toast {
+  margin: 0 16px;
+  padding: 10px 14px;
+  max-width: 420px;
+  border-radius: 8px;
+  border: 1px solid var(--info);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.toast-bad {
+  border-color: var(--bad);
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  .grid-wrap {
+    min-height: 200px;
+  }
+
+  .side {
+    width: auto;
+    max-height: 46dvh;
+  }
 }

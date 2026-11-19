@@ -313,7 +313,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 5: Building UX: palette, ghost, drag-belts, rotate, remove, inspector, undo, keyboard
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: palette (10 buildings, hotkeys 1-9 and 0, visible disabled reasons), ghost with sim-checked validity, one-action drag-belts (L-path, all-or-nothing), rotate, sell (right-click, X, Delete), inspector with config controls, undo (50 entries, groups atomic), keyboard cursor and toasts done with unit tests; typecheck, test, lint and build pass; place, drag, rotate, sell, undo and keyboard place checked in the in-app browser (desktop and 375 px), no console errors. The by-hand rebuild-in-under-a-minute check is the user's.
 - Depends on: 4
 - Files: `src/ui/BuildPalette.tsx`, `src/ui/Inspector.tsx`, `src/ui/canvas/input.ts`, `src/ui/canvas/draw.ts`, `src/ui/undo.ts`, `src/ui/store.ts`, `src/ui/App.tsx`, `src/ui/undo.test.ts`
 - What changes:

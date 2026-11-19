@@ -6,6 +6,7 @@
 
 import { footprint } from '../../sim/grid.ts'
 import type { BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
+import type { Overlay } from './input.ts'
 import type { MotionItem } from './itemMotion.ts'
 
 export const MIN_TILE = 32
@@ -22,6 +23,7 @@ export type Palette = {
   warn: string
   info: string
   money: string
+  focus: string
 }
 
 /** Read the colour tokens from styles.css (single source of truth; no palette here). */
@@ -39,6 +41,7 @@ export function readPalette(): Palette {
     warn: v('--warn'),
     info: v('--info'),
     money: v('--money'),
+    focus: v('--focus'),
   }
 }
 
@@ -233,6 +236,106 @@ export function drawItem(ctx: CanvasRenderingContext2D, def: ItemDef | undefined
   ctx.fillStyle = p.surface
   glyph(ctx, def?.emoji ?? '?', cx, cy + 0.5, r * 1.35)
   if (spoiling) glyph(ctx, '⚠️', cx + r, cy - r, tile * 0.22)
+}
+
+function outlineTiles(ctx: CanvasRenderingContext2D, tiles: { x: number; y: number }[], tile: number, color: string, width: number, dash: number[] = []): void {
+  strokeTiles(ctx, tiles, tile, color, width, dash, 0)
+}
+
+function strokeTiles(ctx: CanvasRenderingContext2D, tiles: { x: number; y: number }[], tile: number, color: string, width: number, dash: number[], fillAlpha: number): void {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  ctx.lineWidth = width
+  ctx.setLineDash(dash)
+  for (const t of tiles) {
+    roundRect(ctx, t.x * tile + 2, t.y * tile + 2, tile - 4, tile - 4, tile * 0.1)
+    if (fillAlpha > 0) {
+      ctx.globalAlpha = fillAlpha
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+/** Text pill next to the cursor tile, kept inside the canvas. */
+function drawLabel(ctx: CanvasRenderingContext2D, text: string, ok: boolean, at: { x: number; y: number }, tile: number, cols: number, rows: number, p: Palette): void {
+  ctx.save()
+  ctx.font = 'bold 13px system-ui, sans-serif'
+  const padX = 8
+  const w = Math.ceil(ctx.measureText(text).width) + padX * 2
+  const h = 24
+  const maxX = cols * tile
+  const maxY = rows * tile
+  let x = (at.x + 1) * tile + 4
+  if (x + w > maxX) x = at.x * tile - w - 4
+  x = Math.max(2, Math.min(maxX - w - 2, x))
+  let y = at.y * tile - h - 2
+  if (y < 2) y = (at.y + 1) * tile + 2
+  y = Math.max(2, Math.min(maxY - h - 2, y))
+  ctx.fillStyle = p.surface
+  ctx.strokeStyle = ok ? p.good : p.bad
+  ctx.lineWidth = 1.5
+  roundRect(ctx, x, y, w, h, 6)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = p.text
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, x + padX, y + h / 2 + 0.5)
+  ctx.restore()
+}
+
+/** Ghost, drag preview, selection, hover and keyboard cursor, drawn over the scene. */
+export function drawOverlay(
+  ctx: CanvasRenderingContext2D,
+  o: Overlay,
+  defs: Defs,
+  cursor: { x: number; y: number } | null,
+  tile: number,
+  cols: number,
+  rows: number,
+  p: Palette,
+): void {
+  if (o.hover !== null) outlineTiles(ctx, o.hover, tile, o.hoverBad ? p.bad : p.text, 2)
+  if (o.selection.length > 0) strokeTiles(ctx, o.selection, tile, p.focus, 3, [], 0.12)
+  for (const g of o.ghosts) {
+    const color = g.status === 'ok' ? p.good : g.status === 'bad' ? p.bad : p.textFaint
+    strokeTiles(ctx, g.tiles, tile, color, 2.5, g.status === 'skip' ? [5, 4] : [], g.status === 'skip' ? 0.05 : 0.2)
+    const a = g.tiles[0]
+    const cx = a.x * tile + tile / 2
+    const cy = a.y * tile + tile / 2
+    ctx.save()
+    ctx.globalAlpha = g.status === 'skip' ? 0.35 : 0.8
+    ctx.fillStyle = p.text
+    if (g.kind !== 'belt') glyph(ctx, defs.buildings[g.kind].emoji, cx, cy, tile * 0.46)
+    drawArrow(ctx, cx, cy, g.dir, tile, color)
+    if (g.kind === 'belt') {
+      ctx.strokeStyle = color
+      ctx.lineWidth = Math.max(2, tile / 14)
+      ctx.lineCap = 'round'
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.rotate((g.dir * Math.PI) / 2)
+      ctx.beginPath()
+      ctx.moveTo(0, tile * 0.2)
+      ctx.lineTo(0, -tile * 0.2)
+      ctx.moveTo(-tile * 0.12, -tile * 0.08)
+      ctx.lineTo(0, -tile * 0.22)
+      ctx.lineTo(tile * 0.12, -tile * 0.08)
+      ctx.stroke()
+      ctx.restore()
+    }
+    ctx.restore()
+    if (g.status !== 'skip') {
+      ctx.fillStyle = color
+      glyph(ctx, g.status === 'ok' ? '✓' : '✕', a.x * tile + tile * 0.8, a.y * tile + tile * 0.2, tile * 0.3)
+    }
+  }
+  if (o.keyCursor !== null) outlineTiles(ctx, [o.keyCursor], tile, p.focus, 2, [4, 3])
+  if (o.label !== null && cursor !== null) drawLabel(ctx, o.label.text, o.label.ok, cursor, tile, cols, rows, p)
 }
 
 /** Draw the whole scene for one frame. */

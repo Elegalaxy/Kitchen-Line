@@ -3,6 +3,9 @@
 // - React reads `getSnapshot()` through useSyncExternalStore. The snapshot object is only
 //   replaced when subscribers are notified, which is throttled to 5 times a second for
 //   tick updates; commands and speed changes publish immediately.
+// - Build commands (place, remove, rotate, configure) are recorded for undo (undo.ts).
+//   `dispatchGroup` applies several commands all-or-nothing as ONE action and ONE undo entry
+//   (used by drag-to-draw belts).
 // - `state.events` only holds the last tick's events after `advance(n)`; nothing here
 //   relies on event history.
 
@@ -12,14 +15,18 @@ import { LAYOUTS } from '../content/layouts.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import { runTicks } from '../sim/tick.ts'
-import type { Command, CommandResult, Defs, GameState } from '../sim/types.ts'
+import type { Command, CommandResult, Defs, GameState, RejectReason } from '../sim/types.ts'
 import { debugLog } from './debug.ts'
+import { applyGroup, isUndoable, labelFor, pushUndo, undoLast } from './undo.ts'
+import type { UndoEntry } from './undo.ts'
 
 export type Speed = 0 | 1 | 2 | 4
 export const SPEEDS: readonly Speed[] = [0, 1, 2, 4]
 export const NOTIFY_INTERVAL_MS = 200 // 5 notifications a second
 
-export type Snapshot = { state: GameState; speed: Speed }
+export type UndoInfo = { count: number; label: string | null }
+export type Snapshot = { state: GameState; speed: Speed; undo: UndoInfo }
+export type UndoResult = { ok: true; label: string } | { ok: false; reason: RejectReason | 'empty'; label: string }
 
 export type GameStore = {
   defs: Defs
@@ -29,6 +36,10 @@ export type GameStore = {
   getSnapshot(): Snapshot
   subscribe(listener: () => void): () => void
   dispatch(cmd: Command): CommandResult
+  /** Apply several commands all-or-nothing as one action and one undo entry. */
+  dispatchGroup(cmds: Command[], label: string): CommandResult
+  /** Undo the latest build action. A rejected inverse drops the entry and is reported. */
+  undo(): UndoResult
   setSpeed(speed: Speed): void
   /** Pause, or resume at the last non-zero speed (1x if none). */
   togglePause(): void
@@ -71,10 +82,15 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
   let state = initial
   let speed: Speed = 1
   let resumeSpeed: Speed = 1
-  let snapshot: Snapshot = { state, speed }
+  let undoStack: UndoEntry[] = []
+  const undoInfo = (): UndoInfo => ({
+    count: undoStack.length,
+    label: undoStack.length === 0 ? null : undoStack[undoStack.length - 1].label,
+  })
+  let snapshot: Snapshot = { state, speed, undo: undoInfo() }
   const listeners = new Set<() => void>()
   const publish = (): void => {
-    snapshot = { state, speed }
+    snapshot = { state, speed, undo: undoInfo() }
     for (const l of [...listeners]) l()
   }
   const throttle = createThrottle(publish, NOTIFY_INTERVAL_MS, {
@@ -92,6 +108,7 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
       return () => listeners.delete(listener)
     },
     dispatch(cmd) {
+      if (isUndoable(cmd)) return store.dispatchGroup([cmd], labelFor(state, defs, cmd))
       const { state: next, result } = applyCommand(state, defs, cmd)
       if (result.ok) {
         state = next
@@ -101,6 +118,26 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
         debugLog('[store]', `dispatch ${cmd.type} -> rejected ${result.reason}`)
       }
       return result
+    },
+    dispatchGroup(cmds, label) {
+      const out = applyGroup(state, defs, cmds)
+      if (!out.ok) {
+        debugLog('[store]', `dispatch ${label} (${cmds.length}) -> rejected ${out.reason}`)
+        return { ok: false, reason: out.reason, event: out.event }
+      }
+      state = out.state
+      if (out.inverse.length > 0) undoStack = pushUndo(undoStack, { label, inverse: out.inverse })
+      debugLog('[store]', `dispatch ${label} (${cmds.length}) -> ok, undo depth ${undoStack.length}`)
+      throttle.flush()
+      return { ok: true }
+    },
+    undo() {
+      const out = undoLast(state, defs, undoStack)
+      undoStack = out.stack
+      if (out.ok) state = out.state
+      debugLog('[store]', out.ok ? `undo ${out.label} -> ok` : `undo ${out.label} -> rejected ${out.reason}`)
+      throttle.flush()
+      return out.ok ? { ok: true, label: out.label } : { ok: false, reason: out.reason, label: out.label }
     },
     setSpeed(next) {
       if (next === speed) return

@@ -5,12 +5,15 @@
 // items jump (item positions are in tile units).
 
 import { useEffect, useRef } from 'react'
+import { beginDrag, cancelAction, endDrag, primaryAt, removeAt } from '../actions.ts'
 import { debugLog } from '../debug.ts'
 import type { GameStore } from '../store.ts'
-import { drawScene, fitTile, readPalette } from './draw.ts'
+import type { UiStore } from '../uiState.ts'
+import { drawOverlay, drawScene, fitTile, readPalette } from './draw.ts'
+import { computeOverlay, tileAt } from './input.ts'
 import { createItemMotion } from './itemMotion.ts'
 
-export default function GridCanvas({ store }: { store: GameStore }) {
+export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStore }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -52,18 +55,83 @@ export default function GridCanvas({ store }: { store: GameStore }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const items = motion.update(state, dt, store.getSpeed())
       drawScene(ctx, state, store.defs, items, tile, palette)
+      const uiState = ui.get()
+      const overlay = computeOverlay(state, store.defs, uiState)
+      drawOverlay(ctx, overlay, store.defs, uiState.cursor, tile, state.width, state.height, palette)
+      canvas.style.cursor = overlay.clickable ? 'pointer' : uiState.tool !== null ? 'crosshair' : 'default'
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
+
+    // Pointer input. The canvas is exactly the grid, so a tile is floor(offset / tile).
+    const ctxActions = { store, ui }
+    const tileOf = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const s = store.getState()
+      const px = e.clientX - rect.left - canvas.clientLeft
+      const py = e.clientY - rect.top - canvas.clientTop
+      return tileAt(px, py, applied.tile, s.width, s.height)
+    }
+    const onPointerDown = (e: PointerEvent): void => {
+      const at = tileOf(e)
+      if (at === null) return
+      ui.setCursor(at, false)
+      if (e.button === 2) {
+        if (ui.get().drag !== null) cancelAction(ctxActions)
+        else removeAt(ctxActions, at)
+        return
+      }
+      if (e.button !== 0) return
+      if (ui.get().tool === 'belt') {
+        canvas.setPointerCapture(e.pointerId)
+        beginDrag(ctxActions, at)
+      } else {
+        primaryAt(ctxActions, at)
+      }
+    }
+    const onPointerMove = (e: PointerEvent): void => {
+      const at = tileOf(e)
+      if (at !== null) ui.setCursor(at, false)
+      else if (ui.get().drag === null) ui.setCursor(null, false)
+    }
+    const onPointerUp = (e: PointerEvent): void => {
+      if (e.button === 0 && ui.get().drag !== null) endDrag(ctxActions)
+    }
+    const onPointerCancel = (): void => {
+      if (ui.get().drag !== null) ui.set({ drag: null })
+    }
+    const onPointerLeave = (): void => {
+      const s = ui.get()
+      if (s.drag === null && !s.cursorFromKeys) ui.setCursor(null, false)
+    }
+    const onContextMenu = (e: Event): void => e.preventDefault()
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerCancel)
+    canvas.addEventListener('pointerleave', onPointerLeave)
+    canvas.addEventListener('contextmenu', onContextMenu)
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerCancel)
+      canvas.removeEventListener('pointerleave', onPointerLeave)
+      canvas.removeEventListener('contextmenu', onContextMenu)
     }
-  }, [store])
+  }, [store, ui])
 
   return (
     <div className="grid-wrap" ref={wrapRef}>
-      <canvas ref={canvasRef} className="grid-canvas" role="img" aria-label="Kitchen grid" />
+      <canvas
+        ref={canvasRef}
+        className="grid-canvas"
+        tabIndex={0}
+        role="application"
+        aria-label="Kitchen grid. Arrow keys move the tile cursor, Enter places or selects, R rotates, Delete sells."
+      />
     </div>
   )
 }
