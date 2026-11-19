@@ -14,6 +14,7 @@ import { DEFS } from '../content/index.ts'
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
+import { updateGoals } from '../sim/goals.ts'
 import { applyLayout } from '../sim/layout.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Command, CommandResult, Defs, GameState, RejectReason } from '../sim/types.ts'
@@ -190,13 +191,54 @@ export function newGameState(defs: Defs, layout: string | null, seed = 'kitchen-
   return applyCommand(out.state, defs, { type: 'openService' }).state
 }
 
+/**
+ * Dev-only shortcut (`?cheat=<name>`, honoured under `import.meta.env.DEV` only) to reach goal
+ * states without playing for days: `progress` (goals part way), `goals` (all stall goals done,
+ * $1,000), `restaurant` (upgraded, $1,000), `won` (the end screen). Unknown names are ignored.
+ */
+export function applyCheat(defs: Defs, state: GameState, name: string): GameState {
+  const next = structuredClone(state)
+  const ids = (tier: 'stall' | 'restaurant'): string[] => (defs.goals ?? []).filter((g) => g.tier === tier).map((g) => g.id)
+  switch (name) {
+    case 'progress':
+      next.totals = { served: 63, profit: 12500, days: 3 }
+      next.money = 40000
+      updateGoals(next, defs)
+      return next
+    case 'goals':
+      next.goalsDone = ids('stall')
+      next.totals = { served: 120, profit: 31000, days: 5 }
+      next.money = 100000
+      return next
+    case 'restaurant':
+      next.goalsDone = ids('stall')
+      next.tier = 'restaurant'
+      next.totals = { served: 120, profit: 31000, days: 5 }
+      next.money = 100000
+      return next
+    case 'won':
+      next.goalsDone = [...ids('stall'), ...ids('restaurant')]
+      next.tier = 'restaurant'
+      next.totals = { served: 640, profit: 98000, days: 12 }
+      next.money = 100000
+      next.won = true
+      next.phase = 'won'
+      return next
+    default:
+      debugLog('[store]', `unknown cheat ${name}`)
+      return state
+  }
+}
+
 let singleton: GameStore | null = null
 
-/** The app's store. `?layout=<name>` is honoured in dev builds only. */
+/** The app's store. `?layout=<name>` and `?cheat=<name>` are honoured in dev builds only. */
 export function getGameStore(): GameStore {
   if (singleton === null) {
-    const layout = import.meta.env.DEV ? new URLSearchParams(window.location.search).get('layout') : null
-    singleton = createStore(DEFS, newGameState(DEFS, layout))
+    const params = import.meta.env.DEV ? new URLSearchParams(window.location.search) : null
+    const cheat = params?.get('cheat') ?? null
+    const start = newGameState(DEFS, params?.get('layout') ?? null)
+    singleton = createStore(DEFS, cheat === null ? start : applyCheat(DEFS, start, cheat))
   }
   return singleton
 }

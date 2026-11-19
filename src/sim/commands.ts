@@ -7,11 +7,14 @@
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
 // do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
-// during service' during service, 'wrong phase' in summary / won). The other types are rejected for now.
+// during service' during service, 'wrong phase' in summary / won). upgradeTier and buyExpansion
+// (Step 16) are build phase only too; dismissSummary also leaves the `won` end screen
+// ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
-import { MENU_CAP, START_INGREDIENT, WARMUP_TICKS } from './constants.ts'
+import { MENU_CAP, START_INGREDIENT, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { emptyDayStats, newBuilding } from './game.ts'
+import { expansionProblem, nextExpansion, updateGoals, upgradeProblem } from './goals.ts'
 import {
   buildingAt,
   canPlace,
@@ -268,9 +271,47 @@ function openService(state: GameState, cmd: Command): ApplyOutcome {
   return { state: next, result: { ok: true } }
 }
 
-/** summary -> build: the next day starts (day + 1, clock back to 0). */
+/**
+ * Pay $250 once every stall goal is done: stall -> restaurant. The menu cap, the waiting
+ * capacity, the arrival factor and fast belts all read `state.tier`, so nothing else changes.
+ */
+function upgradeTier(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
+  const why = upgradeProblem(state, defs)
+  if (why !== null) return reject(state, cmd, why)
+  const next = structuredClone(state)
+  next.money -= UPGRADE_COST
+  next.tier = 'restaurant'
+  next.events.push({ type: 'tierUpgraded', tick: next.tick, cost: UPGRADE_COST })
+  return { state: next, result: { ok: true } }
+}
+
+/**
+ * Buy the next grid size (`defs.expansions[state.expansion]`). Buildings and the items inside
+ * them stay at their coordinates; only the tile index is rebuilt for the new width.
+ */
+function buyExpansion(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
+  const why = expansionProblem(state, defs)
+  const step = nextExpansion(state, defs)
+  if (why !== null || step === null) return reject(state, cmd, why ?? 'no more expansions')
+  const next = structuredClone(state)
+  const tiles = new Array<number | null>(step.width * step.height).fill(null)
+  for (let i = 0; i < state.tiles.length; i += 1) {
+    const id = state.tiles[i]
+    if (id === null) continue
+    tiles[Math.floor(i / state.width) * step.width + (i % state.width)] = id
+  }
+  next.tiles = tiles
+  next.width = step.width
+  next.height = step.height
+  next.expansion += 1
+  next.money -= step.cost
+  next.events.push({ type: 'expanded', tick: next.tick, width: step.width, height: step.height, cost: step.cost })
+  return { state: next, result: { ok: true } }
+}
+
+/** summary or won -> build: the next day starts (day + 1, clock back to 0). */
 function dismissSummary(state: GameState, cmd: Command): ApplyOutcome {
-  if (state.phase !== 'summary') return reject(state, cmd, 'wrong phase')
+  if (state.phase !== 'summary' && state.phase !== 'won') return reject(state, cmd, 'wrong phase')
   const next = structuredClone(state)
   next.phase = 'build'
   next.day += 1
@@ -278,7 +319,7 @@ function dismissSummary(state: GameState, cmd: Command): ApplyOutcome {
   return { state: next, result: { ok: true } }
 }
 
-export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
+function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
   if (typeof cmd !== 'object' || cmd === null) return reject(state, cmd, 'invalid command')
   switch (cmd.type) {
     case 'place':
@@ -300,9 +341,17 @@ export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyO
     case 'dismissSummary':
       return dismissSummary(state, cmd)
     case 'buyExpansion':
+      return buyExpansion(state, defs, cmd)
     case 'upgradeTier':
-      return reject(state, cmd, 'not implemented')
+      return upgradeTier(state, defs, cmd)
     default:
       return reject(state, cmd, 'invalid command')
   }
+}
+
+/** Apply a command. A command that goes through also re-checks the goals (e.g. 5 dishes on the menu). */
+export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
+  const out = dispatchCommand(state, defs, cmd)
+  if (out.result.ok) updateGoals(out.state, defs)
+  return out
 }

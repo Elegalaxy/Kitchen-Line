@@ -5,6 +5,7 @@ import type { Ctx } from './actions.ts'
 import GridCanvas from './canvas/GridCanvas.tsx'
 import DaySummary from './DaySummary.tsx'
 import { debugLog } from './debug.ts'
+import EndScreen from './EndScreen.tsx'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
 import { startLoop } from './loop.ts'
@@ -77,6 +78,9 @@ export default function App() {
       <TopBar store={store} snap={snap} />
       {snap.state.phase === 'summary' && (
         <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })} />
+      )}
+      {snap.state.phase === 'won' && (
+        <EndScreen state={snap.state} onKeepPlaying={() => store.dispatch({ type: 'dismissSummary' })} />
       )}
       <div className="workspace">
         <div className="stage">

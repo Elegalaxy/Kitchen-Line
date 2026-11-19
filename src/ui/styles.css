@@ -1135,3 +1135,133 @@ kbd {
   color: var(--warn);
   font-weight: 600;
 }
+
+/* Goals tab (Step 16): a checklist with a progress bar per goal. Done goals get a check mark
+   and green; locked goals are dimmed with a lock. The reason line under a button always
+   takes its space, so enabling a button does not shift the layout. */
+.goal-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.goal-total {
+  color: var(--text);
+}
+
+.goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.goal-mark {
+  flex: none;
+  width: 1.2em;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.goal.done .goal-mark {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.goal-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.goal-count {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.goal.done .goal-count {
+  color: var(--good);
+}
+
+.goal-bar {
+  height: 8px;
+  margin-top: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--text-faint);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.goal-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--info);
+}
+
+.goal.done .goal-bar-fill {
+  background: var(--good);
+}
+
+.goal-note {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.goal-list.locked {
+  opacity: 0.6;
+}
+
+.goal-tier {
+  margin: 0;
+  color: var(--good);
+  font-weight: 600;
+}
+
+.goal-action {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goal-btn {
+  width: 100%;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+}
+
+.goal-reason {
+  min-height: 1.1em;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--warn);
+}
+
+.goal-reason.ready {
+  color: var(--text-muted);
+}
+
+.goal-perks {
+  margin-top: 4px;
+}
+
+.end-modal {
+  max-width: 440px;
+}
+
+.end-lead {
+  margin: 0;
+  color: var(--text-muted);
+}

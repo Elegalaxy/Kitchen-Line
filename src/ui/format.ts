@@ -30,6 +30,9 @@ const REASON_TEXT: Record<RejectReason, string> = {
   'pass cannot be removed': 'The pass cannot be removed',
   'pass cannot be placed': 'The pass cannot be placed',
   'not implemented': 'Not available yet',
+  'goals not done': 'Finish all stall goals first',
+  'already restaurant': 'Already a restaurant',
+  'no more expansions': 'The kitchen is fully expanded',
   'Menu is locked during service': 'Menu is locked during service',
 }
 

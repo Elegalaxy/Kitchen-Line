@@ -124,6 +124,9 @@ export type RejectReason =
   | 'pass cannot be removed'
   | 'pass cannot be placed'
   | 'not implemented'
+  | 'goals not done'
+  | 'already restaurant'
+  | 'no more expansions'
   | 'Menu is locked during service'
 
 /**
@@ -151,6 +154,10 @@ export type SimEvent =
   | { type: 'customerArrived'; tick: number; id: number; prefs: DishId[]; dish: DishId | null; price: number }
   | { type: 'customerLeft'; tick: number; id: number; reason: LostReason | 'closing'; dish: DishId | null }
   | { type: 'served'; tick: number; id: number; dish: DishId; price: number; wait: number }
+  | { type: 'goalDone'; tick: number; id: string }
+  | { type: 'tierUpgraded'; tick: number; cost: number }
+  | { type: 'expanded'; tick: number; width: number; height: number; cost: number }
+  | { type: 'won'; tick: number }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
 export type GameState = {
@@ -183,7 +190,10 @@ export type GameState = {
   /** The day before `lastDay` (set when a day ends); the summary shows deltas against it (Step 15). */
   prevDay: DayStats | null
   totals: { served: number; profit: number; days: number }
+  /** Ids of goals that were reached; a goal stays done for good (plan Step 16). */
   goalsDone: string[]
+  /** True once the "Ready to expand" end screen has been triggered; it never triggers twice. */
+  won: boolean
   events: SimEvent[]
 }
 
@@ -248,7 +258,27 @@ export type Defs = {
    * Optional so test fixtures can omit it; without it the review text is the reason key.
    */
   reviewTemplates?: Record<ReviewReason, string[]>
+  /** Milestone goals (content/goals.ts). Optional so fixtures can omit them: no goals means none to finish. */
+  goals?: GoalDef[]
+  /** Grid expansion steps in order (content/expansions.ts). Without them no expansion is available. */
+  expansions?: ExpansionDef[]
 }
+
+/** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */
+export type GoalProgress = { done: boolean; current: number; target: number; note?: string }
+export type GoalUnit = 'count' | 'cents' | 'stars'
+
+/** A milestone (content/goals.ts). `check` is pure and reads the state only. */
+export type GoalDef = {
+  id: string
+  tier: Tier
+  label: string
+  unit: GoalUnit
+  check(state: GameState): GoalProgress
+}
+
+/** One grid expansion step (content/expansions.ts); `state.expansion` counts the steps bought. */
+export type ExpansionDef = { width: number; height: number; cost: number; requiresTier: Tier }
 
 // ---- Commands -----------------------------------------------------------
 

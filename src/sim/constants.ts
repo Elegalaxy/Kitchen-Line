@@ -96,3 +96,6 @@ export const PRICE_STEP = 10
 
 /** Ticks per second at 1x (plan 2.5). Used to show waits in seconds. */
 export const TICKS_PER_SECOND = 10
+
+/** Plan 2.5: "Upgrade to restaurant" costs $250 once every stall goal is done. */
+export const UPGRADE_COST = 25000

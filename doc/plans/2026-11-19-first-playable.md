@@ -500,7 +500,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 16: Goals, restaurant tier, expansions, end screen
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: goals are data in `src/content/goals.ts` (4 stall + 2 restaurant) and expansions in `src/content/expansions.ts`, both handed to the sim through optional `Defs.goals` / `Defs.expansions` (like `reviewTemplates`). `src/sim/goals.ts`: `updateGoals` (sticky `goalsDone`, restaurant goals only watched at the restaurant tier; run at each service tick end, at day end and after every accepted command), `checkWin`, `upgradeProblem` / `expansionProblem` (shared by commands and UI). `upgradeTier` ($250 `UPGRADE_COST`, all stall goals, build phase) and `buyExpansion` (build phase, tier gate, re-indexes `tiles`, buildings and items stay put) implemented in `commands.ts`. `endDay` now adds the day's profit to `totals.profit` (hashes after day end change) and sets `phase = 'won'` once (`GameState.won`); `dismissSummary` also leaves `won` ("Keep playing"). UI: `GoalsPanel.tsx`, `EndScreen.tsx`, `goalsView.ts`, shared `modalKeys.ts`; dev-only `?cheat=progress|goals|restaurant|won`. Great-day goal is only completed at day end (phase `summary`). Fast belt is unlocked in the sim but has no palette entry yet. typecheck, test, lint and build pass; checked in the in-app browser (checklist, upgrade, expansion, end screen, 375 px, no console errors).
 - Depends on: 15
 - Files: `src/content/goals.ts`, `src/content/expansions.ts`, `src/sim/goals.ts`, `src/sim/game.ts`, `src/sim/goals.test.ts`, `src/ui/GoalsPanel.tsx`, `src/ui/EndScreen.tsx`
 - What changes:

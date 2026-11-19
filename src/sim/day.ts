@@ -2,10 +2,14 @@
 // `dayTick` after every tick; when it reaches DAY_TICKS the day ends: today's stats become
 // `lastDay`, `totals.days` goes up and the phase becomes `summary`. `dismissSummary`
 // (commands.ts) then starts the next build phase. `phaseAt` names the part of the day.
+// At day end `totals.profit` also grows by the day's profit (Step 16: goals read it), goals are
+// checked once more and, if every restaurant goal is done for the first time, the phase is
+// `won` (the end screen) instead of `summary`.
 
 import { DAY_PHASE_STARTS, DAY_TICKS } from './constants.ts'
-import { dropLeftovers } from './economy.ts'
-import type { DayPhase, GameState } from './types.ts'
+import { dropLeftovers, profitOf } from './economy.ts'
+import { checkWin, updateGoals } from './goals.ts'
+import type { DayPhase, Defs, GameState } from './types.ts'
 
 /** The part of the day at `dayTick` (ticks since service opened). Out of range clamps. */
 export function phaseAt(dayTick: number): DayPhase {
@@ -17,16 +21,19 @@ export function phaseAt(dayTick: number): DayPhase {
 }
 
 /** Mutates `state`: end the day (service -> summary). Called when dayTick reaches DAY_TICKS. */
-export function endDay(state: GameState): void {
+export function endDay(state: GameState, defs: Defs): void {
   dropLeftovers(state) // Q6: still-waiting customers leave unrated and uncounted
   state.prevDay = state.lastDay
   state.lastDay = state.today
   state.totals.days += 1
+  state.totals.profit += profitOf(state.today)
   state.phase = 'summary'
+  updateGoals(state, defs)
+  checkWin(state, defs)
 }
 
 /** Mutates `state`: advance the day clock by one tick and end the day when it is over. */
-export function advanceDayClock(state: GameState): void {
+export function advanceDayClock(state: GameState, defs: Defs): void {
   state.dayTick += 1
-  if (state.dayTick >= DAY_TICKS) endDay(state)
+  if (state.dayTick >= DAY_TICKS) endDay(state, defs)
 }

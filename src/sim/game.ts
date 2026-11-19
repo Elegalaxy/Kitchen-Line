@@ -108,6 +108,7 @@ export function createGame(defs: Defs, seed: string): GameState {
     prevDay: null,
     totals: { served: 0, profit: 0, days: 0 },
     goalsDone: [],
+    won: false,
     events: [],
   }
   const defaults = { ingredient: START_INGREDIENT }

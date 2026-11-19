@@ -5,7 +5,6 @@
 // slots and the delta lines are always reserved, so the dialog does not change size.
 
 import { useEffect, useMemo, useRef } from 'react'
-import type { KeyboardEvent } from 'react'
 import { reputationOf } from '../sim/customers.ts'
 import { summarizeDay } from '../sim/summary.ts'
 import type { Defs, GameState } from '../sim/types.ts'
@@ -22,6 +21,7 @@ import {
 } from './daySummaryView.ts'
 import type { DeltaView } from './daySummaryView.ts'
 import { formatMoney } from './format.ts'
+import { handleModalKeys } from './modalKeys.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
   if (d === null) return <span className="sum-delta flat">&nbsp;</span>
@@ -70,28 +70,6 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
 
   if (last === null || sum === null) return null
 
-  // Keep every key inside the dialog (no hotkeys behind it). Esc does nothing. Tab cycles
-  // between the dialog's focusable elements.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
-    e.stopPropagation()
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      return
-    }
-    if (e.key !== 'Tab') return
-    const nodes = dialogRef.current?.querySelectorAll<HTMLElement>('button, [tabindex="0"]')
-    if (nodes === undefined || nodes.length === 0) return
-    const first = nodes[0]
-    const lastNode = nodes[nodes.length - 1]
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault()
-      lastNode.focus()
-    } else if (!e.shiftKey && document.activeElement === lastNode) {
-      e.preventDefault()
-      first.focus()
-    }
-  }
-
   const hint = hintText(sum.bottleneckHint, defs)
   const reviews = pickReviews(last.reviews)
   const d = sum.deltas
@@ -107,7 +85,7 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
         role="dialog"
         aria-modal="true"
         aria-labelledby="sum-title"
-        onKeyDown={onKeyDown}
+        onKeyDown={(e) => handleModalKeys(e, dialogRef.current)}
       >
         <h2 id="sum-title" className="sum-title">
           Day {sum.day} summary

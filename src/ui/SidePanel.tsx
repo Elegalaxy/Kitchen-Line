@@ -1,12 +1,13 @@
 // Side panel (plan Step 14): tabs Build, Menu and Goals. A proper tablist: roving tabindex,
 // Left/Right/Home/End move between tabs (and select them), the active tab owns the
-// tabpanel. Build is the palette plus the inspector, exactly as before. Goals is an
-// empty-state placeholder until Step 16.
+// tabpanel. Build is the palette plus the inspector, exactly as before. Goals is the
+// goals checklist, tier upgrade and expansion (GoalsPanel).
 
 import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { Ctx } from './actions.ts'
 import BuildPalette from './BuildPalette.tsx'
+import GoalsPanel from './GoalsPanel.tsx'
 import Inspector from './Inspector.tsx'
 import MenuPanel from './MenuPanel.tsx'
 import { nextTab, SIDE_TABS } from './sideTabs.ts'
@@ -56,12 +57,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
           </>
         )}
         {tab === 'menu' && <MenuPanel ctx={ctx} snap={snap} />}
-        {tab === 'goals' && (
-          <section className="panel" aria-label="Goals">
-            <h2 className="panel-title">Goals</h2>
-            <p className="empty">No goals yet: they arrive in a later update.</p>
-          </section>
-        )}
+        {tab === 'goals' && <GoalsPanel ctx={ctx} snap={snap} />}
       </div>
     </aside>
   )
