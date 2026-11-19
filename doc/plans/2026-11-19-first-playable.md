@@ -239,7 +239,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 2: Sim core: RNG, content, grid placement, money
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-19: sim core done (types, constants, rng/hash copies with `arrivals`/`reviews`, grid, commands, `createGame`, content `DEFS`). Place/remove/rotate/configure with rejections verified by `stateHash`; typecheck, test, lint and build pass.
 - Depends on: 1
 - Files: `src/sim/types.ts`, `src/sim/constants.ts`, `src/sim/rng.ts` (copied from trading-sim, streams `arrivals` and `reviews`), `src/sim/hash.ts` (copied), `src/sim/grid.ts`, `src/sim/commands.ts`, `src/sim/game.ts`, `src/content/items.ts`, `src/content/buildings.ts`, `src/content/recipes.ts`, `src/content/dishes.ts`, `src/content/index.ts` (exports `DEFS`), `src/sim/grid.test.ts`, `src/content/content.test.ts`
 - What changes:
