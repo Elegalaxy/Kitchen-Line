@@ -1,4 +1,39 @@
-// Headless harness CLI (stub). Later steps run a layout for N days and print [sim] summaries.
+// Headless harness CLI (plan Step 13): runs a named layout for N days and prints [sim] lines.
+// See USAGE in args.ts. This file only parses arguments, prints and times; the run logic is
+// in run.ts. It is the one place wall-clock time is allowed (--speedtest).
 // May import src/sim and src/content only; never src/ui or src/persist.
 
-console.log('[sim] harness stub: nothing to run yet')
+import { DEFS } from '../content/index.ts'
+import { DAY_TICKS } from '../sim/constants.ts'
+import { USAGE, parseArgs } from './args.ts'
+import { formatRun, layoutNames, runDays } from './run.ts'
+import type { RunResult } from './run.ts'
+
+function fail(message: string): never {
+  process.stderr.write(`error: ${message}\n${USAGE}\n`)
+  process.exit(1)
+}
+
+const parsed = parseArgs(process.argv.slice(2), DEFS, layoutNames())
+if (!parsed.ok) fail(parsed.error)
+const options = parsed.options
+
+if (options.mode === 'list') {
+  console.log(`[sim] layouts: ${layoutNames().join(', ')}`)
+  console.log(`[sim] dishes: ${Object.keys(DEFS.dishes).join(', ')}`)
+} else {
+  const start = performance.now()
+  let result: RunResult
+  try {
+    result = runDays(DEFS, options)
+  } catch (e) {
+    fail(e instanceof Error ? e.message : String(e))
+  }
+  const elapsedMs = performance.now() - start
+  for (const line of formatRun(result)) console.log(line)
+  if (options.speedtest) {
+    const ticks = options.days * DAY_TICKS
+    const perSec = Math.round(ticks / (elapsedMs / 1000))
+    console.log(`[sim] speedtest ticks=${ticks} ms=${elapsedMs.toFixed(1)} ticksPerSec=${perSec}`)
+  }
+}

@@ -451,9 +451,10 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 13: Harness CLI and performance check
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/harness/{cli,args,run}.ts` plus `args.test.ts`, `run.test.ts`, `perf.test.ts`. `--list` added; `--menu` takes prices in cents (`fries:300`) and, until Step 14 has `setMenu`, writes the menu on a state copy (dishes unlocked). Per-day line shows avgWait in ticks (`t`). The perf test is in `src/harness/` (sim tests may import only `src/sim`): 16x12 full belt-ring grid and the five dish layouts, each 7 days, best of 3, under 1 s (big grid about 0.66 s, dish lines about 0.05 s). typecheck, test, lint and build pass.
 - Depends on: 12
-- Files: `src/harness/cli.ts`, `src/harness/run.ts`, `src/sim/perf.test.ts`
+- Files: `src/harness/cli.ts`, `src/harness/run.ts`, `src/harness/args.ts`, `src/harness/perf.test.ts` (moved from `src/sim/perf.test.ts`)
 - What changes:
   - `npm run sim -- --layout friesLine --seed demo --days 5 [--menu fries:300,salad:450] [--speedtest]`
   - It applies the layout and menu, then for each day runs `openService` → 2400 ticks → `dismissSummary`. It prints one `[sim] day=<n> served= lost=p/n/f sales= cost= profit= rep= waste= avgWait=` line per day and the final `stateHash`.

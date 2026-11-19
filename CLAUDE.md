@@ -19,7 +19,7 @@ Guidance for Claude Code in this repository. Machine-wide rules (agent routing, 
 
 ## Commands
 
-Scaffolded in Step 1 (config copied from `../trading-sim/` as new files). Run `npm ci` after cloning or creating a worktree. Only `src/main.tsx`, `src/ui/` (App, debug, styles) and a stub `src/harness/cli.ts` exist so far; `src/sim`, `src/content` and `src/persist` arrive in later steps.
+Scaffolded in Step 1 (config copied from `../trading-sim/` as new files). Run `npm ci` after cloning or creating a worktree.
 
 ```bash
 npm run dev                 # Vite dev server
@@ -29,7 +29,8 @@ npm run lint                # oxlint
 npm test                    # vitest run --passWithNoTests (all tests)
 npx vitest run <path>       # one test file
 npx vitest run -t "<name>"  # one test by name
-npm run sim -- <args>       # headless harness CLI (tsx src/harness/cli.ts)
+npm run sim -- --layout friesLine --seed demo --days 5 [--menu fries:300,salad:450] [--speedtest]
+                            # headless harness CLI (tsx src/harness/cli.ts); prices in cents; --list shows layouts and dishes
 ```
 
 ## Architecture
