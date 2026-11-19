@@ -336,7 +336,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 6: Processing stations, dish-only pass, the fries line
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `stations.ts` (chopper/fryer/stove), dish-only pass (shelf cap 4, served at once), `tryInsert` now takes `defs`, status badges and station progress bar, `friesLine` layout (fits 8x6) done; `stations.test.ts` asserts first fries at tick 81 and 28 fries in 1200 ticks (fryer every 40 ticks); typecheck, test, lint and build pass; `?layout=friesLine` loaded in the in-app browser with no console errors, fries served.
 - Depends on: 5
 - Files: `src/sim/stations.ts`, `src/sim/tick.ts`, `src/sim/transfer.ts`, `src/sim/stations.test.ts`, `src/ui/canvas/draw.ts`, `src/content/layouts.ts`
 - What changes:

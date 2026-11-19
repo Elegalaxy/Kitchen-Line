@@ -1,4 +1,5 @@
 // Tests for the tick loop (plan Step 3): pantry emit, belt movement, pass and bin.
+// The test pantry emits a dish-kind 'plate' because the pass accepts dishes only (Step 6).
 // Lines are built by hand (pantry, 5 belts, pass/bin) on a 9 x 9 grid so they can face
 // N, E, S and W. Checked: exact first-delivery tick, equal throughput for every facing,
 // belts never hold more than 2 items, a dead-end line fills and the pantry blocks, a
@@ -21,7 +22,10 @@ function b(kind: BuildingKind, cost: number, extra: Partial<BuildingDef> = {}): 
 }
 
 const DEFS: Defs = {
-  items: { potato: { id: 'potato', name: 'Potato', emoji: '', kind: 'raw', cost: 30 } },
+  items: {
+    potato: { id: 'potato', name: 'Potato', emoji: '', kind: 'raw', cost: 30 },
+    plate: { id: 'plate', name: 'Plate', emoji: '', kind: 'dish', cost: 30 },
+  },
   buildings: {
     belt: b('belt', 100),
     pantry: b('pantry', 1000),
@@ -57,7 +61,7 @@ function line(dir: Dir, end: 'pass' | 'bin' | 'none'): GameState {
   let x = dir === 3 ? 7 : dir === 1 ? 1 : 4
   let y = dir === 0 ? 7 : dir === 2 ? 1 : 4
   const put = (kind: BuildingKind): void => {
-    const bld = newBuilding(kind, s.nextId++, x, y, dir, 0, { ingredient: 'potato' })
+    const bld = newBuilding(kind, s.nextId++, x, y, dir, 0, { ingredient: 'plate' })
     s.buildings[bld.id] = bld
     s.tiles[tileIndex(s, x, y)] = bld.id
     const n = neighbor(x, y, dir)

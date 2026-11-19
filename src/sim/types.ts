@@ -116,6 +116,7 @@ export type SimEvent =
       destroyed: number
     }
   | { type: 'emit'; tick: number; x: number; y: number; item: ItemId; cost: number }
+  | { type: 'stationDone'; tick: number; x: number; y: number; input: ItemId; output: ItemId }
   | { type: 'delivered'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'binned'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }

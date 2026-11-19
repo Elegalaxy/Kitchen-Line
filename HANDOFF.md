@@ -1,17 +1,16 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 5, 2026-11-20)
-- **Current Goal:** Step 6 of `doc/plans/2026-11-19-first-playable.md`: processing stations, dish-only pass, the fries line.
-- **Recent Changes & Files Touched (Step 5, done):**
-  - `src/ui/undo.ts`: inverse commands (place/remove/rotate x3/configure), `applyGroup` (all-or-nothing), `undoLast`, 50-entry cap.
-  - `src/ui/store.ts`: `dispatch` records build commands for undo; `dispatchGroup(cmds, label)` = one action, one undo entry; `undo()`; snapshot has `undo: { count, label }`.
-  - `src/ui/uiState.ts` (tool, ghost dir, cursor, drag, selection, toast), `actions.ts` (mouse/keyboard actions), `hotkeys.ts`, `palette.ts`, `format.ts` (money, reason text).
-  - `src/ui/canvas/input.ts` (tileAt, L-path `planBeltDrag`, `computeOverlay`), `draw.ts` (`drawOverlay`), `GridCanvas.tsx` (pointer events).
-  - `src/ui/BuildPalette.tsx`, `Inspector.tsx`, `Toast.tsx`, `App.tsx`, `styles.css`. Tests: `undo.test.ts`, `hotkeys.test.ts`, `canvas/input.test.ts`.
+- **Last Updated By:** Claude (implementer, Step 6, 2026-11-20)
+- **Current Goal:** Step 7 of `doc/plans/2026-11-19-first-playable.md`: splitter, merger, filter.
+- **Recent Changes & Files Touched (Step 6, done):**
+  - `src/sim/stations.ts` (new): `stepStation` for chopper/fryer/stove. `progress` counts up from 0 for `input[0]`; output made at `recipe.ticks` and pushed the same tick; a stuck output means `blocked` and no progress.
+  - `src/sim/transfer.ts`: `tryInsert(state, defs, building, item, fromDir)` (new `defs` arg). Stations accept only recipe inputs, fewer than 2 queued, not from their front. The pass accepts dishes only (by def kind), counts `delivered` and `today.served`, and serves at once (shelf stays empty until Step 11). `findStationRecipe` lives here.
+  - `src/sim/tick.ts`, `constants.ts` (`STATION_INPUT_CAP`, `PASS_SHELF_CAP`), `types.ts` (new event `stationDone`; `process` is banned by the architecture test).
+  - `src/ui/canvas/draw.ts`: status badges (idle muted, blocked bad, warming info, no cash warn; glyph plus colour), station progress bar. `src/content/layouts.ts`: `friesLine` (pantry, belt, chopper, belt, fryer, 2 belts, pass; $69).
+  - Tests: `src/sim/stations.test.ts` (new); `tick.test.ts` pantry now emits a dish-kind `plate` because the pass refuses non-dishes.
 - **Active Decisions / Constraints:**
-  - Ghost and drag validity come from the sim (`canPlace`, `placeCost`), so preview and sim agree.
-  - Undo is not time travel: `nextId` and `events` are not rolled back, and a re-placed building gets a new id. Items inside a sold building are not restored. Tests compare states with `nextId`/`events` normalised.
-  - Keyboard: Enter places a belt and advances the cursor one tile in its facing. R rotates the ghost while a tool is active, else the selected building.
-  - Fast belt is not in the palette (needs restaurant tier, Step 16). Inspector station progress assumes `progress` counts up from 0: confirm in Step 6.
-  - Visual check was in the in-app browser only (desktop and 375 px); touch input was not tried on a real device.
-- **Exact Next Step:** Implement Step 6 in a fresh worktree from `origin/main`: chopper, fryer and stove processing in `src/sim`, the dish-only pass, status badges, and the `friesLine` layout. The Step 5 inspector already shows station progress and held items.
+  - Timing: first fries served at tick 81; the fryer makes one per 40 ticks (28 fries in 1200 ticks); belt steps jitter delivery gaps by 1 to 2 ticks. Stations update with non-belts before belts, so the pass/stations push first.
+  - `demoBeltLine` now stalls at the pass (raw potatoes are refused); kept as a stall demo.
+  - Pass and bin get no status badge (they flip every tick). Chopper/fryer show no badge while working (`ok`).
+  - Not tried: placing a stove with the idle badge at full zoom beyond a small screenshot; build during service/warm-up visuals.
+- **Exact Next Step:** Step 7: splitter, merger and filter in `src/sim` (buffers of 1, round-robin `rr`, `filterItem`), acceptance in `transfer.ts`, drawing and inspector config. Use `stepStation`'s push pattern and inline Defs fixtures in tests.

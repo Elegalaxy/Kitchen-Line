@@ -5,7 +5,7 @@
 // dish = circle with a plate ring, spoiling = warning badge. Stalled belt = hatching + no-entry glyph.
 
 import { footprint } from '../../sim/grid.ts'
-import type { BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
+import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
 import type { Overlay } from './input.ts'
 import type { MotionItem } from './itemMotion.ts'
 
@@ -173,7 +173,61 @@ function badge(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
   ctx.fillText(text, x, y + 0.5)
 }
 
-const STATUS_GLYPH: Partial<Record<string, string>> = { noCash: '💸', blocked: '⛔', warming: '⏳', noRecipe: '❓' }
+/** Status badges (glyph plus colour, never colour alone): idle muted, blocked bad, warming info, no cash warn. */
+function statusBadge(status: string, p: Palette): { glyph: string; color: string } | null {
+  switch (status) {
+    case 'idle':
+      return { glyph: '⏸', color: p.textMuted }
+    case 'blocked':
+      return { glyph: '⛔', color: p.bad }
+    case 'warming':
+      return { glyph: '⏳', color: p.info }
+    case 'noCash':
+      return { glyph: '$', color: p.warn }
+    case 'noRecipe':
+      return { glyph: '?', color: p.warn }
+    default:
+      return null
+  }
+}
+
+function drawStatusBadge(ctx: CanvasRenderingContext2D, status: string, x: number, y: number, tile: number, p: Palette): void {
+  const sb = statusBadge(status, p)
+  if (sb === null) return
+  const cx = x * tile + tile * 0.8
+  const cy = y * tile + tile * 0.2
+  ctx.fillStyle = p.surface
+  ctx.strokeStyle = sb.color
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(cx, cy, tile * 0.17, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = sb.color
+  if (sb.glyph === '$' || sb.glyph === '?') {
+    ctx.font = `bold ${Math.round(tile * 0.24)}px system-ui, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(sb.glyph, cx, cy + 0.5)
+  } else {
+    glyph(ctx, sb.glyph, cx, cy + 0.5, tile * 0.2)
+  }
+}
+
+/** Thin progress bar along the bottom of a processing station (progress counts up from 0). */
+function drawProgress(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, tile: number, p: Palette): void {
+  if (b.kind !== 'chopper' && b.kind !== 'fryer' && b.kind !== 'stove') return
+  const first = b.input[0]
+  const recipe = first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)
+  if (recipe === undefined || b.progress <= 0) return
+  const w = tile * 0.7
+  const x = b.x * tile + (tile - w) / 2
+  const y = b.y * tile + tile * 0.88
+  ctx.fillStyle = p.surface
+  ctx.fillRect(x, y, w, tile * 0.07)
+  ctx.fillStyle = p.good
+  ctx.fillRect(x, y, w * Math.min(1, b.progress / recipe.ticks), tile * 0.07)
+}
 
 function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs, id: number, tile: number, p: Palette): void {
   const b = state.buildings[id]
@@ -196,9 +250,9 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   ctx.fillStyle = p.text
   glyph(ctx, defs.buildings[b.kind].emoji, cx, cy, tile * 0.46)
   drawArrow(ctx, cx, cy, b.dir, tile, tint)
-  const sg = STATUS_GLYPH[b.status]
-  if (sg !== undefined && b.status !== 'blocked') glyph(ctx, sg, b.x * tile + tile * 0.8, b.y * tile + tile * 0.2, tile * 0.26)
-  if (b.status === 'blocked' && b.kind !== 'pass' && b.kind !== 'bin') glyph(ctx, '⛔', b.x * tile + tile * 0.8, b.y * tile + tile * 0.2, tile * 0.26)
+  // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
+  if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
+  drawProgress(ctx, b, defs, tile, p)
   // Items inside stations are a count, not moving shapes.
   let count = 0
   if (b.kind === 'pass') count = b.delivered

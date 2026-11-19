@@ -7,19 +7,23 @@
 //   - Pantry: cooldown counts down; at 0 it emits if money >= cost and its front accepts,
 //     charging the cost to today.ingredientCost and resetting the cooldown. Otherwise the
 //     status is noCash or blocked and it retries next tick (the first emit is at tick 0).
+//   - Chopper/fryer/stove (stations.ts): push a held output out the front, else count
+//     progress up for the first input; the output pushes the tick it is made. Stations
+//     update with the other non-belts, before the belts.
 //   - Pass and bin accept items via transfer.ts. Buildings still warming up are skipped.
 // Updates depend on belt chains only, never on coordinates, so every facing behaves alike.
 
 import { BELT_STEP_TICKS, FAST_BELT_STEP_TICKS } from './constants.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { updateOrder } from './order.ts'
+import { stepStation } from './stations.ts'
 import { opposite, tryInsert } from './transfer.ts'
 import type { Building, Defs, GameState } from './types.ts'
 
 type BeltBuilding = Extract<Building, { kind: 'belt' }>
 type PantryBuilding = Extract<Building, { kind: 'pantry' }>
 
-function stepBelt(state: GameState, b: BeltBuilding, moved: Set<number>): void {
+function stepBelt(state: GameState, defs: Defs, b: BeltBuilding, moved: Set<number>): void {
   const period = b.fast ? FAST_BELT_STEP_TICKS : BELT_STEP_TICKS
   if (state.tick % period === 0) {
     const front = b.slots[1]
@@ -28,7 +32,7 @@ function stepBelt(state: GameState, b: BeltBuilding, moved: Set<number>): void {
       const n = neighbor(b.x, b.y, b.dir)
       const targetId = buildingAt(state, n.x, n.y)
       const target = targetId === null ? undefined : state.buildings[targetId]
-      if (target !== undefined && !moved.has(front.id) && tryInsert(state, target, front, opposite(b.dir))) {
+      if (target !== undefined && !moved.has(front.id) && tryInsert(state, defs, target, front, opposite(b.dir))) {
         b.slots[1] = null
         moved.add(front.id)
       } else {
@@ -66,7 +70,7 @@ function stepPantry(state: GameState, defs: Defs, b: PantryBuilding, moved: Set<
   const targetId = buildingAt(state, n.x, n.y)
   const target = targetId === null ? undefined : state.buildings[targetId]
   const item = { id: state.nextItemId, type: b.ingredient, bornTick: state.tick }
-  if (target === undefined || !tryInsert(state, target, item, opposite(b.dir))) {
+  if (target === undefined || !tryInsert(state, defs, target, item, opposite(b.dir))) {
     b.status = 'blocked'
     return
   }
@@ -93,10 +97,15 @@ export function stepTick(state: GameState, defs: Defs): void {
     if (b.status === 'warming') b.status = 'idle'
     switch (b.kind) {
       case 'belt':
-        stepBelt(state, b, moved)
+        stepBelt(state, defs, b, moved)
         break
       case 'pantry':
         stepPantry(state, defs, b, moved)
+        break
+      case 'chopper':
+      case 'fryer':
+      case 'stove':
+        stepStation(state, defs, b, moved)
         break
       case 'pass':
       case 'bin':
