@@ -20,9 +20,9 @@
 //     (4, 1) facing S, feeding the anchor from the north.
 // soupLine: pantry(tomato) -> chopper -> stove -> pass.
 // Build costs: saladLine $116, soupLine $89, sandwichLine $127, burgerLine $162,
-// riceBowlLine $186. Customers pay nothing yet (Step 11), so with the $150 start the
-// pantries would run dry mid-run; every new line's LAYOUT_SETUP sets $300 and unlocks its
-// dish (dev loader only, see src/sim/layout.ts).
+// riceBowlLine $186. The $150 start cannot pay for these lines, so every new line's
+// LAYOUT_SETUP sets $300, unlocks its dish and puts it on the menu (dev loader only, see
+// src/sim/layout.ts).
 
 import type { LayoutSetup } from '../sim/layout.ts'
 import type { Command } from '../sim/types.ts'
@@ -129,9 +129,9 @@ export const LAYOUTS: Record<string, Command[]> = {
 
 /** Dev-loader setup per layout: unlocks (and money) the commands alone cannot provide. */
 export const LAYOUT_SETUP: Record<string, LayoutSetup> = {
-  saladLine: { money: 30000 },
-  soupLine: { unlock: ['soup'], money: 30000 },
-  sandwichLine: { unlock: ['sandwich'], money: 30000 },
-  burgerLine: { unlock: ['burger'], money: 30000 },
-  riceBowlLine: { unlock: ['riceBowl'], money: 30000 },
+  saladLine: { menu: ['salad'], money: 30000 },
+  soupLine: { menu: ['soup'], unlock: ['soup'], money: 30000 },
+  sandwichLine: { menu: ['sandwich'], unlock: ['sandwich'], money: 30000 },
+  burgerLine: { menu: ['burger'], unlock: ['burger'], money: 30000 },
+  riceBowlLine: { menu: ['riceBowl'], unlock: ['riceBowl'], money: 30000 },
 }

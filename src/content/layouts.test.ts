@@ -36,17 +36,23 @@ const DISH_LINES: [layout: string, dish: string][] = [
 describe('dish lines', () => {
   for (const [layout, dish] of DISH_LINES) {
     it(`${layout} serves at least 5 ${dish} in 1200 ticks`, () => {
+      // Step 11: dishes stay on the shelf (cap 4). The menu is emptied (no customer ever waits)
+      // and the shelf is emptied after every tick, so the test counts deliveries at the pass.
       let s = load(layout)
+      expect(s.menu.some((m) => m.dish === dish), `${layout} puts ${dish} on the menu`).toBe(true)
+      s.menu = []
       const served: { tick: number; item: string }[] = []
       const assemblers = Object.values(s.buildings).filter((b) => b.kind === 'assembler')
       for (let t = 0; t < 1200; t += 1) {
         s = runTicks(s, DEFS, 1)
+        for (const b of Object.values(s.buildings)) if (b.kind === 'pass') b.shelf = []
         for (const e of s.events) if (e.type === 'delivered') served.push({ tick: e.tick, item: e.item })
       }
       debug(`${layout}: first ${dish} at ${served[0]?.tick}, total ${served.length}, money ${s.money}`)
       expect(served.length).toBeGreaterThanOrEqual(5)
       expect(served.every((x) => x.item === dish)).toBe(true)
-      expect(s.today.served).toBe(served.length)
+      expect(s.today.served).toBe(0) // no menu, no sales
+      expect(Object.values(s.buildings).some((b) => b.kind === 'pass' && b.delivered === served.length)).toBe(true)
       for (const b of assemblers) expect(b.kind === 'assembler' && b.recipe).toBe(dish)
       expect(s.width).toBe(8)
       expect(s.height).toBe(6)

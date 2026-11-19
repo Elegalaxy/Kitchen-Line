@@ -43,3 +43,25 @@ export const DAY_PHASE_STARTS = [
   { phase: 'quiet', from: 1980 },
   { phase: 'closing', from: 2280 },
 ] as const
+
+/** Plan 2.5 / GAME_DESIGN 6.2: mean ticks between arrivals at 3 stars, stall: 150 when quiet, 50 in a rush. */
+export const ARRIVAL_GAP_QUIET = 150
+export const ARRIVAL_GAP_RUSH = 50
+/** Plan 2.5: arrival chance scales with 0.4 + 0.2 x reputation (1 star 0.6, 3 stars 1.0, 5 stars 1.4). */
+export const REPUTATION_FACTOR_BASE = 0.4
+export const REPUTATION_FACTOR_PER_STAR = 0.2
+/** Reputation used when there are no ratings at all (cannot happen from createGame; keeps the maths total). */
+export const DEFAULT_REPUTATION = 3
+/** Plan 2.5: arrival factor per tier. */
+export const TIER_ARRIVAL_FACTOR: Record<Tier, number> = { stall: 1.0, restaurant: 1.5 }
+/** Plan 2.5 / GAME_DESIGN 6.2: capacity of waiting orders per tier. */
+export const WAITING_CAP: Record<Tier, number> = { stall: 6, restaurant: 10 }
+/** Plan 2.5: patience is uniform 300 to 600 ticks from the order. */
+export const PATIENCE_MIN = 300
+export const PATIENCE_MAX = 600
+/** Plan 2.5: each customer likes 2 to 3 dishes (capped by how many dishes exist). */
+export const PREFS_MIN = 2
+export const PREFS_MAX = 3
+/** Plan 2.5: budget = reference price of the first-choice dish x a uniform 90 to 140 percent. */
+export const BUDGET_PERCENT_MIN = 90
+export const BUDGET_PERCENT_MAX = 140

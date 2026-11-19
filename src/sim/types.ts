@@ -58,6 +58,15 @@ export type Building = Base &
     | { kind: 'bin' }
   )
 
+/** Why a customer left unserved (counted in DayStats). Closing-time leftovers are not a loss (Q6). */
+export type LostReason = 'patience' | 'noMatch' | 'full'
+
+/**
+ * `id` is the global tick the customer arrived on: at most one customer arrives per tick and
+ * `state.tick` only ever grows, so it is unique. `arriveTick` is when the order was placed;
+ * the customer leaves unserved once `state.tick - arriveTick >= patience` (patience is the
+ * total allowance in ticks, not what is left).
+ */
 export type Customer = {
   id: number
   arriveTick: number
@@ -126,6 +135,9 @@ export type SimEvent =
   | { type: 'delivered'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'binned'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'spoiled'; tick: number; x: number; y: number; item: ItemId }
+  | { type: 'customerArrived'; tick: number; id: number; prefs: DishId[]; dish: DishId | null; price: number }
+  | { type: 'customerLeft'; tick: number; id: number; reason: LostReason | 'closing'; dish: DishId | null }
+  | { type: 'served'; tick: number; id: number; dish: DishId; price: number; wait: number }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
 export type GameState = {

@@ -415,7 +415,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 11: Customers, orders and economy
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: `src/sim/customers.ts` (patience, arrivals, shelf matching), `economy.ts` (`profitOf`, `recordSale`, `recordLoss`, `dropLeftovers`), constants in `constants.ts`, new events `customerArrived`, `customerLeft`, `served`. Tick order: events cleared, spoilage, buildings, then customers (patience expiry, ONE `arrivals` float, and on an arrival taste count, weighted prefs without repeats, budget percent, patience, always in that order whatever the menu; then matching), then `tick`/`dayTick` advance. The pass now keeps dishes on the shelf (cap 4, `delivered` still counts arrivals) and `today.served` counts sales only; leftovers at day end are dropped unrated and uncounted (Q6). Customer `id` is the arrival tick. Losses are booked to `byDish.lost` under the ordered dish (patience) or the first-choice dish (no match, queue full). `OrdersStrip` above the grid (fixed 52 px chips, empty slots for capacity, bar plus seconds left, alarm icon under 25%). Dev layouts can set a menu (`LayoutSetup.menu`). Existing line tests (stations, tick, layouts, spoil) count deliveries with an emptied shelf and an empty menu; no asserted number changed. Rush test pools 20 seeds x 10,000 stepped ticks (ratio 2.96); typecheck, test, lint and build pass; checked in the in-app browser (desktop and 375 px), no console errors.
 - Depends on: 10
 - Files: `src/sim/customers.ts`, `src/sim/economy.ts`, `src/sim/tick.ts`, `src/sim/stations.ts` (pass), `src/content/dishes.ts`, `src/sim/customers.test.ts`, `src/ui/OrdersStrip.tsx`, `src/ui/App.tsx`
 - What changes:

@@ -1,6 +1,8 @@
 // The tick loop (plan Step 3). `runTicks` clones the state once and steps the clone.
-// Each tick: events are cleared, spoiled items are removed (spoil.ts), buildings update in `updateOrder` order, then
-// `state.tick` advances. Rules:
+// Each tick, in this order: (1) events are cleared, (2) spoiled items are removed (spoil.ts),
+// (3) buildings update in `updateOrder` order (dishes land on the pass shelf), (4) customers
+// (customers.ts): patience, arrival with its RNG draws, shelf matching, (5) `state.tick`
+// and `dayTick` advance and the day may end. Rules:
 //   - Belt: every 3 ticks (fast belt: 2) on the global tick, slot 1 pushes to the front
 //     neighbour with tryInsert, then slot 0 moves to slot 1 if empty. An item moves at
 //     most once per tick. `stalled` is true when slot 1 was full and could not push.
@@ -17,6 +19,7 @@
 // stops the tick the day ends. Updates depend on belt chains only, never on coordinates, so every facing behaves alike.
 
 import { BELT_STEP_TICKS, FAST_BELT_STEP_TICKS } from './constants.ts'
+import { stepCustomers } from './customers.ts'
 import { advanceDayClock } from './day.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { stepRouting } from './logistics.ts'
@@ -131,6 +134,8 @@ export function stepTick(state: GameState, defs: Defs): void {
         break
     }
   }
+  // Customers last: patience, arrival (RNG), then shelf matching; see customers.ts.
+  stepCustomers(state, defs)
   state.tick += 1
   advanceDayClock(state)
 }

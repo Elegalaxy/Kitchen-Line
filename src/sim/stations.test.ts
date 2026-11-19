@@ -102,11 +102,15 @@ describe('fries line', () => {
     // steps of 3 ticks). Chopper: 20 ticks of progress, output at 26, pushed to belt 3.
     // Belt 3 pushes to the fryer at 30. Fryer: 40 ticks, output at 70 into belt 5.
     // Belts 5 and 6 take 2 steps each on multiples of 3: 70 -> 75 -> 81 (the pass).
+    // Step 11: dishes now stay on the shelf (cap 4). The menu is empty (no customer ever
+    // waits) and the shelf is emptied after every tick, so only the delivery timing is tested.
     let s = build(FRIES_LINE)
+    s.menu = []
     const served: number[] = []
     const fried: number[] = []
     for (let t = 0; t < 1200; t += 1) {
       s = runTicks(s, DEFS, 1)
+      find(s, 'pass').shelf = []
       for (const e of s.events) {
         if (e.type === 'delivered') served.push(e.tick)
         if (e.type === 'stationDone' && e.output === 'fries') fried.push(e.tick)
@@ -125,7 +129,7 @@ describe('fries line', () => {
       expect(Math.abs((served[i] ?? 0) - (served[i - 1] ?? 0) - 40)).toBeLessThanOrEqual(2)
     }
     expect(find(s, 'pass').delivered).toBe(served.length)
-    expect(s.today.served).toBe(served.length)
+    expect(s.today.served).toBe(0) // no menu, no sales
     expect(find(s, 'pass').shelf.length).toBe(0)
   })
 
@@ -207,11 +211,12 @@ describe('pass', () => {
     expect(refused.today.served).toBe(0)
 
     const withFries = structuredClone(base)
+    withFries.menu = [] // nobody waits, so the dish stays on the shelf
     find(withFries, 'belt').slots[1] = { id: 901, type: 'fries', bornTick: 0 }
     const accepted = runTicks(withFries, DEFS, 1)
     expect(find(accepted, 'pass').delivered).toBe(1)
-    expect(accepted.today.served).toBe(1)
-    expect(find(accepted, 'pass').shelf.length).toBe(0)
+    expect(accepted.today.served).toBe(0) // not sold: no customer waits
+    expect(find(accepted, 'pass').shelf.length).toBe(1)
   })
 })
 

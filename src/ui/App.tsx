@@ -9,6 +9,7 @@ import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
 import Inspector from './Inspector.tsx'
 import { startLoop } from './loop.ts'
+import OrdersStrip from './OrdersStrip.tsx'
 import { getGameStore, useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TopBar from './TopBar.tsx'
@@ -87,6 +88,7 @@ export default function App() {
       )}
       <div className="workspace">
         <div className="stage">
+          <OrdersStrip state={snap.state} defs={store.defs} />
           <GridCanvas store={store} ui={uiStore} />
           <p className="hint">{hintFor(store.defs, ui)}</p>
         </div>

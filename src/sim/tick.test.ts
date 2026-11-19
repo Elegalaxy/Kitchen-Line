@@ -124,7 +124,16 @@ describe('tick loop', () => {
   })
 
   it('has identical throughput facing N, E, S and W', () => {
-    const counts = ([0, 1, 2, 3] as Dir[]).map((d) => passOf(runTicks(line(d, 'pass'), DEFS, 600)).delivered)
+    // Step 11: dishes stay on the shelf (cap 4), so empty it after every tick to count deliveries.
+    const counts = ([0, 1, 2, 3] as Dir[]).map((d) => {
+      let s = line(d, 'pass')
+      s.menu = []
+      for (let t = 0; t < 600; t += 1) {
+        s = runTicks(s, DEFS, 1)
+        for (const bld of Object.values(s.buildings)) if (bld.kind === 'pass') bld.shelf = []
+      }
+      return passOf(s).delivered
+    })
     debug(`delivered in 600 ticks (N E S W): ${counts.join(' ')}`)
     // Emits at 0, 20, ...; deliveries at 30 + 20k <= 599 gives 29.
     expect(counts).toEqual([29, 29, 29, 29])

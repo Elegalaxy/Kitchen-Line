@@ -53,6 +53,7 @@ function empty(): GameState {
   s.buildings = {}
   s.nextId = 1
   s.phase = 'service' // time only passes in service (Step 10)
+  s.menu = [] // Step 11: every arriving customer leaves at once, so none ever buys the dish on the shelf
   return s
 }
 
@@ -92,8 +93,8 @@ describe('spoilage', () => {
   })
 
   it('spoils a dish on the pass shelf with no customer at exactly 300 ticks', () => {
-    // The pass serves a dish at once today (customers arrive in Step 11), so the dish is
-    // placed on the shelf directly.
+    // The dish is placed on the shelf directly; the fixture's menu is empty, so no customer
+    // ever waits for it.
     const s = empty()
     const pass = add(s, 'pass', 2, 2, 1)
     if (pass.kind !== 'pass') throw new Error('pass')
