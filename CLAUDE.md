@@ -19,7 +19,7 @@ Guidance for Claude Code in this repository. Machine-wide rules (agent routing, 
 
 ## Commands
 
-Not scaffolded yet (no `package.json`, no `src/`). Step 1 of the plan creates these (config copied from `../trading-sim/`). Step 1's file list also names `CLAUDE.md`: update this file in place (swap "Not scaffolded yet" for the real state), don't replace it with a shorter one.
+Scaffolded in Step 1 (config copied from `../trading-sim/` as new files). Run `npm ci` after cloning or creating a worktree. Only `src/main.tsx`, `src/ui/` (App, debug, styles) and a stub `src/harness/cli.ts` exist so far; `src/sim`, `src/content` and `src/persist` arrive in later steps.
 
 ```bash
 npm run dev                 # Vite dev server

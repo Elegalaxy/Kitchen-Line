@@ -223,7 +223,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 1: Scaffold the app and the architecture test
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-19: scaffold, architecture test (probe `Math.random()` in `src/sim` fails with file, line and rule) and CLAUDE.md done; typecheck, test, lint and build pass. Awaiting the user's `npm run dev` check.
 - Depends on: the user's go-ahead to start coding
 - Files: `package.json`, `index.html`, `vite.config.ts`, `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.harness.json`, `.oxlintrc.json`, `.gitignore`, `CLAUDE.md`, `src/main.tsx`, `src/ui/App.tsx`, `src/ui/debug.ts`, `src/ui/styles.css`, `src/harness/cli.ts`, `tests/architecture.test.ts`
 - What changes:

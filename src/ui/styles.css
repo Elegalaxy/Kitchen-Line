@@ -1,0 +1,37 @@
+/* Color tokens (plan section 2.4). Defined once here; reuse, do not add palettes.
+   Dark theme. Contrast on --surface-raised (#1e232b, the worst case): --text-faint 4.9:1,
+   --text-muted 7.2:1, --text 13.7:1, status colors 5.7:1 or better (all AA). */
+:root {
+  color-scheme: dark;
+  --surface: #14171c;
+  --surface-raised: #1e232b;
+  --text: #eceff4;
+  --text-muted: #a7b0be;
+  --text-faint: #8590a0;
+  --good: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+  --info: #60a5fa;
+  --money: #facc15;
+  --focus: #93c5fd;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.app {
+  padding: 16px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
