@@ -4,6 +4,7 @@
 // Shape encoding (never colour alone): raw = circle, processed = rounded square,
 // dish = circle with a plate ring, spoiling = warning badge. Stalled belt = hatching + no-entry glyph.
 
+import { ASSEMBLER_TICKS } from '../../sim/constants.ts'
 import { footprint } from '../../sim/grid.ts'
 import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
 import type { Overlay } from './input.ts'
@@ -226,7 +227,7 @@ function statusBadge(status: string, p: Palette): { glyph: string; color: string
     case 'noCash':
       return { glyph: '$', color: p.warn }
     case 'noRecipe':
-      return { glyph: '?', color: p.warn }
+      return { glyph: '❓', color: p.warn }
     default:
       return null
   }
@@ -245,7 +246,7 @@ function drawStatusBadge(ctx: CanvasRenderingContext2D, status: string, x: numbe
   ctx.fill()
   ctx.stroke()
   ctx.fillStyle = sb.color
-  if (sb.glyph === '$' || sb.glyph === '?') {
+  if (sb.glyph === '$') {
     ctx.font = `bold ${Math.round(tile * 0.24)}px system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -257,17 +258,60 @@ function drawStatusBadge(ctx: CanvasRenderingContext2D, status: string, x: numbe
 
 /** Thin progress bar along the bottom of a processing station (progress counts up from 0). */
 function drawProgress(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, tile: number, p: Palette): void {
-  if (b.kind !== 'chopper' && b.kind !== 'fryer' && b.kind !== 'stove') return
-  const first = b.input[0]
-  const recipe = first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)
-  if (recipe === undefined || b.progress <= 0) return
+  let ticks: number | undefined
+  if (b.kind === 'chopper' || b.kind === 'fryer' || b.kind === 'stove') {
+    const first = b.input[0]
+    ticks = first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)?.ticks
+  } else if (b.kind === 'assembler') {
+    ticks = ASSEMBLER_TICKS
+  }
+  if (ticks === undefined || b.kind === 'belt' || !('progress' in b) || b.progress <= 0) return
   const w = tile * 0.7
   const x = b.x * tile + (tile - w) / 2
   const y = b.y * tile + tile * 0.88
   ctx.fillStyle = p.surface
   ctx.fillRect(x, y, w, tile * 0.07)
   ctx.fillStyle = p.good
-  ctx.fillRect(x, y, w * Math.min(1, b.progress / recipe.ticks), tile * 0.07)
+  ctx.fillRect(x, y, w * Math.min(1, b.progress / ticks), tile * 0.07)
+}
+
+/**
+ * Assembler input pips on the second tile: one column per recipe input with the ingredient
+ * emoji above a pip. Filled disc = held (at least 1), hollow dashed ring = missing, so the
+ * state is readable without colour. The chosen dish shows in the anchor's lower right.
+ */
+function drawAssemblerPips(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, tile: number, p: Palette): void {
+  if (b.kind !== 'assembler' || b.recipe === null) return
+  const dish = defs.dishes[b.recipe]
+  const inputs = dish?.inputs
+  if (dish === undefined || inputs === undefined) return
+  ctx.fillStyle = p.text
+  glyph(ctx, dish.emoji, b.x * tile + tile * 0.8, b.y * tile + tile * 0.78, tile * 0.26)
+  const second = footprint(b.kind, b.x, b.y, b.dir)[1]
+  if (second === undefined) return
+  const gap = tile * 0.3
+  const startX = second.x * tile + tile / 2 - (gap * (inputs.length - 1)) / 2
+  inputs.forEach((type, i) => {
+    const cx = startX + gap * i
+    const held = (b.inputs[type]?.length ?? 0) > 0
+    ctx.fillStyle = p.text
+    glyph(ctx, defs.items[type]?.emoji ?? '?', cx, second.y * tile + tile * 0.34, tile * 0.22)
+    const cy = second.y * tile + tile * 0.7
+    ctx.beginPath()
+    ctx.arc(cx, cy, tile * 0.09, 0, Math.PI * 2)
+    if (held) {
+      ctx.fillStyle = p.good
+      ctx.fill()
+      ctx.strokeStyle = p.text
+      ctx.setLineDash([])
+    } else {
+      ctx.strokeStyle = p.textMuted
+      ctx.setLineDash([tile * 0.04, tile * 0.04])
+    }
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    ctx.setLineDash([])
+  })
 }
 
 function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs, id: number, tile: number, p: Palette): void {
@@ -295,6 +339,7 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
   if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
   drawProgress(ctx, b, defs, tile, p)
+  drawAssemblerPips(ctx, b, defs, tile, p)
   // Items inside stations are a count, not moving shapes.
   let count = 0
   if (b.kind === 'pass') count = b.delivered

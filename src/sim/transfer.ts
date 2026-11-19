@@ -7,6 +7,10 @@
 //   chopper/fryer/stove: accept an item only if a station recipe exists for it (this
 //         station, this input), the input holds fewer than STATION_INPUT_CAP items, and
 //         it does not come from the station's front (back, left and right are fine).
+//   assembler: accepts an item only if it is an input of the selected recipe (none set =
+//         nothing accepted), that input holds fewer than ASSEMBLER_INPUT_CAP items, and it
+//         does not come from the front of the building (back, left and right are fine;
+//         the front is the direction `dir`, which for the second tile is also refused).
 //   pass: accepts dishes only (by the item's def kind), up to PASS_SHELF_CAP on the
 //         shelf, from any side. Until customers exist (Step 11) a dish is served at once:
 //         it counts in `delivered` and `today.served` and never stays on the shelf.
@@ -15,7 +19,7 @@
 // Every other kind refuses for now (their steps add acceptance).
 
 import { acceptRouting } from './logistics.ts'
-import { PASS_SHELF_CAP, STATION_INPUT_CAP } from './constants.ts'
+import { ASSEMBLER_INPUT_CAP, PASS_SHELF_CAP, STATION_INPUT_CAP } from './constants.ts'
 import type { Building, Defs, Dir, GameState, Item, ItemId, StationRecipe } from './types.ts'
 
 export function opposite(dir: Dir): Dir {
@@ -43,6 +47,15 @@ export function tryInsert(state: GameState, defs: Defs, building: Building, item
       if (building.input.length >= STATION_INPUT_CAP) return false
       if (findStationRecipe(defs, building.kind, item.type) === undefined) return false
       building.input.push(item)
+      return true
+    }
+    case 'assembler': {
+      if (fromDir === building.dir || building.recipe === null) return false
+      const inputs = defs.dishes[building.recipe]?.inputs
+      if (inputs === undefined || !inputs.includes(item.type)) return false
+      const held = building.inputs[item.type] ?? []
+      if (held.length >= ASSEMBLER_INPUT_CAP) return false
+      building.inputs[item.type] = [...held, item]
       return true
     }
     case 'splitter':

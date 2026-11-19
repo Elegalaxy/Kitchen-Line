@@ -4,7 +4,7 @@
 // numbers refresh about 5 times a second.
 
 import type { ReactNode } from 'react'
-import { PANTRY_INTERVALS } from '../sim/constants.ts'
+import { ASSEMBLER_TICKS, PANTRY_INTERVALS } from '../sim/constants.ts'
 import type { Building, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
@@ -43,7 +43,7 @@ function heldText(defs: Defs, items: Item[]): string {
     .join(', ')
 }
 
-/** Progress 0..100, or null when it does not apply. Station progress is assumed to count up from 0. */
+/** Progress 0..100, or null when it does not apply. Station and assembler progress count up from 0. */
 function progressPct(defs: Defs, b: Building): number | null {
   if (b.kind === 'pantry') return Math.round((100 * (b.interval - b.cooldown)) / b.interval)
   if (b.kind === 'chopper' || b.kind === 'fryer' || b.kind === 'stove') {
@@ -52,6 +52,7 @@ function progressPct(defs: Defs, b: Building): number | null {
       first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)
     return recipe === undefined ? null : Math.min(100, Math.round((100 * b.progress) / recipe.ticks))
   }
+  if (b.kind === 'assembler') return Math.min(100, Math.round((100 * b.progress) / ASSEMBLER_TICKS))
   return null
 }
 
@@ -87,7 +88,7 @@ export default function Inspector({ ctx, snap, selectedId }: { ctx: Ctx; snap: S
     report(ctx, ctx.store.dispatch({ type: 'configure', x: b.x, y: b.y, ...fields }))
   }
   const rawItems = Object.values(defs.items).filter((i) => i.kind === 'raw')
-  const recipes = Object.values(defs.dishes).filter((d) => d.inputs !== undefined)
+  const recipes = Object.values(defs.dishes).filter((d) => d.inputs !== undefined && snap.state.unlocked.includes(d.id))
   const isPass = b.kind === 'pass'
   return (
     <section className="panel" aria-label="Inspector">
@@ -167,15 +168,11 @@ export default function Inspector({ ctx, snap, selectedId }: { ctx: Ctx; snap: S
               onChange={(e) => configure({ recipe: e.target.value === '' ? null : e.target.value })}
             >
               <option value="">None</option>
-              {recipes.map((d) => {
-                const locked = !snap.state.unlocked.includes(d.id)
-                return (
-                  <option key={d.id} value={d.id} disabled={locked}>
-                    {d.emoji} {d.name}
-                    {locked ? ' (locked)' : ''}
-                  </option>
-                )
-              })}
+              {recipes.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.emoji} {d.name}
+                </option>
+              ))}
             </select>
           </label>
         </div>

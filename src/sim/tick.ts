@@ -10,6 +10,7 @@
 //   - Chopper/fryer/stove (stations.ts): push a held output out the front, else count
 //     progress up for the first input; the output pushes the tick it is made. Stations
 //     update with the other non-belts, before the belts.
+//   - Assembler (stations.ts): same pattern with a recipe; 30 ticks once every input is held.
 //   - Splitter/merger/filter (logistics.ts): push the one-item buffer out, non-belts first.
 //   - Pass and bin accept items via transfer.ts. Buildings still warming up are skipped.
 // Updates depend on belt chains only, never on coordinates, so every facing behaves alike.
@@ -18,7 +19,7 @@ import { BELT_STEP_TICKS, FAST_BELT_STEP_TICKS } from './constants.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { stepRouting } from './logistics.ts'
 import { updateOrder } from './order.ts'
-import { stepStation } from './stations.ts'
+import { stepAssembler, stepStation } from './stations.ts'
 import { opposite, tryInsert } from './transfer.ts'
 import type { Building, Defs, GameState } from './types.ts'
 
@@ -108,6 +109,9 @@ export function stepTick(state: GameState, defs: Defs): void {
       case 'fryer':
       case 'stove':
         stepStation(state, defs, b, moved)
+        break
+      case 'assembler':
+        stepAssembler(state, defs, b, moved)
         break
       case 'splitter':
       case 'merger':

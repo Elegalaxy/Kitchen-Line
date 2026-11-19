@@ -370,7 +370,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 8: Assembler and all 6 dishes
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: assembler in `stations.ts`/`transfer.ts` (recipe inputs, cap 2, 30 ticks, out the front of the anchor, `noRecipe`/`idle`/`blocked`/`ok`), `assembled` event, dev loader `src/sim/layout.ts` (`LAYOUT_SETUP`: unlock + money), layouts `saladLine`, `soupLine`, `sandwichLine`, `burgerLine`, `riceBowlLine` (all fit the 8x6 start grid); canvas pips (ingredient emoji over a filled disc or hollow dashed ring), ❓ badge, assembler progress bar; Inspector recipe select lists only unlocked dishes. `stations.test.ts` and `layouts.test.ts`: each of the 6 dishes serves at least 5 in 1200 ticks (salad 38, sandwich 38, burger/soup/rice bowl/fries 19-28); typecheck, test, lint and build pass; `?layout=saladLine` and `?layout=burgerLine` loaded in the in-app browser with no console errors, dishes served, pips rendered.
 - Depends on: 7
 - Files: `src/sim/stations.ts`, `src/sim/transfer.ts`, `src/sim/stations.test.ts`, `src/content/layouts.ts`, `src/ui/canvas/draw.ts`, `src/ui/Inspector.tsx`
 - What changes:

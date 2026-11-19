@@ -1,18 +1,18 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 7, 2026-11-20)
-- **Current Goal:** Step 8 of `doc/plans/2026-11-19-first-playable.md`: assembler and all 6 dishes.
-- **Recent Changes & Files Touched (Step 7, done):**
-  - `src/sim/logistics.ts` (new): `stepRouting` and `acceptRouting` for splitter, merger, filter. One-item `buf`; "left" = dir+3, "right" = dir+1.
-    - Splitter: input from back only, alternates left/right via `rr` (0 = left next), falls back to the other side if refused.
-    - Merger: inputs left/right/back (never front), output front. `rr` indexes [left, right, back]; a side is refused only while a side ahead of it in that order has a sender waiting (`senderWaiting`), so none starves.
-    - Filter: input from back; `filterItem` goes left, all else front; no fallback (blocked exit = blocked filter).
-  - `src/sim/transfer.ts` (acceptance case), `tick.ts` (`stepRouting`, runs with the non-belts), `types.ts` (splitter and merger are separate union members so `kind` narrows).
-  - `src/ui/canvas/draw.ts`: `drawRouting` adds exit/entrance arrows (splitter out left+right, merger in from three sides, filter out left plus the chosen item emoji or a dash). `Inspector.tsx` already had the filter select (all DEFS items, `configure`); unchanged.
-  - `src/content/layouts.ts`: `routingDemo` ($52). Tests: `src/sim/logistics.test.ts` (new).
+- **Last Updated By:** Claude (implementer, Step 8, 2026-11-20)
+- **Current Goal:** Step 9 of `doc/plans/2026-11-19-first-playable.md`: freshness, spoilage and waste.
+- **Recent Changes & Files Touched (Step 8, done):**
+  - `src/sim/stations.ts`: `stepAssembler`. With no recipe: `noRecipe`. Starts when the output is empty and every recipe input holds at least 1; `progress` counts up to `ASSEMBLER_TICKS` (30), then one of each input is consumed and the dish is made (bornTick = now) and pushed out the front of the anchor. Status `blocked` (dish stuck), `ok`, `idle` (input missing). New event `assembled`.
+  - `src/sim/transfer.ts`: assembler accepts only recipe inputs, fewer than `ASSEMBLER_INPUT_CAP` (2) of that input, never from `dir` (front). `constants.ts` has both constants; `tick.ts` calls `stepAssembler` with the non-belts.
+  - `src/sim/layout.ts` (new): `applyLayout(state, defs, commands, setup?)`, the dev loader. `LAYOUT_SETUP` in `src/content/layouts.ts` unlocks the dish and sets money to $300 (no sales exist until Step 11, so $150 runs dry). `src/ui/store.ts` `newGameState` uses it.
+  - `src/content/layouts.ts`: `saladLine`, `soupLine`, `sandwichLine`, `burgerLine`, `riceBowlLine`, all inside 8x6; each assembler input has its own feed (anchor (4,2) facing E, second tile (4,3); 3-input lines add pantry (4,0) and a processor (4,1) facing S).
+  - `src/ui/canvas/draw.ts`: pips on the assembler's second tile, ❓ badge, progress bar, recipe emoji. `Inspector.tsx`: recipe select lists unlocked dishes only, shows assembler progress.
+  - Tests: `stations.test.ts` (assembler block), `src/content/layouts.test.ts` (6 dish lines on real DEFS, 5+ dishes in 1200 ticks, missing ingredient idle).
 - **Active Decisions / Constraints:**
-  - `tryInsert` for a routing building sets status `ok`; its own update sets `idle`/`blocked`. Held items move at most once per tick (`moved` set), so an item taken this tick leaves next tick.
-  - Merger `senderWaiting` looks at the neighbour on that side: a belt with an item in slot 1, a station output, a routing buffer, or a pantry with cooldown <= 1.
-  - Bins show no item count; routing results are only checked in tests, the browser shows items moving.
-  - Banned word `process` in `src/sim` (also in comments). Python edits of files with emoji need `encoding='utf-8'` on Windows.
-- **Exact Next Step:** Step 8: assembler (2x1, `recipe` select, inputs cap 2 each, 30 ticks) plus layouts saladLine, burgerLine, soupLine, sandwichLine, riceBowlLine; input pips on the canvas, `noRecipe` badge. Reuse `acceptRouting`-style acceptance in `transfer.ts` and inline Defs fixtures in tests.
+  - No grid-size change: all layouts fit the 8x6 start grid (plan said 10x8). Expansion is Step 16.
+  - Assembler accepts from any side except `dir`, for both of its tiles. The second tile's front side is also refused.
+  - Spoilage is not built: `ItemDef.spoilTicks` exists in content but the sim ignores it until Step 9. The plan text says `shelfTicks`; the field is `spoilTicks`.
+  - Banned word `process` in `src/sim`. Python edits of files with emoji need `encoding='utf-8'` on Windows.
+  - Sim tests import only `vitest` and `src/sim`; content-level tests (real DEFS) live in `src/content/*.test.ts`.
+- **Exact Next Step:** Step 9: `src/sim/spoil.ts` removes items past `spoilTicks` wherever they are (belts, buffers, station slots, assembler inputs, shelf), adds `today.wasteSpoiled` and a `spoiled` event with position; renderer shows a warning marker in the last third. Spoilage changes item lifetimes, so line tests (e.g. the 600-tick tomato on a dead-end belt) shift; note hash changes.

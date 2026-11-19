@@ -3,13 +3,15 @@
 // layout: pantry(potato) -> belt -> chopper -> belt -> fryer -> belt x2 -> pass on an
 // 8 x 6 grid, all facing east. Checked: exact first-fries tick, fryer-limited rate,
 // a tomato into a fryer is refused and the belt stalls, an unconnected stove is idle,
-// the pass refuses non-dishes and takes dishes, and the line is deterministic.
+// the pass refuses non-dishes and takes dishes, and the line is deterministic. Assembler
+// (Step 8): acceptance, cap of 2, 30-tick cycle, missing input idle, no recipe, output front.
 
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from './commands.ts'
 import { createGame } from './game.ts'
 import { stateHash } from './hash.ts'
 import { runTicks } from './tick.ts'
+import { tryInsert } from './transfer.ts'
 import type { Building, BuildingDef, BuildingKind, Command, Defs, GameState } from './types.ts'
 
 function debug(message: string): void {
@@ -28,6 +30,10 @@ const DEFS: Defs = {
     potatoStrips: { id: 'potatoStrips', name: 'Strips', emoji: '', kind: 'processed' },
     cookedPatty: { id: 'cookedPatty', name: 'Cooked patty', emoji: '', kind: 'processed' },
     fries: { id: 'fries', name: 'Fries', emoji: '', kind: 'dish' },
+    lettuce: { id: 'lettuce', name: 'Lettuce', emoji: '', kind: 'raw', cost: 40 },
+    choppedLettuce: { id: 'choppedLettuce', name: 'Chopped lettuce', emoji: '', kind: 'processed' },
+    slicedTomato: { id: 'slicedTomato', name: 'Sliced tomato', emoji: '', kind: 'processed' },
+    salad: { id: 'salad', name: 'Salad', emoji: '', kind: 'dish' },
   },
   buildings: {
     belt: b('belt', 100),
@@ -46,9 +52,21 @@ const DEFS: Defs = {
     { station: 'chopper', input: 'potato', output: 'potatoStrips', ticks: 20 },
     { station: 'fryer', input: 'potatoStrips', output: 'fries', ticks: 40 },
     { station: 'stove', input: 'patty', output: 'cookedPatty', ticks: 60 },
+    { station: 'chopper', input: 'lettuce', output: 'choppedLettuce', ticks: 20 },
+    { station: 'chopper', input: 'tomato', output: 'slicedTomato', ticks: 20 },
   ],
   dishes: {
     fries: { id: 'fries', name: 'Fries', emoji: '', refPrice: 300, popularity: 3, startsUnlocked: true, unlockCost: 0 },
+    salad: {
+      id: 'salad',
+      name: 'Salad',
+      emoji: '',
+      refPrice: 450,
+      popularity: 2,
+      startsUnlocked: true,
+      unlockCost: 0,
+      inputs: ['choppedLettuce', 'slicedTomato'],
+    },
   },
 }
 
@@ -193,5 +211,110 @@ describe('pass', () => {
     expect(find(accepted, 'pass').delivered).toBe(1)
     expect(accepted.today.served).toBe(1)
     expect(find(accepted, 'pass').shelf.length).toBe(0)
+  })
+})
+
+// ---- Assembler (plan Step 8) ----------------------------------------------------------
+// Salad assembler at anchor (4, 2) facing E, second tile (4, 3), output belt (5, 2) -> (6, 2)
+// -> pass. Items are put in by hand so each rule is checked on its own.
+
+const ASM_BASE: Command[] = [
+  { type: 'place', kind: 'assembler', x: 4, y: 2, dir: 1 },
+  { type: 'place', kind: 'belt', x: 5, y: 2, dir: 1 },
+  { type: 'place', kind: 'belt', x: 6, y: 2, dir: 1 },
+  { type: 'configure', x: 4, y: 2, recipe: 'salad' },
+]
+
+function held(type: string, id: number): { id: number; type: string; bornTick: number } {
+  return { id, type, bornTick: 0 }
+}
+
+/** The assembler line with nothing feeding it (the start pantry is not connected). */
+function asmState(): GameState {
+  return build(ASM_BASE)
+}
+
+describe('assembler', () => {
+  it('shows noRecipe and accepts nothing while no recipe is set', () => {
+    let s = build([{ type: 'place', kind: 'assembler', x: 4, y: 2, dir: 1 }])
+    s = runTicks(s, DEFS, 5)
+    const asm = find(s, 'assembler')
+    expect(asm.status).toBe('noRecipe')
+    expect(tryInsert(s, DEFS, asm, held('choppedLettuce', 900), 3)).toBe(false)
+  })
+
+  it('accepts only recipe inputs, at most 2 of each, never from its front', () => {
+    const s = asmState()
+    const asm = find(s, 'assembler')
+    expect(tryInsert(s, DEFS, asm, held('potato', 1), 3)).toBe(false)
+    expect(tryInsert(s, DEFS, asm, held('slicedTomato', 2), 1)).toBe(false) // from the front
+    expect(tryInsert(s, DEFS, asm, held('slicedTomato', 3), 3)).toBe(true)
+    expect(tryInsert(s, DEFS, asm, held('slicedTomato', 4), 0)).toBe(true)
+    expect(tryInsert(s, DEFS, asm, held('slicedTomato', 5), 3)).toBe(false) // cap 2
+    expect(tryInsert(s, DEFS, asm, held('choppedLettuce', 6), 2)).toBe(true) // other input unaffected
+    expect(asm.inputs['slicedTomato']?.length).toBe(2)
+  })
+
+  it('with a missing input never produces anything and shows idle', () => {
+    const s0 = asmState()
+    const asm0 = find(s0, 'assembler')
+    tryInsert(s0, DEFS, asm0, held('slicedTomato', 1), 3)
+    tryInsert(s0, DEFS, asm0, held('slicedTomato', 2), 3)
+    const s = runTicks(s0, DEFS, 400)
+    const asm = find(s, 'assembler')
+    expect(asm.status).toBe('idle')
+    expect(asm.progress).toBe(0)
+    expect(asm.output).toBeNull()
+    expect(find(s, 'pass').delivered).toBe(0)
+    expect(asm.inputs['slicedTomato']?.length).toBe(2)
+  })
+
+  it('takes 30 ticks once every input is held, consumes one of each and outputs out the front', () => {
+    const s0 = asmState()
+    const asm0 = find(s0, 'assembler')
+    tryInsert(s0, DEFS, asm0, held('slicedTomato', 1), 3)
+    tryInsert(s0, DEFS, asm0, held('slicedTomato', 2), 3)
+    tryInsert(s0, DEFS, asm0, held('choppedLettuce', 3), 3)
+    // Tick 0 is the first progress tick; the dish is made at the end of tick 29.
+    const s29 = runTicks(s0, DEFS, 29)
+    expect(find(s29, 'assembler').output).toBeNull()
+    expect(find(s29, 'assembler').status).toBe('ok')
+    const s30 = runTicks(s0, DEFS, 30)
+    const made = s30.events.find((e) => e.type === 'assembled')
+    expect(made).toMatchObject({ type: 'assembled', dish: 'salad', x: 4, y: 2 })
+    const a = find(s30, 'assembler')
+    expect(a.inputs['slicedTomato']?.length).toBe(1)
+    expect(a.inputs['choppedLettuce']?.length).toBe(0)
+    // The dish went out the front onto the belt at (5, 2), then reaches the pass.
+    const belt = Object.values(s30.buildings).find((x) => x.kind === 'belt' && x.x === 5)
+    expect(belt?.kind === 'belt' && (belt.slots[0] ?? belt.slots[1])?.type).toBe('salad')
+    const s60 = runTicks(s0, DEFS, 60)
+    expect(find(s60, 'pass').delivered).toBe(1)
+    expect(find(s60, 'assembler').status).toBe('idle')
+  })
+
+  it('blocks while its dish cannot leave, and keeps the dish', () => {
+    let s = build([
+      { type: 'place', kind: 'assembler', x: 4, y: 2, dir: 0 },
+      { type: 'configure', x: 4, y: 2, recipe: 'salad' },
+    ])
+    const asm0 = find(s, 'assembler')
+    tryInsert(s, DEFS, asm0, held('slicedTomato', 1), 2)
+    tryInsert(s, DEFS, asm0, held('choppedLettuce', 2), 2)
+    s = runTicks(s, DEFS, 100)
+    const asm = find(s, 'assembler')
+    expect(asm.output?.type).toBe('salad')
+    expect(asm.status).toBe('blocked')
+  })
+
+  it('changing the recipe destroys held items; a non-assembler recipe is rejected', () => {
+    const s0 = asmState()
+    tryInsert(s0, DEFS, find(s0, 'assembler'), held('slicedTomato', 1), 3)
+    const out = applyCommand(s0, DEFS, { type: 'configure', x: 4, y: 2, recipe: null })
+    expect(out.result.ok).toBe(true)
+    expect(find(out.state, 'assembler').inputs).toEqual({})
+    expect(out.state.today.wasteDestroyed).toBe(1)
+    const bad = applyCommand(s0, DEFS, { type: 'configure', x: 4, y: 2, recipe: 'fries' })
+    expect(bad.result.ok).toBe(false)
   })
 })

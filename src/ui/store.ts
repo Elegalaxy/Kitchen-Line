@@ -11,9 +11,10 @@
 
 import { useSyncExternalStore } from 'react'
 import { DEFS } from '../content/index.ts'
-import { LAYOUTS } from '../content/layouts.ts'
+import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
+import { applyLayout } from '../sim/layout.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Command, CommandResult, Defs, GameState, RejectReason } from '../sim/types.ts'
 import { debugLog } from './debug.ts'
@@ -160,19 +161,16 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
 
 /** Fresh game with the named layout's commands applied; unknown names are ignored. */
 export function newGameState(defs: Defs, layout: string | null, seed = 'kitchen-line'): GameState {
-  let state = createGame(defs, seed)
+  const state = createGame(defs, seed)
   if (layout === null) return state
   const commands = LAYOUTS[layout]
   if (commands === undefined) {
     debugLog('[store]', `unknown layout ${layout}`)
     return state
   }
-  for (const cmd of commands) {
-    const out = applyCommand(state, defs, cmd)
-    if (out.result.ok) state = out.state
-    else debugLog('[store]', `layout ${layout}: ${cmd.type} -> rejected ${out.result.reason}`)
-  }
-  return state
+  const out = applyLayout(state, defs, commands, LAYOUT_SETUP[layout])
+  for (const why of out.rejected) debugLog('[store]', `layout ${layout}: ${why}`)
+  return out.state
 }
 
 let singleton: GameStore | null = null
