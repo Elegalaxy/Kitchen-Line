@@ -3,8 +3,10 @@
 // optional menu), then for each day does openService -> DAY_TICKS ticks -> dismissSummary
 // and collects one summary per day plus the final stateHash.
 //
-// setMenu/setPrice commands arrive in Step 14. Until then `withMenu` writes the menu
-// directly on a copy of the state (and unlocks the dishes), like LAYOUT_SETUP does.
+// `withMenu` still writes the menu directly on a copy of the state (and unlocks the dishes
+// for free), like LAYOUT_SETUP does. Step 14 added the real setMenu/setPrice/unlockRecipe
+// commands, but they charge unlock costs and reject out-of-range prices, which would change
+// the harness outputs and hashes, so the dev helper was left as it is.
 
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
 import { DAY_TICKS } from '../sim/constants.ts'
@@ -53,7 +55,7 @@ export function layoutNames(): string[] {
   return Object.keys(LAYOUTS)
 }
 
-/** A copy of `state` with the given menu (dishes unlocked). Dev helper until Step 14. */
+/** A copy of `state` with the given menu (dishes unlocked). Dev helper: bypasses the menu commands. */
 export function withMenu(state: GameState, menu: MenuEntry[]): GameState {
   const next = structuredClone(state)
   next.menu = menu.map((m) => ({ dish: m.dish, price: m.price }))

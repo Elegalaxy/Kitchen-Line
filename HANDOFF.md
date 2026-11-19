@@ -1,18 +1,18 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 13, 2026-11-20)
-- **Current Goal:** Step 14 of `doc/plans/2026-11-19-first-playable.md`: menu and prices panel, recipe unlocks (adds `setMenu`, `setPrice`, `unlockRecipe` commands). Steps 1 to 13 are done.
-- **Recent Changes & Files Touched (Step 13):**
-  - `src/harness/run.ts` (new): pure `runDays(defs, opts)` / `runDaysFrom(state, defs, days)` return per-day summaries plus the final `stateHash`; `formatRun` prints the `[sim]` lines. Per day: `openService` -> 2400 ticks -> `dismissSummary`; profit is `profitOf(lastDay)`, rep is `reputationOf` after the day, avgWait is in ticks (`t`).
-  - `src/harness/args.ts` (new): pure `parseArgs` / `parseMenu`; `cli.ts` prints the error plus usage and exits 1. Flags: `--layout --seed --days (1-100) --menu dish:cents,... --speedtest --list`.
-  - `src/harness/cli.ts`: thin wrapper; the only wall-clock use (`--speedtest`).
-  - `src/harness/{args,run,perf}.test.ts` (new). `perf.test.ts` lives in the harness (not `src/sim`) because it needs real content; 16x12 full belt-ring grid about 0.66 s, dish lines about 0.05 s each for 7 days, best of 3, limit 1 s.
-  - `CLAUDE.md` Commands section updated with the real `npm run sim` usage.
+- **Last Updated By:** Claude (implementer, Step 14, 2026-11-20)
+- **Current Goal:** Step 15 of `doc/plans/2026-11-19-first-playable.md`: end-of-day summary (`DaySummary.tsx`, `src/sim/summary.ts`). Steps 1 to 14 are done.
+- **Recent Changes & Files Touched (Step 14):**
+  - `src/sim/commands.ts`: real `setMenu` (exact dish list; existing prices kept, new dishes at reference price; cap `MENU_CAP` stall 4, restaurant 6), `setPrice` (integer cents, 10-cent steps, 50%-300% of reference, rejected not clamped), `unlockRecipe` (charges `unlockCost`). Build phase only: service gives 'Menu is locked during service', summary/won give 'wrong phase'.
+  - `src/sim/menu.ts` (`priceBounds`, `priceProblem`), constants `MENU_CAP`, `PRICE_*` in `constants.ts`, new RejectReasons mapped in `src/ui/format.ts` (a locked dish reuses 'locked recipe').
+  - `src/content/dishes.ts`: `ingredientCostOf(dish)` (UI only; sim does not import it).
+  - UI: `SidePanel.tsx` (tabs Build/Menu/Goals, `sideTabs.ts`), `MenuPanel.tsx`, `menuView.ts` (view model), `money.ts` (dollars<->cents), styles appended to `styles.css`; `App.tsx` uses `SidePanel`.
+  - Tests: `menu.test.ts`, `menuView.test.ts`, `money.test.ts`, `sideTabs.test.ts`, `ingredientCostOf` in `content.test.ts`. No existing test changed.
 - **Active Decisions / Constraints:**
-  - `--menu` prices are integer cents. Until Step 14 adds `setMenu`, the harness writes the menu on a state copy (`withMenu` in `run.ts`, also unlocks the dishes). Switch it to commands in Step 14.
-  - Most lost customers are `noMatch` (taste), and avgWait is 0.0t because customers take a dish already on the shelf; that is Step 18 tuning, not a harness bug.
+  - Harness `withMenu` (`src/harness/run.ts`) still writes the menu directly (free unlocks, any price): switching to commands would change outputs and hashes. `LAYOUT_SETUP` also unchanged.
+  - Menu rows are cards (side panel is 320 px) with table ARIA roles; price input commits on Enter or blur, Escape reverts.
+  - The Goals tab is a placeholder until Step 16. The placeholder day-over banner in `App.tsx` is replaced in Step 15.
   - `totals.profit` is still not updated at day end (Step 15/16: use `profitOf(lastDay)`).
-  - The big-grid perf case is the slowest (about 0.66 s of the 1 s limit): watch it when sim work is added.
   - Sim tests import only `vitest` and `src/sim`; no `process`/`Date`/`console` in `src/sim`.
   - Commit and push each finished step (CLAUDE.md Workflow); work in a worktree.
-- **Exact Next Step:** Step 14: `src/ui/MenuPanel.tsx`, `SidePanel.tsx` tabs, `ingredientCostOf(dish)`, `src/ui/money.ts`, and the `setMenu`/`setPrice`/`unlockRecipe` commands in `src/sim/commands.ts` (locked during service, price clamped 50%-300% of reference, menu cap 4 at the stall).
+- **Exact Next Step:** Step 15: `src/sim/summary.ts` plus tests and `src/ui/DaySummary.tsx` replacing the placeholder summary banner; review with the user after it (plan milestone).

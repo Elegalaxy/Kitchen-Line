@@ -604,3 +604,295 @@ kbd {
   color: var(--bad);
   font-weight: 700;
 }
+
+/* Side panel tabs (Step 14): Build, Menu, Goals. The selected tab is bold with a thick
+   underline, so it does not rely on colour. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--text-faint);
+}
+
+.tab {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab:hover:not([aria-selected='true']) {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
+.tab:active:not([aria-selected='true']) {
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--info);
+  color: var(--text);
+  font-weight: 700;
+  cursor: default;
+}
+
+.tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Menu tab (Step 14): each dish row is a small card on a 5-column grid
+   (toggle | name | name | price | price, then the four stats underneath). */
+.menu-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.menu-count {
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.menu-note {
+  margin: 0 0 8px;
+  min-height: 1.3em;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.menu-note-locked {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.menu-table,
+.menu-table tbody {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.25fr) minmax(0, 0.8fr);
+  column-gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid color-mix(in srgb, var(--text-faint) 35%, transparent);
+}
+
+.menu-row td {
+  min-width: 0;
+  padding: 0;
+}
+
+.cell-toggle {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+}
+
+.cell-dish {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.cell-price {
+  grid-column: 4 / 6;
+  grid-row: 1;
+}
+
+.dish-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.menu-locked .dish-name {
+  color: var(--text-muted);
+}
+
+.toggle-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.toggle {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--info);
+  cursor: pointer;
+}
+
+.toggle:disabled {
+  cursor: not-allowed;
+}
+
+.lock-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.price-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-field {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.price-field:hover:not(:has(input:disabled)) {
+  background: color-mix(in srgb, var(--text) 10%, var(--surface));
+}
+
+.price-field:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.price-field:has(input:disabled) {
+  border-style: dashed;
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.price-field:has(input[aria-invalid='true']) {
+  border-color: var(--bad);
+}
+
+.price-prefix {
+  color: var(--text-muted);
+}
+
+.price-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 0 0 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: right;
+}
+
+.price-input:focus-visible {
+  outline: none;
+}
+
+.price-input:disabled {
+  cursor: not-allowed;
+}
+
+.price-hint {
+  margin: 0;
+  min-height: 2.5em;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.price-error {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.unlock-btn {
+  width: 100%;
+  align-items: center;
+}
+
+.cell-stat {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.cell-stat::before {
+  content: attr(data-label);
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cell-ref {
+  grid-column: 2;
+}
+
+.cell-cost {
+  grid-column: 3;
+}
+
+.cell-margin {
+  grid-column: 4;
+  white-space: nowrap;
+}
+
+.cell-served {
+  grid-column: 5;
+}
+
+.margin-up {
+  color: var(--good);
+}
+
+.margin-down {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.margin-even {
+  color: var(--text-muted);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+.empty-warn {
+  margin-top: 8px;
+  color: var(--warn);
+  font-weight: 600;
+}

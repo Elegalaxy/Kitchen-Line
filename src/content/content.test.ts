@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
+import { ingredientCostOf } from './dishes.ts'
 import { DEFS } from './index.ts'
 
 function debug(message: string): void {
@@ -73,5 +74,26 @@ describe('content', () => {
     expect(placed.state.money).toBe(15000 - 4000)
     const removed = applyCommand(placed.state, DEFS, { type: 'remove', x: 3, y: 2 })
     expect(removed.state.money).toBe(15000)
+  })
+})
+
+describe('ingredientCostOf', () => {
+  it('follows the recipe chain down to pantry prices', () => {
+    const cost = (dish: string): number => ingredientCostOf(dish)
+    expect(cost('fries')).toBe(30) // potato
+    expect(cost('soup')).toBe(40) // tomato
+    expect(cost('salad')).toBe(80) // lettuce + tomato
+    expect(cost('sandwich')).toBe(120) // bread + tomato + lettuce
+    expect(cost('burger')).toBe(210) // bun + patty + tomato
+    expect(cost('riceBowl')).toBe(150) // rice + patty
+  })
+
+  it('matches the raw item costs in DEFS, never exceeds the reference price, and is 0 for unknown ids', () => {
+    for (const d of Object.values(DEFS.dishes)) {
+      expect(ingredientCostOf(d.id), d.id).toBeGreaterThan(0)
+      expect(ingredientCostOf(d.id), d.id).toBeLessThan(d.refPrice)
+    }
+    expect(ingredientCostOf('nope')).toBe(0)
+    expect(ingredientCostOf('potato')).toBe(DEFS.items['potato'].cost)
   })
 })

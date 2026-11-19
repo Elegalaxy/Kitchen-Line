@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react'
 import type { Defs } from '../sim/types.ts'
 import { handleHotkey } from './actions.ts'
 import type { Ctx } from './actions.ts'
-import BuildPalette from './BuildPalette.tsx'
 import GridCanvas from './canvas/GridCanvas.tsx'
 import { debugLog } from './debug.ts'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
-import Inspector from './Inspector.tsx'
 import { startLoop } from './loop.ts'
 import OrdersStrip from './OrdersStrip.tsx'
+import SidePanel from './SidePanel.tsx'
 import { getGameStore, useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TopBar from './TopBar.tsx'
@@ -92,10 +91,7 @@ export default function App() {
           <GridCanvas store={store} ui={uiStore} />
           <p className="hint">{hintFor(store.defs, ui)}</p>
         </div>
-        <aside className="side">
-          <BuildPalette ctx={ctx} snap={snap} ui={ui} />
-          <Inspector ctx={ctx} snap={snap} selectedId={ui.selectedId} />
-        </aside>
+        <SidePanel ctx={ctx} snap={snap} ui={ui} />
       </div>
       <Toast toast={ui.toast} />
     </main>

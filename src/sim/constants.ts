@@ -86,3 +86,10 @@ export const RATING_QUEUE_FULL = 2
 export const RATINGS_KEPT = 50
 /** Plan Step 12: up to 20 reviews are kept per day (the lowest-rated always, plus a sample). */
 export const REVIEWS_PER_DAY = 20
+
+/** Plan 2.5 / GAME_DESIGN 6.1: at most this many dishes on the menu (stall 4, restaurant 6). */
+export const MENU_CAP: Record<Tier, number> = { stall: 4, restaurant: 6 }
+/** Plan 2.5: a price may be 50% to 300% of the dish's reference price, in 10-cent steps. */
+export const PRICE_MIN_PERCENT = 50
+export const PRICE_MAX_PERCENT = 300
+export const PRICE_STEP = 10

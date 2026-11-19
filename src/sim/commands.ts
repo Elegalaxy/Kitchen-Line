@@ -2,13 +2,14 @@
 // Commands are untrusted. The input state is never mutated: a valid command works on one
 // structuredClone; a rejected command returns the ORIGINAL state object untouched and a
 // `commandRejected` event inside the result (not in state.events, so the state hash is
-// unchanged). Handled now: place, remove, rotate, configure, openService, dismissSummary. Money is integer cents:
+// unchanged). Handled now: place, remove, rotate, configure, setMenu, setPrice, unlockRecipe,
+// openService, dismissSummary. Money is integer cents:
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
-// do not). setMenu, setPrice and unlockRecipe arrive in Step 14: until then they are rejected, with
-// 'Menu is locked during service' during service. The other types are rejected for now.
+// do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
+// during service' during service, 'wrong phase' in summary / won). The other types are rejected for now.
 
-import { START_INGREDIENT, WARMUP_TICKS } from './constants.ts'
+import { MENU_CAP, START_INGREDIENT, WARMUP_TICKS } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { emptyDayStats, newBuilding } from './game.ts'
 import {
@@ -21,6 +22,7 @@ import {
   tileIndex,
 } from './grid.ts'
 import type { PlaceCommand } from './grid.ts'
+import { priceProblem } from './menu.ts'
 import type {
   Building,
   Command,
@@ -195,6 +197,66 @@ function configure(state: GameState, defs: Defs, cmd: Extract<Command, { type: '
   return { state: next, result: { ok: true } }
 }
 
+/** Menu commands only work between days: service says so, every other non-build phase is 'wrong phase'. */
+function menuPhaseProblem(state: GameState): RejectReason | null {
+  if (state.phase === 'build') return null
+  return state.phase === 'service' ? 'Menu is locked during service' : 'wrong phase'
+}
+
+/**
+ * Set the menu to exactly `dishes` (in that order). Dishes already on the menu keep their
+ * price; new ones start at the reference price. Every dish must exist and be unlocked, the
+ * list must have no duplicates and fit the tier's menu cap. An empty menu is allowed.
+ */
+function setMenu(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'setMenu' }>): ApplyOutcome {
+  const phaseWhy = menuPhaseProblem(state)
+  if (phaseWhy !== null) return reject(state, cmd, phaseWhy)
+  const list: unknown = cmd.dishes
+  if (!Array.isArray(list) || new Set(list).size !== list.length) return reject(state, cmd, 'invalid command')
+  const dishes: string[] = []
+  for (const d of list) {
+    if (typeof d !== 'string' || defs.dishes[d] === undefined) return reject(state, cmd, 'invalid command')
+    dishes.push(d)
+  }
+  if (dishes.some((d) => !state.unlocked.includes(d))) return reject(state, cmd, 'locked recipe')
+  if (dishes.length > MENU_CAP[state.tier]) return reject(state, cmd, 'menu full')
+  const next = structuredClone(state)
+  next.menu = dishes.map((dish) => ({
+    dish,
+    price: state.menu.find((m) => m.dish === dish)?.price ?? defs.dishes[dish].refPrice,
+  }))
+  return { state: next, result: { ok: true } }
+}
+
+/** Change the price of a dish on the menu (whole cents, 10-cent steps, 50% to 300% of the reference). */
+function setPrice(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'setPrice' }>): ApplyOutcome {
+  const phaseWhy = menuPhaseProblem(state)
+  if (phaseWhy !== null) return reject(state, cmd, phaseWhy)
+  const def = typeof cmd.dish === 'string' ? defs.dishes[cmd.dish] : undefined
+  if (def === undefined) return reject(state, cmd, 'invalid command')
+  const index = state.menu.findIndex((m) => m.dish === cmd.dish)
+  if (index < 0) return reject(state, cmd, 'not on menu')
+  const why = priceProblem(def.refPrice, cmd.cents)
+  if (why !== null) return reject(state, cmd, why)
+  const next = structuredClone(state)
+  next.menu[index].price = cmd.cents
+  return { state: next, result: { ok: true } }
+}
+
+/** Pay the dish's unlock cost; it can then go on the menu and be set on an assembler. */
+function unlockRecipe(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'unlockRecipe' }>): ApplyOutcome {
+  const phaseWhy = menuPhaseProblem(state)
+  if (phaseWhy !== null) return reject(state, cmd, phaseWhy)
+  const def = typeof cmd.dish === 'string' ? defs.dishes[cmd.dish] : undefined
+  if (def === undefined) return reject(state, cmd, 'invalid command')
+  if (state.unlocked.includes(cmd.dish)) return reject(state, cmd, 'already unlocked')
+  if (state.money < def.unlockCost) return reject(state, cmd, 'cannot afford')
+  const next = structuredClone(state)
+  next.money -= def.unlockCost
+  next.unlocked.push(cmd.dish)
+  return { state: next, result: { ok: true } }
+}
+
 /** build -> service: the clock restarts at 0 and today's stats are fresh. */
 function openService(state: GameState, cmd: Command): ApplyOutcome {
   if (state.phase !== 'build') return reject(state, cmd, 'wrong phase')
@@ -228,10 +290,11 @@ export function applyCommand(state: GameState, defs: Defs, cmd: Command): ApplyO
     case 'configure':
       return configure(state, defs, cmd)
     case 'setMenu':
+      return setMenu(state, defs, cmd)
     case 'setPrice':
+      return setPrice(state, defs, cmd)
     case 'unlockRecipe':
-      // The menu is locked while service runs. The commands themselves arrive in Step 14.
-      return reject(state, cmd, state.phase === 'service' ? 'Menu is locked during service' : 'not implemented')
+      return unlockRecipe(state, defs, cmd)
     case 'openService':
       return openService(state, cmd)
     case 'dismissSummary':

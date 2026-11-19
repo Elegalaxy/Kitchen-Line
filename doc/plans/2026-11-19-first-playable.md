@@ -464,7 +464,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 14: Menu and prices panel, recipe unlocks
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-20: real `setMenu` (exact list, existing prices kept, new dishes at the reference price, cap `MENU_CAP` 4/6), `setPrice` (whole cents, 10-cent steps, 50%-300% of reference, rejected not clamped) and `unlockRecipe` (charges the cost) in `src/sim/commands.ts`; build phase only ('Menu is locked during service' in service, 'wrong phase' otherwise). Price bounds in `src/sim/menu.ts`; constants in `constants.ts`; new RejectReasons 'already unlocked', 'menu full', 'not on menu', 'price out of range', 'invalid price' (a locked dish reuses 'locked recipe'). UI: `SidePanel` (tablist Build/Menu/Goals, arrow keys, Goals placeholder), `MenuPanel` (rows as cards with table roles, price input Enter commits / Esc reverts, inline errors, unlock button, cap, read-only note), `menuView.ts`, `money.ts`, `sideTabs.ts`, `ingredientCostOf` in `src/content/dishes.ts`. Harness `withMenu` left as is (real commands charge unlock costs and would change outputs). No existing test changed. typecheck, test, lint and build pass; checked in the in-app browser (toggle, valid and invalid prices, unlock, service read-only with orders for the configured dishes, summary note, Continue then editing, 375 px, no console errors); the cap-reached visual was only unit-tested.
 - Depends on: 13
 - Files: `src/ui/MenuPanel.tsx`, `src/ui/SidePanel.tsx` (tabs: Build, Menu, Goals), `src/content/dishes.ts` (helper `ingredientCostOf(dish)`), `src/ui/money.ts`, `src/ui/App.tsx`
 - What changes:
