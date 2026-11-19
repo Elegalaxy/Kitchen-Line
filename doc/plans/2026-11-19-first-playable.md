@@ -287,7 +287,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 4: Canvas renderer, store and game loop (first visible slice)
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-19: store (throttled snapshot), loop (tick accumulator), canvas draw + itemMotion, TopBar, `demoBeltLine` layout (6 belts, since the 8-wide grid leaves 6 tiles between pantry and pass) done with unit tests; typecheck, test, lint and build pass; page loaded in the in-app browser with no console errors, items glide, Space pauses, mobile width fits.
 - Depends on: 3
 - Files: `src/ui/store.ts`, `src/ui/loop.ts`, `src/ui/canvas/GridCanvas.tsx`, `src/ui/canvas/draw.ts`, `src/ui/canvas/itemMotion.ts`, `src/ui/TopBar.tsx`, `src/ui/App.tsx`, `src/ui/styles.css`, `src/content/layouts.ts`
 - What changes:
