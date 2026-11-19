@@ -4,6 +4,7 @@
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { clockText, formatMoney, PHASE_TEXT, phaseKey, reputationView } from './format.ts'
+import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
 
@@ -18,7 +19,7 @@ const RUSH_BANDS = DAY_PHASE_STARTS.flatMap((p, i) => {
   return []
 })
 
-export default function TopBar({ store, snap }: { store: GameStore; snap: Snapshot }) {
+export default function TopBar({ store, snap, onNewGame }: { store: GameStore; snap: Snapshot; onNewGame: () => void }) {
   const s = snap.state
   const phase = PHASE_TEXT[phaseKey(s)]
   const pct = (Math.min(s.dayTick, DAY_TICKS) / DAY_TICKS) * 100
@@ -70,6 +71,7 @@ export default function TopBar({ store, snap }: { store: GameStore; snap: Snapsh
           </button>
         ))}
       </div>
+      <SettingsMenu onNewGame={onNewGame} />
       <div
         className="daybar"
         role="progressbar"

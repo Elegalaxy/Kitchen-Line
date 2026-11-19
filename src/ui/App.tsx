@@ -11,7 +11,9 @@ import { interpretKey } from './hotkeys.ts'
 import { startLoop } from './loop.ts'
 import OrdersStrip from './OrdersStrip.tsx'
 import SidePanel from './SidePanel.tsx'
-import { getGameStore, useSnapshot } from './store.ts'
+import SaveNotice from './SaveNotice.tsx'
+import { getGameSession } from './session.ts'
+import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TopBar from './TopBar.tsx'
 import { createUiStore, useUi } from './uiState.ts'
@@ -37,7 +39,13 @@ function hintFor(defs: Defs, ui: UiState): string {
 }
 
 export default function App() {
-  const store = getGameStore()
+  const session = getGameSession()
+  const store = session.store
+  const [notice, setNotice] = useState(session.notice)
+  const newGame = (): void => {
+    session.newGame()
+    setNotice(null)
+  }
   const snap = useSnapshot(store)
   const [uiStore] = useState(() => createUiStore())
   const ui = useUi(uiStore)
@@ -75,7 +83,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <TopBar store={store} snap={snap} />
+      <TopBar store={store} snap={snap} onNewGame={newGame} />
       {snap.state.phase === 'summary' && (
         <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })} />
       )}
@@ -90,6 +98,7 @@ export default function App() {
         </div>
         <SidePanel ctx={ctx} snap={snap} ui={ui} />
       </div>
+      {notice !== null && <SaveNotice reason={notice} onStartNew={newGame} />}
       <Toast toast={ui.toast} />
     </main>
   )

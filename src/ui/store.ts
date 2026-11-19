@@ -10,7 +10,6 @@
 //   relies on event history.
 
 import { useSyncExternalStore } from 'react'
-import { DEFS } from '../content/index.ts'
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
@@ -47,6 +46,8 @@ export type GameStore = {
   setSpeed(speed: Speed): void
   /** Pause, or resume at the last non-zero speed (1x if none). */
   togglePause(): void
+  /** Swap in a whole new state (load or new game): undo history and pending spoil marks are cleared. */
+  replaceState(next: GameState, speed: Speed): void
   /** Run `n` ticks (called by the loop). */
   advance(n: number): void
   /**
@@ -159,6 +160,15 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
     togglePause() {
       store.setSpeed(speed === 0 ? resumeSpeed : 0)
     },
+    replaceState(next, nextSpeed) {
+      state = next
+      undoStack = []
+      spoils = []
+      speed = nextSpeed
+      if (nextSpeed !== 0) resumeSpeed = nextSpeed
+      debugLog('[store]', `state replaced (day ${next.day}, tick ${next.tick}), speed ${nextSpeed}x`)
+      throttle.flush()
+    },
     advance(n) {
       if (n <= 0) return
       state = runTicks(state, defs, n, (events) => {
@@ -228,19 +238,6 @@ export function applyCheat(defs: Defs, state: GameState, name: string): GameStat
       debugLog('[store]', `unknown cheat ${name}`)
       return state
   }
-}
-
-let singleton: GameStore | null = null
-
-/** The app's store. `?layout=<name>` and `?cheat=<name>` are honoured in dev builds only. */
-export function getGameStore(): GameStore {
-  if (singleton === null) {
-    const params = import.meta.env.DEV ? new URLSearchParams(window.location.search) : null
-    const cheat = params?.get('cheat') ?? null
-    const start = newGameState(DEFS, params?.get('layout') ?? null)
-    singleton = createStore(DEFS, cheat === null ? start : applyCheat(DEFS, start, cheat))
-  }
-  return singleton
 }
 
 export function useSnapshot(store: GameStore): Snapshot {

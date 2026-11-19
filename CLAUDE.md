@@ -42,7 +42,7 @@ Layers under `src/`, with import rules **enforced by `tests/architecture.test.ts
 - `src/sim`: pure, deterministic game rules. May import only `src/sim` (tests may also import `vitest`). Banned outside tests: `Math.random`, `Date`, `performance.now`, `console`, browser storage, `process`, DOM globals, React. All randomness goes through the seeded named streams in `rng.ts` (`arrivals`, `reviews`).
 - `src/content`: items, buildings, recipes, dishes, layouts, goals, exported as `DEFS`. May import sim types. No UI, persist, harness or I/O.
 - `src/harness`: Node CLI that runs a layout N days headless and prints summaries. May import `sim` and `content`; not `ui` or `persist`.
-- `src/persist`: versioned save (key `kitchen-line.save.v1`). May import only sim types.
+- `src/persist`: versioned save (key `kitchen-line.save.v1`, corrupt copy under `.corrupt`). Pure `serializeSave` / `loadSave`: no storage, no clock (the UI passes `savedAt`), validates every `GameState` field. May import only sim types. The localStorage glue, autosave and the session live in `src/ui/persistence.ts` and `session.ts`; a new `GameState` field must be added to the validation in `save.ts` (the missing-field test loops over all keys).
 - `src/ui`: React components, the store, the game loop and `canvas/`. Must not import `harness`.
 - `src/main.tsx` is the entry point, not a layer. Nothing may import from sibling game projects.
 

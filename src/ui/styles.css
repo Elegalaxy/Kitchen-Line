@@ -1265,3 +1265,134 @@ kbd {
   margin: 0;
   color: var(--text-muted);
 }
+
+/* Save and settings (Step 17). The settings button is a quiet secondary control; the menu and
+   dialogs reuse the existing tokens. Danger is a red border plus the words "Delete save". */
+.settings {
+  position: relative;
+}
+
+.btn-quiet {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-btn {
+  min-width: 44px;
+  padding: 0 8px;
+  font-size: 1.25rem;
+}
+
+.btn-quiet:hover,
+.menu-item:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.btn-quiet:active,
+.menu-item:active {
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.btn-quiet[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.btn-quiet:disabled,
+.menu-item:disabled {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.confirm-modal,
+.save-notice {
+  max-width: 440px;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-danger {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid var(--bad);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bad);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+}
+
+.btn-danger:active {
+  background: color-mix(in srgb, var(--bad) 30%, transparent);
+}
+
+.btn-danger:disabled {
+  border-style: dashed;
+  color: var(--text-faint);
+  border-color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.notice-reason {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notice-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-right: 4px;
+}
+
+.notice-help {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 560px) {
+  .confirm-actions .btn-primary,
+  .confirm-actions .btn-danger {
+    flex: 1 1 100%;
+  }
+}

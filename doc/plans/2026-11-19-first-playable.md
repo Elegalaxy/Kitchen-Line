@@ -514,7 +514,7 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 17: Save and load
 
-- Status: `todo`
+- Status: `done`
 - Depends on: 16
 - Files: `src/persist/save.ts`, `src/persist/save.test.ts`, `src/ui/store.ts`, `src/ui/App.tsx`, `src/ui/SaveNotice.tsx`
 - What changes:
@@ -525,6 +525,7 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
   - Settings menu in the TopBar: "New game" with a confirm dialog (destructive).
   - Debug prints: `[save] saved bytes=<n> day=<d>`, `[save] loaded day=<d>`, `[save] error <reason>`.
 - Acceptance (tests): save → load round-trip gives the same `stateHash`. Truncated JSON, a wrong version and a missing field are each rejected with a reason. Manually: reloading the page mid-service resumes at the same tick, paused.
+- Progress: 2026-11-20: `src/persist/save.ts` (`serializeSave(state, savedAt)`, `loadSave(raw)`; pure, no value imports; validates the envelope and every `GameState` field: types, integers, enums, rng streams, `tiles.length === width * height`, each building in bounds and owning exactly its footprint tiles, no dangling tile ids, items, customers, day stats, events) with `save.test.ts` (inline Defs fixture: persist tests may not import content; round trips for a fresh game, a busy mid-service state, a summary state and an expanded restaurant that has won; saved-then-loaded run equals a never-saved run so the rng state is persisted; 11 rejection cases, nothing throws). UI: `persistence.ts` (storage access in try/catch, `checkAgainstDefs` rejects unknown item/dish/building/goal ids, `.corrupt` copy, `createAutosaver`), `session.ts` (load and resume PAUSED, notice, `newGame`, page-hide saves), `SaveNotice.tsx`, `SettingsMenu.tsx` + `NewGameConfirm.tsx` (alertdialog, Cancel focused, Esc cancels, Tab trapped), `persistence.test.ts`. Autosave: 1 s after a build-phase change, immediately on every phase change (open service, day end, summary dismissed, won), on `visibilitychange` hidden and `pagehide`; a placement made during service is saved at the next of those. Dev params `?layout=` / `?cheat=` make the session throwaway: no load, no save. A bad save blocks the game behind the notice and nothing is autosaved until "Start new game". The singleton moved from `store.ts` to `session.ts` (`getGameSession`); `store.replaceState` added. typecheck, test, lint and build pass; checked in the in-app browser (autosave after building, mid-service reload resumed at the same clock and money paused, corrupt save notice with `.corrupt` copy and one console.error, New game cancel and confirm, `?layout=` left the save untouched, 375 px notice, menu and dialog).
 
 ### Step 18: Tutorial start, polish states, balance pass
 
