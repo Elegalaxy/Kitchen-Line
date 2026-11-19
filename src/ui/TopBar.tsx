@@ -3,7 +3,8 @@
 
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
-import { clockText, formatMoney, PHASE_TEXT, phaseKey, reputationView } from './format.ts'
+import { clockText, PHASE_TEXT, phaseKey, reputationView } from './format.ts'
+import Money from './Money.tsx'
 import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
@@ -33,7 +34,9 @@ export default function TopBar({ store, snap, onNewGame }: { store: GameStore; s
       </dl>
       <dl className="stat">
         <dt>Money</dt>
-        <dd className="num money">{formatMoney(s.money)}</dd>
+        <dd className="num money">
+          <Money cents={s.money} />
+        </dd>
       </dl>
       <dl className="stat" title={repLabel}>
         <dt>Rating</dt>

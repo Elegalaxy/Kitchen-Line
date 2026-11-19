@@ -1,16 +1,16 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 17, 2026-11-20)
-- **Current Goal:** Step 18 of `doc/plans/2026-11-19-first-playable.md`: tutorial start, polish states, balance pass. Steps 1 to 17 are done.
-- **Recent Changes & Files Touched (Step 17):**
-  - `src/persist/save.ts` (+ `save.test.ts`): pure `serializeSave(state, savedAt)` / `loadSave(raw)`; keys `SAVE_KEY` `kitchen-line.save.v1` and `CORRUPT_KEY` `.corrupt`. Validates every `GameState` field (types, integers, enums, rng, tiles length, building footprints vs tiles, items, customers, day stats, events). Returns the parsed object as is, so `stateHash` survives a round trip. Persist tests use an inline Defs fixture (persist may not import content).
-  - `src/ui/persistence.ts` (+ `persistence.test.ts`): storage glue in try/catch, `checkAgainstDefs` (unknown item/dish/building/goal ids and expansion count reject the save), `.corrupt` copy plus `console.error`, `createAutosaver`.
-  - `src/ui/session.ts`: `getGameSession()` replaces the old `getGameStore()` singleton (removed from `store.ts`); loads the save and resumes PAUSED, `newGame()`, page-hide saves. `store.replaceState` added.
-  - UI: `SaveNotice.tsx` (role="alert", blocks the game), `SettingsMenu.tsx` (icon button in the TopBar, `aria-haspopup`), `NewGameConfirm.tsx` (alertdialog); styles appended to `styles.css`; `TopBar` takes `onNewGame`; `App.tsx` wired.
+- **Last Updated By:** Claude (implementer, Step 18 polish half, 2026-11-20)
+- **Current Goal:** Step 18 balance pass (the polish half is done; Step 18 Status stays `todo` until the balance table is recorded in its Progress).
+- **Recent Changes & Files Touched (Step 18 polish):**
+  - Tutorial: `src/ui/tutorial.ts` (pure: `tutorialView`, `tutorialHints`, `lineReachesPass`), `TutorialCard.tsx` (above the side tabs, all tabs, open until `totals.served > 0`), hint tiles drawn by `drawHints` in `canvas/draw.ts` (canvas only, no pointer input). Chopper (2,2), fryer (4,2), then belts in the gaps. `hintsHidden` and `fast` are new ui-only `UiState` fields (not saved).
+  - States: `tileInfo.ts` + `TileInfo.tsx` (freshness seconds, hover tooltip via `Overlay.tip`, status region for the keyboard cursor), empty inspector, `ordersNote` in `orders.ts`, `Money.tsx` + `formatMoneyCompact` / `clipText` in `format.ts` (compact above $1M, full value in title and sr-only), summary card "No customers today", review text clipped.
+  - Fast belt: palette entry after Belt (`⏩ Fast belt`, no number hotkey; 1-9, 0 still map to DEFS order). `selectTool(ctx, tool, fast)`, `planBeltDrag(..., fast)`, `paletteReason/paletteCost(..., fast)`.
+  - `tests/contrast.test.ts` (reads `styles.css` with fs; in `tests/` because `src/ui` type-check has no node types). No token changed. `src/ui/polish.test.ts` covers the rest. `canvas/input.test.ts` gained the two new `UiState` fields.
+  - Side panel now stacks under the grid below 1024 px (media query was 760).
 - **Active Decisions / Constraints:**
-  - Autosave: 1 s after a build-phase change, at once on every phase change (open service, day end, summary dismissed, won), on `visibilitychange` hidden and `pagehide`. A placement made during service is saved only at the next of those. Undo, selection, toasts and speed are not saved; a loaded game is paused.
-  - Dev params `?layout=` / `?cheat=` (DEV only) make the session throwaway: no load, no save.
-  - A save that fails to load shows the notice; nothing is autosaved until "Start new game" (the raw text stays under `.corrupt`).
-  - A new `GameState` field must be added to `validateState` in `save.ts`; the missing-field test loops over all keys, so it will fail until you do.
-  - Sim tests import only `vitest` and `src/sim`. Commit and push each finished step (CLAUDE.md Workflow); work in a worktree.
-- **Exact Next Step:** Step 18. Leftovers already noted: (1) fast-belt palette entry (the sim unlocks fast belts after the upgrade; `place` config `fast`); (2) the summary `avgWait` always reads 0.0 (check how `waitTicksTotal` feeds `summary` / `daySummaryView`); (3) balance numbers via the harness (targets in the Step 18 section), tuned only in `constants.ts` and `src/content/*`. Then the tutorial checklist, polish states and the AA token check.
+  - Tutorial progress is derived from state, no sim state. "Connect" counts when a pantry feeds the pass through belts, a chopper and a fryer (or a dish was delivered), because delivery needs service open.
+  - Numbers stay provisional: tune only in `src/sim/constants.ts` and `src/content/*`; hashes change deliberately. Never edit `doc/` rules without a user decision.
+  - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
+  - New `GameState` fields must be added to `validateState` in `save.ts`.
+- **Exact Next Step:** Balance pass: run the harness (`npm run sim -- ...`) for each dish layout and a 2-dish combo over 5 days. Targets: one fryer is the visible bottleneck at 4 stars or more in a rush, stall goals take 4 to 6 days, no layout loses money at reference prices. Adjust numbers only in constants and content, record the before and after table in Step 18's Progress, then set Step 18 to `done`. Also open: the summary `avgWait` reads 0.0 (check how `waitTicksTotal` feeds `summary`).

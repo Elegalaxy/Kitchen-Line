@@ -5,6 +5,7 @@
 // slots and the delta lines are always reserved, so the dialog does not change size.
 
 import { useEffect, useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { reputationOf } from '../sim/customers.ts'
 import { summarizeDay } from '../sim/summary.ts'
 import type { Defs, GameState } from '../sim/types.ts'
@@ -20,7 +21,8 @@ import {
   starsText,
 } from './daySummaryView.ts'
 import type { DeltaView } from './daySummaryView.ts'
-import { formatMoney } from './format.ts'
+import Money from './Money.tsx'
+import { clipText } from './format.ts'
 import { handleModalKeys } from './modalKeys.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
@@ -32,7 +34,7 @@ function Delta({ d }: { d: DeltaView | null }) {
   )
 }
 
-function Card(props: { label: string; value: string; sub?: string; delta: DeltaView | null; tone?: string }) {
+function Card(props: { label: string; value: ReactNode; sub?: string; delta: DeltaView | null; tone?: string }) {
   return (
     <div className="sum-card">
       <dt>{props.label}</dt>
@@ -45,7 +47,7 @@ function Card(props: { label: string; value: string; sub?: string; delta: DeltaV
   )
 }
 
-function Row({ k, v }: { k: string; v: string | number }) {
+function Row({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div className="sum-row">
       <dt>{k}</dt>
@@ -53,6 +55,9 @@ function Row({ k, v }: { k: string; v: string | number }) {
     </div>
   )
 }
+
+/** Review text longer than this is cut with an ellipsis (the full text is in the title and read by screen readers). */
+const REVIEW_MAX_CHARS = 90
 
 export default function DaySummary({ state, defs, onDismiss }: { state: GameState; defs: Defs; onDismiss: () => void }) {
   const last = state.lastDay
@@ -94,14 +99,14 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
         <dl className="sum-cards">
           <Card
             label="Profit"
-            value={formatMoney(sum.profit)}
+            value={<Money cents={sum.profit} />}
             tone={sum.profit < 0 ? 'bad' : 'money'}
             delta={moneyDelta(d === null ? null : d.profit)}
           />
           <Card
             label="Served / Customers"
             value={`${sum.served} / ${sum.customers}`}
-            sub={sum.servedPct === null ? '–' : `${sum.servedPct}% served`}
+            sub={sum.servedPct === null ? 'No customers today' : `${sum.servedPct}% served`}
             delta={countDelta(d === null ? null : d.served)}
           />
           <Card
@@ -133,8 +138,8 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
               Money, losses and waste
             </h3>
             <dl className="sum-kv">
-              <Row k="Sales" v={formatMoney(sum.sales)} />
-              <Row k="Ingredient cost" v={formatMoney(sum.ingredientCost)} />
+              <Row k="Sales" v={<Money cents={sum.sales} />} />
+              <Row k="Ingredient cost" v={<Money cents={sum.ingredientCost} />} />
               <Row k="Lost: ran out of patience" v={last.lostPatience} />
               <Row k="Lost: no match" v={last.lostNoMatch} />
               <Row k="Lost: queue full" v={last.lostFull} />
@@ -179,7 +184,7 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
                       </th>
                       <td className="num">{r?.served ?? 0}</td>
                       <td className="num">{r?.lost ?? 0}</td>
-                      <td className="num">{formatMoney(r?.sales ?? 0)}</td>
+                      <td className="num"><Money cents={r?.sales ?? 0} /></td>
                     </tr>
                   )
                 })}
@@ -210,7 +215,8 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
                     </span>
                   </span>
                   <span className="sum-reviewtext" title={r.text}>
-                    {r.text}
+                    <span aria-hidden="true">{clipText(r.text, REVIEW_MAX_CHARS)}</span>
+                    <span className="sr-only">{r.text}</span>
                   </span>
                 </li>
               )

@@ -15,6 +15,7 @@ import SaveNotice from './SaveNotice.tsx'
 import { getGameSession } from './session.ts'
 import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
+import TileInfo from './TileInfo.tsx'
 import TopBar from './TopBar.tsx'
 import { createUiStore, useUi } from './uiState.ts'
 import type { UiState } from './uiState.ts'
@@ -33,7 +34,7 @@ function hintFor(defs: Defs, ui: UiState): string {
   if (ui.tool === null) {
     return 'Select mode: click a building to inspect it, or pick a building from the build palette. Keyboard: focus the grid, arrow keys move, Enter acts.'
   }
-  const name = defs.buildings[ui.tool].name
+  const name = ui.tool === 'belt' && ui.fast ? 'Fast belt' : defs.buildings[ui.tool].name
   const how = ui.tool === 'belt' ? 'drag to draw a line' : 'click to place'
   return `${name}, facing ${DIR_NAME[ui.dir]}: ${how}. R rotates, Esc cancels.`
 }
@@ -42,12 +43,13 @@ export default function App() {
   const session = getGameSession()
   const store = session.store
   const [notice, setNotice] = useState(session.notice)
+  const [uiStore] = useState(() => createUiStore())
   const newGame = (): void => {
     session.newGame()
+    uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false })
     setNotice(null)
   }
   const snap = useSnapshot(store)
-  const [uiStore] = useState(() => createUiStore())
   const ui = useUi(uiStore)
   const ctx: Ctx = { store, ui: uiStore }
 
@@ -94,6 +96,7 @@ export default function App() {
         <div className="stage">
           <OrdersStrip state={snap.state} defs={store.defs} />
           <GridCanvas store={store} ui={uiStore} />
+          <TileInfo state={snap.state} defs={store.defs} ui={ui} />
           <p className="hint">{hintFor(store.defs, ui)}</p>
         </div>
         <SidePanel ctx={ctx} snap={snap} ui={ui} />

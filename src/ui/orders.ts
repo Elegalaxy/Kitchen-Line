@@ -1,7 +1,7 @@
 // Patience maths for the orders strip (plan Step 11): the fraction left and the level that
 // picks the bar colour (ok above or at 50%, warn from 25% up to 50%, bad under 25%).
 
-import type { Customer } from '../sim/types.ts'
+import type { Customer, GameState } from '../sim/types.ts'
 
 export type PatienceLevel = 'ok' | 'warn' | 'bad'
 
@@ -15,4 +15,12 @@ export function patienceLevel(fraction: number): PatienceLevel {
   if (fraction < 0.25) return 'bad'
   if (fraction < 0.5) return 'warn'
   return 'ok'
+}
+
+/** One line under the orders title; empty text keeps the line's height so nothing shifts. */
+export function ordersNote(state: Pick<GameState, 'phase' | 'today' | 'waiting'>): string {
+  if (state.waiting.length > 0) return ''
+  if (state.phase === 'build') return 'Open for service to get customers.'
+  if (state.phase === 'service' && state.today.customers === 0) return 'No customers yet today (0 so far).'
+  return ''
 }

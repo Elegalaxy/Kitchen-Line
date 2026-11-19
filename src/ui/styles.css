@@ -377,7 +377,7 @@ kbd {
   border-color: var(--bad);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1023px) {
   .workspace {
     flex-direction: column;
   }
@@ -1395,4 +1395,98 @@ kbd {
   .confirm-actions .btn-danger {
     flex: 1 1 100%;
   }
+}
+
+/* Step 18: tutorial card, tile info line, empty states. Tokens only. */
+.tutorial {
+  flex: none;
+}
+
+.tut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.tut-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px;
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.tut-step.current {
+  border-left-color: var(--info);
+  background: color-mix(in srgb, var(--info) 14%, var(--surface-raised));
+  color: var(--text);
+  font-weight: 700;
+}
+
+.tut-step.done {
+  color: var(--good);
+}
+
+.tut-mark {
+  flex: none;
+  width: 1.2em;
+  text-align: center;
+}
+
+.tut-hint {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.tut-btn {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.tut-toggle {
+  width: 100%;
+  align-items: center;
+}
+
+.tut-toggle[aria-pressed='true'] {
+  background: var(--surface);
+  border-color: var(--text-faint);
+  color: var(--text);
+  font-weight: 400;
+}
+
+.tile-info {
+  box-sizing: border-box;
+  min-height: 1.4em;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.empty-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.orders-empty {
+  min-height: 1.3em;
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
 }

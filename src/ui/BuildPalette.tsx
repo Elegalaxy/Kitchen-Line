@@ -1,19 +1,23 @@
 // Build palette (right panel): undo and sell-mode controls, then one button per placeable
 // building with glyph, name, hotkey and cost. A disabled button shows its reason as a
-// visible line ("Needs $40.00", "Restaurant tier"), never only a tooltip.
+// visible line ("Needs $40.00", "Restaurant tier"), never only a tooltip. The fast belt is a
+// second entry right after the belt (same drag tool, its own cost and tier); it has no number
+// hotkey, so 1-9 and 0 keep mapping to the buildings in DEFS order.
 
-import { placeCost } from '../sim/grid.ts'
 import { selectTool, undoAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { formatMoney } from './format.ts'
 import { labelForIndex } from './hotkeys.ts'
-import { paletteKinds, paletteReason } from './palette.ts'
+import { hasFastVariant, paletteCost, paletteKinds, paletteReason } from './palette.ts'
 import type { Snapshot } from './store.ts'
 import type { UiState } from './uiState.ts'
 
 export default function BuildPalette({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
   const { defs } = ctx.store
-  const kinds = paletteKinds(defs)
+  const entries = paletteKinds(defs).flatMap((kind, i) => {
+    const base = { key: kind, kind, fast: false, hotkey: labelForIndex(i), name: defs.buildings[kind].name }
+    return hasFastVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true, hotkey: '', name: 'Fast belt' }] : [base]
+  })
   const undo = snap.undo
   return (
     <section className="panel" aria-label="Build palette">
@@ -43,28 +47,28 @@ export default function BuildPalette({ ctx, snap, ui }: { ctx: Ctx; snap: Snapsh
         </button>
       </div>
       <div className="palette">
-        {kinds.map((kind, i) => {
+        {entries.map(({ key, kind, fast, hotkey, name }) => {
           const def = defs.buildings[kind]
-          const reason = paletteReason(snap.state, defs, kind)
-          const cost = placeCost(defs, { type: 'place', kind, x: 0, y: 0, dir: 0 })
+          const reason = paletteReason(snap.state, defs, kind, fast)
+          const cost = paletteCost(defs, kind, fast)
           return (
             <button
-              key={kind}
+              key={key}
               type="button"
               className="btn pal-btn"
-              aria-pressed={ui.tool === kind}
+              aria-pressed={ui.tool === kind && (kind !== 'belt' || ui.fast === fast)}
               disabled={reason !== null}
-              onClick={() => selectTool(ctx, kind)}
+              onClick={() => selectTool(ctx, kind, fast)}
             >
               <span className="btn-main">
                 <span className="pal-glyph" aria-hidden="true">
-                  {def.emoji}
+                  {fast ? '⏩' : def.emoji}
                 </span>
-                <span className="pal-name">{def.name}</span>
+                <span className="pal-name">{name}</span>
               </span>
               <span className="btn-main">
                 <span className="btn-sub num pal-cost">{formatMoney(cost)}</span>
-                <kbd>{labelForIndex(i)}</kbd>
+                {hotkey !== '' && <kbd>{hotkey}</kbd>}
               </span>
               <span className="pal-reason">{reason === null ? '' : `⚠ ${reason}`}</span>
             </button>

@@ -9,7 +9,8 @@ import { beginDrag, cancelAction, endDrag, primaryAt, removeAt } from '../action
 import { debugLog } from '../debug.ts'
 import type { GameStore } from '../store.ts'
 import type { UiStore } from '../uiState.ts'
-import { drawOverlay, drawScene, fitTile, PUFF_MS, readPalette } from './draw.ts'
+import { tutorialHints } from '../tutorial.ts'
+import { drawHints, drawOverlay, drawScene, fitTile, PUFF_MS, readPalette } from './draw.ts'
 import type { Puff } from './draw.ts'
 import { computeOverlay, tileAt } from './input.ts'
 import { createItemMotion } from './itemMotion.ts'
@@ -61,6 +62,7 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       puffs = puffs.filter((pf) => t - pf.start < PUFF_MS)
       drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, puffs })
       const uiState = ui.get()
+      if (!uiState.hintsHidden) drawHints(ctx, tutorialHints(state), store.defs, tile, palette, t, motionQuery.matches)
       const overlay = computeOverlay(state, store.defs, uiState)
       drawOverlay(ctx, overlay, store.defs, uiState.cursor, tile, state.width, state.height, palette)
       canvas.style.cursor = overlay.clickable ? 'pointer' : uiState.tool !== null ? 'crosshair' : 'default'

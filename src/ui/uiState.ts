@@ -21,6 +21,10 @@ export type UiState = {
   drag: { from: Point } | null
   selectedId: number | null
   toast: Toast | null
+  /** The belt tool places fast belts (the "Fast belt" palette entry); only read with tool 'belt'. */
+  fast: boolean
+  /** The player hid the tutorial hint tiles on the grid (per session; not saved). */
+  hintsHidden: boolean
 }
 
 export const TOAST_MS = 3200
@@ -45,6 +49,8 @@ export function createUiStore(deps?: Partial<UiDeps>): UiStore {
     drag: null,
     selectedId: null,
     toast: null,
+    fast: false,
+    hintsHidden: false,
   }
   let toastId = 0
   const listeners = new Set<() => void>()

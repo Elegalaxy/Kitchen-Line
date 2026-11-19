@@ -10,6 +10,7 @@ import BuildPalette from './BuildPalette.tsx'
 import GoalsPanel from './GoalsPanel.tsx'
 import Inspector from './Inspector.tsx'
 import MenuPanel from './MenuPanel.tsx'
+import TutorialCard from './TutorialCard.tsx'
 import { nextTab, SIDE_TABS } from './sideTabs.ts'
 import type { SideTab } from './sideTabs.ts'
 import type { Snapshot } from './store.ts'
@@ -28,6 +29,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
   }
   return (
     <aside className="side">
+      <TutorialCard ctx={ctx} snap={snap} ui={ui} />
       <div className="tabs" role="tablist" aria-label="Side panel">
         {SIDE_TABS.map((t) => (
           <button

@@ -77,7 +77,13 @@ export default function Inspector({ ctx, snap, selectedId }: { ctx: Ctx; snap: S
     return (
       <section className="panel" aria-label="Inspector">
         <h2 className="panel-title">Inspector</h2>
-        <p className="empty">Nothing selected. Click a building on the grid to inspect it.</p>
+        <div className="empty-state">
+          <p className="empty-title">Select a building</p>
+          <p className="empty">
+            Click a building on the grid, or move the tile cursor with the arrow keys and press Enter, to see its status,
+            items and settings.
+          </p>
+        </div>
       </section>
     )
   }

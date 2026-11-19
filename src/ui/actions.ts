@@ -21,28 +21,35 @@ export function report(ctx: Ctx, result: CommandResult): boolean {
   return false
 }
 
-/** Pick a tool; picking the active one again goes back to select mode. */
-export function selectTool(ctx: Ctx, tool: Tool): void {
+/**
+ * Pick a tool; picking the active one again goes back to select mode. `fast` picks the fast
+ * belt variant (the belt tool with fast belts); the belt and the fast belt are two entries,
+ * so switching between them selects the other one instead of deselecting.
+ */
+export function selectTool(ctx: Ctx, tool: Tool, fast = false): void {
   const { ui, store } = ctx
-  if (tool === ui.get().tool) {
+  const useFast = tool === 'belt' && fast
+  if (tool === ui.get().tool && useFast === ui.get().fast) {
     ui.set({ tool: null, drag: null })
     return
   }
   if (tool !== null && tool !== 'remove') {
-    const why = paletteReason(store.getState(), store.defs, tool)
+    const why = paletteReason(store.getState(), store.defs, tool, useFast)
     if (why !== null) {
-      ui.showToast(`${store.defs.buildings[tool].name}: ${why}`)
+      const name = useFast ? 'Fast belt' : store.defs.buildings[tool].name
+      ui.showToast(`${name}: ${why}`)
       return
     }
   }
-  ui.set({ tool, drag: null })
+  ui.set({ tool, drag: null, fast: useFast })
 }
 
 export function placeAt(ctx: Ctx, at: Point): boolean {
   const { ui, store } = ctx
   const tool = ui.get().tool
   if (tool === null || tool === 'remove') return false
-  return report(ctx, store.dispatch({ type: 'place', kind: tool, x: at.x, y: at.y, dir: ui.get().dir }))
+  const cmd = { type: 'place' as const, kind: tool, x: at.x, y: at.y, dir: ui.get().dir }
+  return report(ctx, store.dispatch(tool === 'belt' && ui.get().fast ? { ...cmd, config: { fast: true } } : cmd))
 }
 
 /** Sell the building covering `at`; clears the selection if it was selected. */
@@ -83,13 +90,14 @@ export function endDrag(ctx: Ctx): boolean {
   const to = ui.get().cursor
   ui.set({ drag: null })
   if (drag === null || to === null) return false
-  const plan = planBeltDrag(store.getState(), store.defs, drag.from, to, ui.get().dir)
+  const plan = planBeltDrag(store.getState(), store.defs, drag.from, to, ui.get().dir, ui.get().fast)
   if (plan.reason !== null) {
     ui.showToast(reasonText(plan.reason))
     return false
   }
   const n = plan.place.length
-  return report(ctx, store.dispatchGroup(plan.place, n === 1 ? 'Place Belt' : `Place Belt ×${n}`))
+  const name = ui.get().fast ? 'Fast Belt' : 'Belt'
+  return report(ctx, store.dispatchGroup(plan.place, n === 1 ? `Place ${name}` : `Place ${name} ×${n}`))
 }
 
 /** The building R / Delete act on: the selection, else the one under the cursor. */

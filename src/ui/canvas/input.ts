@@ -7,6 +7,7 @@ import { buildingAt, canPlace, footprint, inBounds, neighbor, placeCost, tileInd
 import type { PlaceCommand, Point } from '../../sim/grid.ts'
 import type { BuildingKind, Defs, Dir, GameState, RejectReason } from '../../sim/types.ts'
 import { formatMoney, reasonText } from '../format.ts'
+import { tileTooltip } from '../tileInfo.ts'
 import type { UiState } from '../uiState.ts'
 
 /** Tile under a point given in canvas CSS pixels (the canvas is exactly the grid). */
@@ -51,7 +52,14 @@ export function lPath(from: Point, to: Point): Point[] {
  * tile). Occupied tiles are skipped. The drag is all-or-nothing: `reason` is set when
  * nothing can be placed or the total cannot be afforded.
  */
-export function planBeltDrag(state: GameState, defs: Defs, from: Point, to: Point, fallbackDir: Dir): DragPlan {
+export function planBeltDrag(
+  state: GameState,
+  defs: Defs,
+  from: Point,
+  to: Point,
+  fallbackDir: Dir,
+  fast = false,
+): DragPlan {
   const tiles = lPath(from, to).filter((t) => inBounds(state, t.x, t.y))
   const path: DragPlan['path'] = []
   for (let i = 0; i < tiles.length; i += 1) {
@@ -62,7 +70,11 @@ export function planBeltDrag(state: GameState, defs: Defs, from: Point, to: Poin
   }
   const place: PlaceCommand[] = path
     .filter((p) => !p.skipped)
-    .map((p) => ({ type: 'place', kind: 'belt', x: p.x, y: p.y, dir: p.dir }))
+    .map((p) =>
+      fast
+        ? { type: 'place', kind: 'belt', x: p.x, y: p.y, dir: p.dir, config: { fast: true } }
+        : { type: 'place', kind: 'belt', x: p.x, y: p.y, dir: p.dir },
+    )
   const skipped = path.filter((p) => p.skipped).map((p) => ({ x: p.x, y: p.y }))
   const cost = place.reduce((sum, cmd) => sum + placeCost(defs, cmd), 0)
   let reason: RejectReason | null = null
@@ -97,6 +109,8 @@ export type Overlay = {
   keyCursor: Point | null
   /** The pointer is over something clickable. */
   clickable: boolean
+  /** Item lines (name and freshness) for the tile under the cursor in select mode, or null. */
+  tip: string[] | null
 }
 
 function footprintOf(state: GameState, id: number): Point[] {
@@ -105,7 +119,7 @@ function footprintOf(state: GameState, id: number): Point[] {
 }
 
 export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overlay {
-  const o: Overlay = { ghosts: [], label: null, selection: [], hover: null, hoverBad: false, keyCursor: null, clickable: false }
+  const o: Overlay = { ghosts: [], label: null, selection: [], hover: null, hoverBad: false, keyCursor: null, clickable: false, tip: null }
   if (ui.selectedId !== null && state.buildings[ui.selectedId] !== undefined) o.selection = footprintOf(state, ui.selectedId)
   const c = ui.cursor
   if (c === null || !inBounds(state, c.x, c.y)) return o
@@ -116,6 +130,8 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
     if (underId !== null) {
       o.hover = footprintOf(state, underId)
       o.clickable = true
+      const lines = tileTooltip(state, defs, c.x, c.y)
+      if (lines.length > 0) o.tip = lines
     }
     return o
   }
@@ -139,7 +155,7 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
 
   const kind = ui.tool
   if (kind === 'belt' && ui.drag !== null) {
-    const plan = planBeltDrag(state, defs, ui.drag.from, c, ui.dir)
+    const plan = planBeltDrag(state, defs, ui.drag.from, c, ui.dir, ui.fast)
     for (const p of plan.path) {
       o.ghosts.push({
         kind: 'belt',
@@ -151,7 +167,7 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
     const n = plan.place.length
     const skippedNote = plan.skipped.length > 0 ? ` (${plan.skipped.length} occupied skipped)` : ''
     if (plan.reason === null) {
-      o.label = { text: `✓ ${n} ${n === 1 ? 'belt' : 'belts'} · ${formatMoney(plan.cost)}${skippedNote}`, ok: true }
+      o.label = { text: `✓ ${n} ${ui.fast ? 'fast ' : ''}${n === 1 ? 'belt' : 'belts'} · ${formatMoney(plan.cost)}${skippedNote}`, ok: true }
     } else {
       const need = plan.reason === 'cannot afford' ? ` (${n} belts · ${formatMoney(plan.cost)})` : ''
       o.label = { text: `✕ ${reasonText(plan.reason)}${need}`, ok: false }
@@ -159,7 +175,10 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
     return o
   }
 
-  const cmd: PlaceCommand = { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir }
+  const cmd: PlaceCommand =
+    kind === 'belt' && ui.fast
+      ? { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir, config: { fast: true } }
+      : { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir }
   const reason = canPlace(state, defs, cmd)
   o.ghosts.push({ kind, tiles: footprint(kind, c.x, c.y, ui.dir), dir: ui.dir, status: reason === null ? 'ok' : 'bad' })
   o.label =

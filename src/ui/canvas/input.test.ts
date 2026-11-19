@@ -14,6 +14,8 @@ const ui = (patch: Partial<UiState>): UiState => ({
   dir: 1,
   cursor: null,
   cursorFromKeys: false,
+  fast: false,
+  hintsHidden: false,
   drag: null,
   selectedId: null,
   toast: null,

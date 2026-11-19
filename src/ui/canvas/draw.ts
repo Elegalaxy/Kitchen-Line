@@ -8,6 +8,7 @@ import { ASSEMBLER_TICKS } from '../../sim/constants.ts'
 import { footprint } from '../../sim/grid.ts'
 import { buildingItems } from '../../sim/spoil.ts'
 import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
+import type { HintTile } from '../tutorial.ts'
 import type { Overlay } from './input.ts'
 import type { MotionItem } from './itemMotion.ts'
 
@@ -460,6 +461,59 @@ function drawLabel(ctx: CanvasRenderingContext2D, text: string, ok: boolean, at:
   ctx.restore()
 }
 
+/** Multi-line item tooltip (name and freshness per item) next to the hovered tile. */
+function drawTip(ctx: CanvasRenderingContext2D, lines: string[], at: { x: number; y: number }, tile: number, cols: number, rows: number, p: Palette): void {
+  ctx.save()
+  ctx.font = '13px system-ui, sans-serif'
+  const padX = 8
+  const lineH = 18
+  const w = Math.ceil(Math.max(...lines.map((l) => ctx.measureText(l).width))) + padX * 2
+  const h = lines.length * lineH + 8
+  const maxX = cols * tile
+  const maxY = rows * tile
+  let x = (at.x + 1) * tile + 4
+  if (x + w > maxX) x = at.x * tile - w - 4
+  x = Math.max(2, Math.min(maxX - w - 2, x))
+  let y = at.y * tile - h - 2
+  if (y < 2) y = (at.y + 1) * tile + 2
+  y = Math.max(2, Math.min(maxY - h - 2, y))
+  ctx.fillStyle = p.surface
+  ctx.strokeStyle = p.textFaint
+  ctx.lineWidth = 1.5
+  roundRect(ctx, x, y, w, h, 6)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = p.text
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  lines.forEach((l, i) => ctx.fillText(l, x + padX, y + 4 + lineH * i + lineH / 2 + 0.5))
+  ctx.restore()
+}
+
+/**
+ * Faint tutorial hint tiles (plan Step 18): a dashed outline, the building glyph and a small
+ * "hint" tag, drawn under the overlay. Drawing only: they never take pointer input.
+ */
+export function drawHints(ctx: CanvasRenderingContext2D, hints: HintTile[], defs: Defs, tile: number, p: Palette, now: number, reducedMotion: boolean): void {
+  if (hints.length === 0) return
+  const pulse = reducedMotion ? 0.7 : 0.55 + 0.25 * Math.sin(now / 450)
+  for (const h of hints) {
+    const cx = h.x * tile + tile / 2
+    const cy = h.y * tile + tile / 2
+    ctx.save()
+    ctx.globalAlpha = pulse
+    ctx.fillStyle = p.info
+    ctx.globalAlpha = pulse * 0.18
+    ctx.fillRect(h.x * tile + 2, h.y * tile + 2, tile - 4, tile - 4)
+    ctx.globalAlpha = pulse
+    outlineTiles(ctx, [{ x: h.x, y: h.y }], tile, p.info, 2, [6, 4])
+    ctx.fillStyle = p.text
+    if (h.kind !== 'belt') glyph(ctx, defs.buildings[h.kind].emoji, cx, cy, tile * 0.46)
+    drawArrow(ctx, cx, cy, h.dir, tile, p.info)
+    ctx.restore()
+  }
+}
+
 /** Ghost, drag preview, selection, hover and keyboard cursor, drawn over the scene. */
 export function drawOverlay(
   ctx: CanvasRenderingContext2D,
@@ -507,6 +561,7 @@ export function drawOverlay(
     }
   }
   if (o.keyCursor !== null) outlineTiles(ctx, [o.keyCursor], tile, p.focus, 2, [4, 3])
+  if (o.tip !== null && cursor !== null) drawTip(ctx, o.tip, cursor, tile, cols, rows, p)
   if (o.label !== null && cursor !== null) drawLabel(ctx, o.label.text, o.label.ok, cursor, tile, cols, rows, p)
 }
 

@@ -7,7 +7,7 @@
 import { WAITING_CAP } from '../sim/constants.ts'
 import type { Customer, Defs, GameState } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
-import { patienceLeft, patienceLevel } from './orders.ts'
+import { ordersNote, patienceLeft, patienceLevel } from './orders.ts'
 
 const TICKS_PER_SECOND = 10
 
@@ -46,6 +46,7 @@ export default function OrdersStrip({ state, defs }: { state: GameState; defs: D
       <h2 className="panel-title">
         Orders <span className="num">{state.waiting.length} / {cap}</span>
       </h2>
+      <p className="orders-empty">{ordersNote(state)}</p>
       <ul className="orders-list">
         {slots.map((c, i) =>
           c === null ? (

@@ -12,6 +12,39 @@ export function formatMoney(cents: number): string {
   return `${sign}$${dollars}.${String(abs % 100).padStart(2, '0')}`
 }
 
+/** Values below this many cents ($1,000,000) show in full; at or above it, compact. */
+export const COMPACT_MONEY_FROM = 100_000_000
+
+const COMPACT_UNITS = [
+  { suffix: 'M', size: 1e6 },
+  { suffix: 'B', size: 1e9 },
+  { suffix: 'T', size: 1e12 },
+] as const
+
+/**
+ * Money for tight spots (top bar, summary): full "$12.50" below $1M, then one decimal with
+ * a suffix ("$1.2M", "-$3.4B"). The full value belongs in a title / aria-label next to it.
+ */
+export function formatMoneyCompact(cents: number): string {
+  const abs = Math.abs(cents)
+  if (abs < COMPACT_MONEY_FROM) return formatMoney(cents)
+  const sign = cents < 0 ? '-' : ''
+  const dollars = abs / 100
+  for (let i = 0; i < COMPACT_UNITS.length; i += 1) {
+    const { suffix, size } = COMPACT_UNITS[i]
+    const rounded = Math.round((dollars / size) * 10) / 10
+    // 999.96M rounds to 1000.0M: move up one unit instead ("$1.0B").
+    if (rounded < 1000 || i === COMPACT_UNITS.length - 1) return `${sign}$${rounded.toFixed(1)}${suffix}`
+  }
+  return formatMoney(cents)
+}
+
+/** Cut `text` to at most `max` characters with an ellipsis; shorter text is returned as is. */
+export function clipText(text: string, max: number): string {
+  if (max < 1 || text.length <= max) return text
+  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`
+}
+
 const REASON_TEXT: Record<RejectReason, string> = {
   'invalid command': 'Invalid action',
   'invalid config': 'Invalid setting',

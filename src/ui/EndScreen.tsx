@@ -4,14 +4,15 @@
 // focus starts on the button and is trapped, like the day summary.
 
 import { useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
 import type { GameState } from '../sim/types.ts'
-import { formatMoney } from './format.ts'
+import Money from './Money.tsx'
 import { starsFloor } from './goalsView.ts'
 import { handleModalKeys } from './modalKeys.ts'
 
-function Row({ k, v }: { k: string; v: string | number }) {
+function Row({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div className="sum-row">
       <dt>{k}</dt>
@@ -44,10 +45,10 @@ export default function EndScreen({ state, onKeepPlaying }: { state: GameState; 
         <dl className="sum-kv">
           <Row k="Days played" v={state.totals.days} />
           <Row k="Dishes served" v={state.totals.served.toLocaleString('en-US')} />
-          <Row k="Total profit" v={formatMoney(state.totals.profit)} />
-          <Row k="Last day profit" v={last === null ? '–' : formatMoney(profitOf(last))} />
+          <Row k="Total profit" v={<Money cents={state.totals.profit} />} />
+          <Row k="Last day profit" v={last === null ? '–' : <Money cents={profitOf(last)} />} />
           <Row k="Reputation" v={`${starsFloor(reputationOf(state))}★`} />
-          <Row k="Money" v={formatMoney(state.money)} />
+          <Row k="Money" v={<Money cents={state.money} />} />
           <Row k="Kitchen size" v={`${state.width} × ${state.height}`} />
           <Row k="Dishes on the menu" v={state.menu.length} />
         </dl>
