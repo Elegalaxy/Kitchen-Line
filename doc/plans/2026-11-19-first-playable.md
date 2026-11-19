@@ -260,7 +260,8 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 
 ### Step 3: Tick loop: pantry, belts, pass, bin
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-19: `runTicks`/`stepTick`, `transfer.ts`, `order.ts`, belt/pantry/pass/bin rules and `tick.test.ts` done (first delivery at tick 30, 29 per 600 ticks in all four facings); typecheck, test, lint and build pass.
 - Depends on: 2
 - Files: `src/sim/tick.ts`, `src/sim/transfer.ts`, `src/sim/order.ts`, `src/sim/game.ts`, `src/sim/tick.test.ts`
 - What changes:
