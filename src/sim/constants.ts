@@ -44,9 +44,14 @@ export const DAY_PHASE_STARTS = [
   { phase: 'closing', from: 2280 },
 ] as const
 
-/** Plan 2.5 / GAME_DESIGN 6.2: mean ticks between arrivals at 3 stars, stall: 150 when quiet, 50 in a rush. */
-export const ARRIVAL_GAP_QUIET = 150
-export const ARRIVAL_GAP_RUSH = 50
+/**
+ * Plan 2.5 / GAME_DESIGN 6.2: mean ticks between arrivals at 3 stars, stall: 100 when quiet, 30 in a rush
+ * (about 51 customers a day). Step 18 balance: was 150 / 50 (about 31 a day). With 4 dishes the real
+ * demand per dish is only 30 to 45 percent of customers, so 31 a day gave a fries-only stall $25 a
+ * day and made the 100-dishes goal take 7+ days.
+ */
+export const ARRIVAL_GAP_QUIET = 100
+export const ARRIVAL_GAP_RUSH = 30
 /** Plan 2.5: arrival chance scales with 0.4 + 0.2 x reputation (1 star 0.6, 3 stars 1.0, 5 stars 1.4). */
 export const REPUTATION_FACTOR_BASE = 0.4
 export const REPUTATION_FACTOR_PER_STAR = 0.2
@@ -62,9 +67,14 @@ export const PATIENCE_MAX = 600
 /** Plan 2.5: each customer likes 2 to 3 dishes (capped by how many dishes exist). */
 export const PREFS_MIN = 2
 export const PREFS_MAX = 3
-/** Plan 2.5: budget = reference price of the first-choice dish x a uniform 90 to 140 percent. */
-export const BUDGET_PERCENT_MIN = 90
-export const BUDGET_PERCENT_MAX = 140
+/**
+ * Plan 2.5 / GAME_DESIGN 6.2: budget = reference price of the first-choice dish x a uniform 100 to 160
+ * percent. Step 18 balance: was 90 to 140. With 90 to 140, 41 percent of first-choice customers had a
+ * budget under the price / 0.9 and rated the dish at its REFERENCE price -1 (overpriced), and a
+ * fries-first customer (budget 270 to 420) could never afford salad (450).
+ */
+export const BUDGET_PERCENT_MIN = 100
+export const BUDGET_PERCENT_MAX = 160
 
 /** Plan 2.5 / GAME_DESIGN 6.3: ratings are integers 1 to 5; a served customer starts at 5. */
 export const RATING_MAX = 5

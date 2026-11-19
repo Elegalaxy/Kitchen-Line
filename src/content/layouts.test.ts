@@ -59,6 +59,22 @@ describe('dish lines', () => {
     })
   }
 
+  it('friesSaladLine (Step 18) serves both of its dishes to the pass and nothing else', () => {
+    let s = load('friesSaladLine')
+    expect(s.menu.map((m) => m.dish).sort()).toEqual(['fries', 'salad'])
+    s.menu = []
+    const seen: Record<string, number> = {}
+    for (let t = 0; t < 1200; t += 1) {
+      s = runTicks(s, DEFS, 1)
+      for (const b of Object.values(s.buildings)) if (b.kind === 'pass') b.shelf = []
+      for (const e of s.events) if (e.type === 'delivered') seen[e.item] = (seen[e.item] ?? 0) + 1
+    }
+    debug(`friesSaladLine delivered ${JSON.stringify(seen)}`)
+    expect(Object.keys(seen).sort()).toEqual(['fries', 'salad'])
+    expect(seen['fries']).toBeGreaterThanOrEqual(5)
+    expect(seen['salad']).toBeGreaterThanOrEqual(5)
+  })
+
   it('an assembler layout with a missing ingredient produces nothing and shows idle', () => {
     // burgerLine without its tomato pantry (4, 0): the assembler never has all 3 inputs.
     let s = load('burgerLine')

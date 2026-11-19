@@ -5,7 +5,10 @@
 import type { ItemDef } from '../sim/types.ts'
 
 const FRESH_SPOIL_TICKS = 600
-const DISH_SPOIL_TICKS = 300
+// Step 18 balance (GAME_DESIGN 5.2): was 300. A dish no customer wants sits on the pass shelf and
+// the line re-makes it as soon as it spoils; at 300 that shelf cycling alone cost a salad or
+// sandwich line more than the dish earned. At 600 every dish line is profitable.
+const DISH_SPOIL_TICKS = 600
 
 const list: ItemDef[] = [
   { id: 'potato', name: 'Potato', emoji: '🥔', kind: 'raw', cost: 30 },

@@ -11,8 +11,9 @@
 //         nothing accepted), that input holds fewer than ASSEMBLER_INPUT_CAP items, and it
 //         does not come from the front of the building (back, left and right are fine;
 //         the front is the direction `dir`, which for the second tile is also refused).
-//   pass: accepts dishes only (by the item's def kind), up to PASS_SHELF_CAP on the
-//         shelf, from any side. The dish goes onto the shelf and counts in `delivered`;
+//   pass: accepts dishes only (by the item's def kind), up to PASS_SHELF_CAP of each dish
+//         on the shelf (so one unsold dish cannot hog the shelf), from any side.
+//         The dish goes onto the shelf and counts in `delivered`;
 //         customers.ts matches shelf dishes to waiting customers each tick (a sale).
 //   bin:  accepts any item from any side and counts it as binned waste.
 //   splitter/merger/filter: one-item buffer, see logistics.ts (`acceptRouting`).
@@ -64,7 +65,7 @@ export function tryInsert(state: GameState, defs: Defs, building: Building, item
       return acceptRouting(state, building, item, fromDir)
     case 'pass': {
       if (defs.items[item.type]?.kind !== 'dish') return false
-      if (building.shelf.length >= PASS_SHELF_CAP) return false
+      if (building.shelf.filter((d) => d.type === item.type).length >= PASS_SHELF_CAP) return false
       building.shelf.push(item)
       building.delivered += 1
       building.status = 'ok'

@@ -1,16 +1,18 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, Step 18 polish half, 2026-11-20)
-- **Current Goal:** Step 18 balance pass (the polish half is done; Step 18 Status stays `todo` until the balance table is recorded in its Progress).
-- **Recent Changes & Files Touched (Step 18 polish):**
-  - Tutorial: `src/ui/tutorial.ts` (pure: `tutorialView`, `tutorialHints`, `lineReachesPass`), `TutorialCard.tsx` (above the side tabs, all tabs, open until `totals.served > 0`), hint tiles drawn by `drawHints` in `canvas/draw.ts` (canvas only, no pointer input). Chopper (2,2), fryer (4,2), then belts in the gaps. `hintsHidden` and `fast` are new ui-only `UiState` fields (not saved).
-  - States: `tileInfo.ts` + `TileInfo.tsx` (freshness seconds, hover tooltip via `Overlay.tip`, status region for the keyboard cursor), empty inspector, `ordersNote` in `orders.ts`, `Money.tsx` + `formatMoneyCompact` / `clipText` in `format.ts` (compact above $1M, full value in title and sr-only), summary card "No customers today", review text clipped.
-  - Fast belt: palette entry after Belt (`⏩ Fast belt`, no number hotkey; 1-9, 0 still map to DEFS order). `selectTool(ctx, tool, fast)`, `planBeltDrag(..., fast)`, `paletteReason/paletteCost(..., fast)`.
-  - `tests/contrast.test.ts` (reads `styles.css` with fs; in `tests/` because `src/ui` type-check has no node types). No token changed. `src/ui/polish.test.ts` covers the rest. `canvas/input.test.ts` gained the two new `UiState` fields.
-  - Side panel now stacks under the grid below 1024 px (media query was 760).
+- **Last Updated By:** Claude (implementer, Step 18 balance half, 2026-11-20)
+- **Current Goal:** The first playable is finished (Steps 1 to 18 all `done`). Remaining work is the user's playtest and any number tweaks that come out of it.
+- **Recent Changes & Files Touched (Step 18 balance):**
+  - Numbers (provisional only): arrival gaps 150/50 -> 100/30 ticks (`src/sim/constants.ts`), customer budget 90-140% -> 100-160% (same file), dish spoilage 300 -> 600 ticks (`src/content/items.ts`), fryer 40 -> 60 ticks (`src/content/recipes.ts`). Rating values, prices, costs and goals are unchanged.
+  - One rule change: the pass shelf holds up to 4 of EACH dish (was 4 dishes in total, which let an unsold dish block all others): `src/sim/transfer.ts`.
+  - New layout `friesSaladLine` in `src/content/layouts.ts` (dev loader, `?layout=friesSaladLine`).
+  - Tests: arrival tests use the constants, `spoil.test.ts` compares only `spoiled` events, new tests for the per-dish shelf and avgWait (`customers.test.ts`) and the new layout (`layouts.test.ts`).
+  - Docs: plan section 2.5 table and economy paragraph, Step 18 Progress (before/after table), `doc/GAME_DESIGN.md` changelog, 5.3 and 6.2.
+  - Finding: summary `avgWait` 0.0 is genuine (dishes are on the shelf before customers arrive); it is not a bug.
 - **Active Decisions / Constraints:**
-  - Tutorial progress is derived from state, no sim state. "Connect" counts when a pantry feeds the pass through belts, a chopper and a fryer (or a dish was delivered), because delivery needs service open.
-  - Numbers stay provisional: tune only in `src/sim/constants.ts` and `src/content/*`; hashes change deliberately. Never edit `doc/` rules without a user decision.
+  - Results (harness, 20-30 seeds): every dish line now profits (mean $24 to $78 a day), stall goals done by day 4 median with an efficient player (3 to 6 across seeds).
+  - Known gap: at the stall tier one fryer is busy all rush from about 4 stars but customers rarely wait; the clear fryer bottleneck appears at the restaurant tier. Stronger stall pressure needs a slower fryer or more arrivals, which would speed the goals past 4 to 6 days.
+  - The pass has only 3 free sides on the 8x6 grid, so a 4th dish shares a belt and a jammed dish can block the one behind it (head-of-line); this is the intended puzzle, not yet playtested.
+  - Restaurant goals (5 dishes; $300 in one day at 90% served and 4.2 stars) were not simulated.
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
-  - New `GameState` fields must be added to `validateState` in `save.ts`.
-- **Exact Next Step:** Balance pass: run the harness (`npm run sim -- ...`) for each dish layout and a 2-dish combo over 5 days. Targets: one fryer is the visible bottleneck at 4 stars or more in a rush, stall goals take 4 to 6 days, no layout loses money at reference prices. Adjust numbers only in constants and content, record the before and after table in Step 18's Progress, then set Step 18 to `done`. Also open: the summary `avgWait` reads 0.0 (check how `waitTicksTotal` feeds `summary`).
+- **Exact Next Step:** The user plays 2 days (fries, then add salad) and reviews: pace of money, whether waiting and waste read clearly, and whether the stall fryer pressure is enough. Then tune the numbers in `src/sim/constants.ts` and `src/content/*` (design doc first) or start the follow-ups in plan section 9.

@@ -1,11 +1,13 @@
 // Station recipes (chopper, fryer, stove). Ticks per item are provisional
-// (plan 2.5: chopper 20, fryer 40, stove 60). Assembler recipes are the dishes'
+// (plan 2.5: chopper 20, fryer 60, stove 60). Step 18 balance (GAME_DESIGN 5.3): fryer was 40; at
+// 60 one fryer is busy for the whole rush from about 4 stars and is the visible bottleneck at the
+// restaurant tier (about 38 of the 40 fries it can make in a day, orders waiting 10 to 17 s). Assembler recipes are the dishes'
 // `inputs` in dishes.ts (plan 2.6).
 
 import type { StationRecipe } from '../sim/types.ts'
 
 const CHOP_TICKS = 20
-const FRY_TICKS = 40
+const FRY_TICKS = 60
 const COOK_TICKS = 60
 
 export const STATION_RECIPES: StationRecipe[] = [

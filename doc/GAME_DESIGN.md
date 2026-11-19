@@ -2,7 +2,7 @@
 
 Living design document. Source of truth for rules, numbers, and first-playable scope. The portfolio brief is [docs/ideas/kitchen-line.md](../../docs/ideas/kitchen-line.md).
 
-Last updated: 2026-11-19
+Last updated: 2026-11-20
 
 Every rule is tagged:
 
@@ -66,7 +66,7 @@ Building happens while service is paused or running. **[provisional: building is
 | Stove | Cooks (raw patty → cooked patty, rice → cooked rice) | Slower; the usual bottleneck |
 | Fryer | Fries (potato strips → fries) | |
 | Assembler (2 × 1) | Combines up to 3 inputs into a dish per recipe | Recipe selected per station |
-| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil |
+| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish, so one unsold dish cannot keep the others off the pass (2026-11-20) |
 | Bin | Destroys items | Counts as waste |
 
 ### 5.4 Recipes
@@ -86,7 +86,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 ### 6.2 Customers
 
-- Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]**
+- Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]** Balance numbers (2026-11-20): mean gap 100 ticks when quiet and 30 in a rush at 3★ (about 51 customers a day at the stall).
 - Each has a taste profile (preferred dishes), a budget, and patience. They choose an affordable menu dish they like; if none, they leave. **[provisional]**
 - An order waits at the pass. If patience runs out before the dish arrives, the customer leaves unhappy and pays nothing. **[provisional]**
 - Seating is abstract in the first playable: a fixed capacity of waiting orders (provisional: 6 at the stall). **[provisional]**
@@ -157,6 +157,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-20: Balance pass (plan Step 18). Only provisional numbers changed, no **[confirmed]** rule: arrival gaps 150 / 50 → 100 / 30 ticks (about 31 → 51 customers a day at 3★), customer budget 90–140% → 100–160% of the first-choice dish's reference price, finished dishes spoil after 600 ticks (was 300) in 5.2, fryer 4 s → 6 s in 5.3. One small rule change in 5.3: the pass shelf holds up to 4 of each dish (was 4 dishes in total). Evidence is in the plan's Step 18 Progress line.
 
 - 2026-11-19: The user confirmed the first-playable plan's section 3 decisions. Section 13 is resolved; the plan's numbers are the provisional defaults.
 

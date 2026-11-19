@@ -87,9 +87,10 @@ describe('spoilage', () => {
     expect(buildingItems(after.buildings[belt.id]).length).toBe(0)
     expect(after.today.wasteSpoiled).toBe(1)
     expect(after.today.spoiledByItem).toEqual({ slicedTomato: 1 })
-    expect(after.events).toEqual([{ type: 'spoiled', tick: 600, x: 3, y: 4, item: 'slicedTomato' }])
+    // (a customer may also arrive and leave in this tick, so only the spoiled events are compared)
+    expect(after.events.filter((e) => e.type === 'spoiled')).toEqual([{ type: 'spoiled', tick: 600, x: 3, y: 4, item: 'slicedTomato' }])
     // The event lives only in the tick it happened; the count stays 1.
-    expect(runTo(s, 602).events).toEqual([])
+    expect(runTo(s, 602).events.filter((e) => e.type === 'spoiled')).toEqual([])
     expect(runTo(s, 900).today.wasteSpoiled).toBe(1)
   })
 

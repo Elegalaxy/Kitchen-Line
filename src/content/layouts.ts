@@ -23,6 +23,9 @@
 // riceBowlLine $186. The $150 start cannot pay for these lines, so every new line's
 // LAYOUT_SETUP sets $300, unlocks its dish and puts it on the menu (dev loader only, see
 // src/sim/layout.ts).
+// friesSaladLine (Step 18 balance): the fries line on y = 2 plus a salad line on rows y = 0 and 1
+// (lettuce and tomato each -> chopper -> assembler at (4, 0)), whose dish comes down the
+// column x = 7 into the pass from the north. Menu: fries and salad. Costs $185 in all.
 
 import type { LayoutSetup } from '../sim/layout.ts'
 import type { Command } from '../sim/types.ts'
@@ -64,6 +67,29 @@ export const LAYOUTS: Record<string, Command[]> = {
     { type: 'place', kind: 'bin', x: 6, y: 1, dir: 1 },
   ],
   friesLine: [east('belt', 1), east('chopper', 2), east('belt', 3), east('fryer', 4), east('belt', 5), east('belt', 6)],
+  // Two dishes: the fries line on y = 2 plus a salad line on rows 0 and 1 feeding the pass from the north.
+  friesSaladLine: [
+    east('belt', 1),
+    east('chopper', 2),
+    east('belt', 3),
+    east('fryer', 4),
+    east('belt', 5),
+    east('belt', 6),
+    pantry(0, 0, 'lettuce'),
+    at('belt', 1, 0),
+    at('chopper', 2, 0),
+    at('belt', 3, 0),
+    pantry(0, 1, 'tomato'),
+    at('belt', 1, 1),
+    at('chopper', 2, 1),
+    at('belt', 3, 1),
+    at('assembler', 4, 0),
+    { type: 'configure', x: 4, y: 0, recipe: 'salad' },
+    at('belt', 5, 0),
+    at('belt', 6, 0),
+    at('belt', 7, 0, 2),
+    at('belt', 7, 1, 2),
+  ],
   // lettuce -> chopper -> anchor back; tomato -> chopper -> second tile back.
   saladLine: [
     first('lettuce'),
@@ -129,6 +155,7 @@ export const LAYOUTS: Record<string, Command[]> = {
 
 /** Dev-loader setup per layout: unlocks (and money) the commands alone cannot provide. */
 export const LAYOUT_SETUP: Record<string, LayoutSetup> = {
+  friesSaladLine: { menu: ['fries', 'salad'], money: 30000 },
   saladLine: { menu: ['salad'], money: 30000 },
   soupLine: { menu: ['soup'], unlock: ['soup'], money: 30000 },
   sandwichLine: { menu: ['sandwich'], unlock: ['sandwich'], money: 30000 },

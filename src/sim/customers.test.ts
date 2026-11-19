@@ -1,6 +1,6 @@
 // Tests for customers, orders and the economy (plan Step 11). Fixtures are inline Defs (sim
 // tests may import only vitest and src/sim). Checked: same seed -> same customers (hash
-// equal), the rush rate is about 3x a quiet period (statistical, see below), a menu without
+// equal), the rush rate is about 3.3x a quiet period (statistical, see below), a menu without
 // fries loses fries-first customers (lostNoMatch), lostFull, lostPatience, a dish never goes
 // to a customer who ordered something else, the oldest matching customer is served first,
 // money only rises through sales, no arrivals while closing, and leftovers at day end are
@@ -8,12 +8,13 @@
 
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from './commands.ts'
-import { DAY_TICKS, WAITING_CAP } from './constants.ts'
+import { ARRIVAL_GAP_QUIET, ARRIVAL_GAP_RUSH, DAY_TICKS, WAITING_CAP } from './constants.ts'
 import { arrivalChance, stepArrivals } from './customers.ts'
 import { profitOf } from './economy.ts'
 import { createGame } from './game.ts'
 import { stateHash } from './hash.ts'
 import { runTicks } from './tick.ts'
+import { tryInsert } from './transfer.ts'
 import type { Building, BuildingDef, BuildingKind, Command, Customer, Defs, GameState, SimEvent } from './types.ts'
 
 function debug(message: string): void {
@@ -121,7 +122,7 @@ describe('arrivals', () => {
     expect(stateHash(runTicks(runTicks(friesLine('demo'), DEFS, 1000), DEFS, DAY_TICKS - 1000))).toBe(stateHash(a))
   })
 
-  it('the rush has about 3x the arrival rate of a quiet period (10,000 ticks per phase, pooled over 20 seeds)', () => {
+  it('the rush has about 3.3x the arrival rate of a quiet period (10,000 ticks per phase, pooled over 20 seeds)', () => {
     // A day is only 2400 ticks, so the arrival logic is stepped directly: the day tick is
     // held inside one phase and `stepArrivals` runs 10,000 times per seed and phase. Waiting
     // is cleared each step so every arrival is counted (`today.customers` counts them all).
@@ -142,21 +143,21 @@ describe('arrivals', () => {
     const quiet = seeds.reduce((n, seed) => n + sample(seed, 100), 0) // open: quiet
     const rush = seeds.reduce((n, seed) => n + sample(seed, 300), 0) // lunch rush
     const ratio = rush / quiet
-    debug(`arrivals per ${ticks} ticks: quiet=${quiet} (expected ${ticks / 150}) rush=${rush} (expected ${ticks / 50}) ratio=${ratio.toFixed(2)}`)
-    expect(Math.abs(ratio - 3)).toBeLessThanOrEqual(0.45)
-    expect(Math.abs(quiet / (ticks / 150) - 1)).toBeLessThanOrEqual(0.15)
+    debug(`arrivals per ${ticks} ticks: quiet=${quiet} (expected ${ticks / ARRIVAL_GAP_QUIET}) rush=${rush} (expected ${ticks / ARRIVAL_GAP_RUSH}) ratio=${ratio.toFixed(2)}`)
+    expect(Math.abs(ratio - ARRIVAL_GAP_QUIET / ARRIVAL_GAP_RUSH)).toBeLessThanOrEqual(0.45)
+    expect(Math.abs(quiet / (ticks / ARRIVAL_GAP_QUIET) - 1)).toBeLessThanOrEqual(0.15)
   })
 
   it('chance follows reputation and tier; it is zero while closing, and one draw is made per non-closing tick', () => {
     const s = bare(100)
-    expect(arrivalChance(s)).toBeCloseTo(1 / 150, 10) // 3 stars, stall
+    expect(arrivalChance(s)).toBeCloseTo(1 / ARRIVAL_GAP_QUIET, 10) // 3 stars, stall
     s.ratings = [5, 5]
-    expect(arrivalChance(s)).toBeCloseTo((1 / 150) * 1.4, 10)
+    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.4, 10)
     s.ratings = [1]
-    expect(arrivalChance(s)).toBeCloseTo((1 / 150) * 0.6, 10)
+    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 0.6, 10)
     s.ratings = [3]
     s.tier = 'restaurant'
-    expect(arrivalChance(s)).toBeCloseTo((1 / 150) * 1.5, 10)
+    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.5, 10)
     s.dayTick = 2280
     expect(arrivalChance(s)).toBe(0)
 
@@ -307,6 +308,35 @@ describe('the pass and sales', () => {
     debug(`shelf after 600 ticks with no customers: ${shelf.length}, delivered ${pass(s).delivered}, spoiled ${s.today.wasteSpoiled}`)
     expect(shelf.length).toBeGreaterThan(0)
     expect(shelf.length).toBeLessThanOrEqual(4)
+  })
+
+  it('caps the shelf per dish, so one unsold dish cannot keep another off the pass (Step 18 balance)', () => {
+    const s = bare(2280)
+    pass(s).shelf = [item(1, 'fries'), item(2, 'fries'), item(3, 'fries'), item(4, 'fries')]
+    expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(false) // a fifth fries is refused
+    expect(tryInsert(s, DEFS, pass(s), item(6, 'salad'), 3)).toBe(true) // a salad still fits
+    expect(pass(s).shelf.map((i) => i.type)).toEqual(['fries', 'fries', 'fries', 'fries', 'salad'])
+  })
+
+  it('wait is 0 when the dish is already on the shelf, and the delivery delay when it is not (the avgWait finding)', () => {
+    // Stocked shelf: the customer is matched in the tick they arrive (arrivals run before matching).
+    const stocked = bare(2280)
+    stocked.tick = 80
+    quietPantry(stocked)
+    pass(stocked).shelf = [item(1, 'fries')]
+    stocked.waiting = [customer(1, 'fries', 300, 500, 80)]
+    expect(runTicks(stocked, DEFS, 1).today.waitTicksTotal).toBe(0)
+    // Empty shelf: the dish lands 25 ticks later, so the customer waited 25 ticks.
+    let empty = bare(2280)
+    empty.tick = 80
+    quietPantry(empty)
+    empty.waiting = [customer(1, 'fries', 300, 500, 80)]
+    for (let i = 0; i < 25; i += 1) empty = runTicks(empty, DEFS, 1)
+    expect(empty.today.served).toBe(0)
+    pass(empty).shelf = [item(2, 'fries')]
+    empty = runTicks(empty, DEFS, 1)
+    expect(empty.today.served).toBe(1)
+    expect(empty.today.waitTicksTotal).toBe(25)
   })
 
   it('money only rises through sales over a full day', () => {
