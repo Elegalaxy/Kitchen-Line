@@ -899,8 +899,10 @@ kbd {
 
 .tab {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0 2px;
+  font-size: 0.75rem;
   border: 0;
   border-bottom: 3px solid transparent;
   border-radius: 8px 8px 0 0;
@@ -1047,6 +1049,37 @@ kbd {
   flex: none;
   color: var(--text-muted);
   text-align: right;
+}
+
+.upgrade-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upgrade-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.upgrade-row .unlock-btn,
+.upgrade-row .pal-reason {
+  flex: 1 0 100%;
+}
+
+.upgrade-owned {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.upgrade-belt {
+  margin: 0 0 4px;
 }
 
 .menu-locked .dish-name {

@@ -1,7 +1,7 @@
-// Side panel (plan Step 14): tabs Build, Menu and Goals. A proper tablist: roving tabindex,
+// Side panel: tabs Build, Menu, Upgrades and Goals. A proper tablist: roving tabindex,
 // Left/Right/Home/End move between tabs (and select them), the active tab owns the
-// tabpanel. Build is the palette plus the inspector, exactly as before. Goals is the
-// goals checklist, tier upgrade and expansion (GoalsPanel).
+// tabpanel. Build is the palette plus the inspector. Upgrades is the shop. Goals is the
+// checklist.
 
 import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
@@ -11,6 +11,7 @@ import type { PaletteHover } from './BuildPalette.tsx'
 import GoalsPanel from './GoalsPanel.tsx'
 import Inspector from './Inspector.tsx'
 import MenuPanel from './MenuPanel.tsx'
+import UpgradesPanel from './UpgradesPanel.tsx'
 import { nextTab, SIDE_TABS } from './sideTabs.ts'
 import type { SideTab } from './sideTabs.ts'
 import type { Snapshot } from './store.ts'
@@ -59,6 +60,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
           </>
         )}
         {tab === 'menu' && <MenuPanel ctx={ctx} snap={snap} />}
+        {tab === 'upgrades' && <UpgradesPanel ctx={ctx} snap={snap} />}
         {tab === 'goals' && <GoalsPanel ctx={ctx} snap={snap} />}
       </div>
     </aside>

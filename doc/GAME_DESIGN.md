@@ -121,7 +121,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 - Clean flat shapes and icons: colored tiles, simple machine shapes, emoji or icon ingredients. **[confirmed]**
 - The line must make problems visible: backed-up belts, idle stations, and spoiling items are marked (icon plus color, never color alone). **[provisional]**
-- The tycoon panels (menu, prices, summary, goals) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]**
+- The tycoon panels (menu, prices, upgrades, summary, goals) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt is placed from Build; Upgrades only shows when that tile is unlocked. The Menu tab lists dishes the player already owns.
 
 ## 11. Tech
 
@@ -159,6 +159,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-22: Upgrades tab (presentation, section 10, no new rule or number). Restaurant tier, kitchen expansions and recipe unlocks move off Goals and Menu onto an Upgrades tab. The fast belt stays a Build-tab tile; the new tab only shows that it unlocks with the restaurant tier.
 
 - 2026-11-22: Tutorial extended (confirmed rule in section 13). The checklist no longer stops at the first Fries sale. It continues through the day summary, adding Salad to the menu, and serving one Salad, with ghost tiles for a second line on the north side of the pass.
 

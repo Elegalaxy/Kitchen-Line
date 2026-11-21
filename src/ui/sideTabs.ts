@@ -1,10 +1,11 @@
 // Tabs of the side panel and the keyboard rule for moving between them (pure, unit-tested).
 
-export type SideTab = 'build' | 'menu' | 'goals'
+export type SideTab = 'build' | 'menu' | 'upgrades' | 'goals'
 
 export const SIDE_TABS: readonly { id: SideTab; label: string; icon: string }[] = [
   { id: 'build', label: 'Build', icon: '🔧' },
   { id: 'menu', label: 'Menu', icon: '🍽️' },
+  { id: 'upgrades', label: 'Upgrades', icon: '⬆️' },
   { id: 'goals', label: 'Goals', icon: '🎯' },
 ]
 
