@@ -630,6 +630,31 @@ Re-measure (20 seeds, scripted player, which never pauses pantries):
 
 No layout loses money and served customers per day are unchanged, but every layout earns less: each morning the pantries refill the whole pipeline (belts, stations, shelf) and that stock is binned at close. The cost is largest on the long, multi-station lines (sandwich, burger, salad: -$35 to -$43 over 5 days). Without the pantry throttle (every pantry at full speed) 9 of 20 simulated runs no longer finish within 40 days (money is tight while the line refills). No other numbers were changed. The new pause control is the intended answer for the player (pause pantries before closing, or when the pass is full); the scripted player does not use it. Possible follow-ups for the user: skip the overnight loss for the last N seconds by letting the player pause pantries earlier, or lower the cost of a refill (pantry interval, belt length), or teach the scripted player to pause pantries in the last minute of a day.
 
+**Pause-aware player and closing cue (2026-11-22).** The scripted player now pauses all pantries for the last `PAUSE_LEAD_TICKS` (400, = `CLOSING_SOON_TICKS` in `constants.ts`, UI only) ticks of each day and resumes them in the next build phase (`src/harness/pausePolicy.ts`; `--no-pause` turns it off, default on; the layout runs (`--layout`) use it too). UI: a "Closing soon: items left on the line will be thrown away" cue with a one-click "Pause pantries" button in the top bar during the last 400 ticks of service; a Pause / Resume pantries button with the "Pantries: N of M paused" line in the day summary; the Inspector adds "Output is backing up: pause this pantry to stop buying ingredients." to a blocked pantry whose neighbour is only full. No sim number or rule changed.
+
+Re-measure (20 seeds; seed demo, 5 days; 'pause' = the new player, 'no pause' = `--no-pause`, same as the table above):
+
+| | no pause | pause |
+|---|---|---|
+| Throttled: end screen reached | 20/20 | 20/20 |
+| Throttled: end-screen day median (min-max) | 12 (10-15) | 11 (10-14) |
+| Throttled: days with a loss | 0 of 240 | 0 of 222 |
+| `--no-throttle`: end screen reached | 11/20 | 20/20 |
+| `--no-throttle`: end-screen day median (max) | 25 (40, the cap) | 13 (28) |
+| `--no-throttle`: days with a loss | 0 of 631 | 0 of 326 |
+
+| layout (5-day profit / waste per day) | no pause | pause |
+|---|---|---|
+| friesLine | $261.60 / 25.4 | $271.50 / 18.8 |
+| saladLine | $90.50 / 52.4 | $113.70 / 37.6 |
+| sandwichLine | $62.40 / 56.4 | $103.20 / 39.2 |
+| friesSaladLine | $285.70 / 94.4 | $338.80 / 68.4 |
+| burgerLine | $115.10 / 42.4 | $154.40 / 27.4 |
+| soupLine | $92.80 / 38.2 | $106.00 / 31.6 |
+| riceBowlLine | $197.00 / 32.2 | $242.00 / 22.0 |
+
+Pausing 40 s before close recovers most of the overnight cost (every layout is back at or above its pre-cleanup profit except where noted by the earlier table) and brings the unthrottled journey back to 20/20. Caveat: the earlier table's "after" profits for saladLine, sandwichLine and burgerLine ($77 / $55 / $43) differ from the "no pause" column here (waste matches); not investigated.
+
 ## 6. Testing summary
 
 - Unit tests (Vitest, next to source): grid placement, belt ordering and throughput by direction, each station, logistics ratios, spoilage timing, day cycle, customers (seeded), ratings, summary hints, goals, save round-trip, perf.
