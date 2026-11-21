@@ -11,19 +11,23 @@
 //         nothing accepted), that input holds fewer than ASSEMBLER_INPUT_CAP items, and it
 //         does not come from the front of the building (back, left and right are fine;
 //         the front is the direction `dir`, which for the second tile is also refused).
-//   pass: accepts dishes only (by the item's def kind), from any side, and never blocks a
-//         dish. The shelf keeps at most PASS_SHELF_CAP of each dish: when it already holds
-//         that many, the OLDEST unsold copy of that dish is thrown away to make room (counted
-//         as spoiled waste: `wasteSpoiled`, `spoiledByItem` and a `spoiled` event), so one
-//         unsold dish can never jam the belt behind it. The new dish goes onto the shelf and
-//         counts in `delivered` (every dish delivered counts, dropped or not);
+//   pass: accepts dishes only (by the item's def kind), from any side. The shelf keeps at most
+//         PASS_SHELF_CAP of each dish. When it already holds that many, a new copy is REFUSED
+//         (the belt backs up, so the pantries stop buying) unless it would block another dish or
+//         the oldest copy is already PASS_DROP_AGE_TICKS old. "Blocks another dish" means the
+//         sender is a belt and the item right behind it on that belt is a different item. Then
+//         the oldest copy of the full dish is thrown away (counted as spoiled waste:
+//         `wasteSpoiled`, `spoiledByItem` and a `spoiled` event) and the new dish takes its place.
+//         So a one-dish line backs up and stops buying, while an unsold dish never jams a
+//         mixed belt. The new dish counts in `delivered`;
 //         customers.ts matches shelf dishes to waiting customers each tick (a sale).
 //   bin:  accepts any item from any side and counts it as binned waste.
 //   splitter/merger/filter: one-item buffer, see logistics.ts (`acceptRouting`).
 // Every other kind refuses for now (their steps add acceptance).
 
+import { buildingAt, neighbor } from './grid.ts'
 import { acceptRouting } from './logistics.ts'
-import { ASSEMBLER_INPUT_CAP, PASS_SHELF_CAP, STATION_INPUT_CAP } from './constants.ts'
+import { ASSEMBLER_INPUT_CAP, PASS_DROP_AGE_TICKS, PASS_SHELF_CAP, STATION_INPUT_CAP } from './constants.ts'
 import type { Building, Defs, Dir, GameState, Item, ItemId, StationRecipe } from './types.ts'
 
 export function opposite(dir: Dir): Dir {
@@ -70,8 +74,15 @@ export function tryInsert(state: GameState, defs: Defs, building: Building, item
       if (defs.items[item.type]?.kind !== 'dish') return false
       const same = building.shelf.filter((d) => d.type === item.type)
       if (same.length >= PASS_SHELF_CAP) {
-        // Shelf full of this dish: throw away the oldest unsold copy (GAME_DESIGN 5.3).
+        // Shelf full of this dish: refuse (back-pressure) unless it blocks another dish or the oldest is old (GAME_DESIGN 5.3).
         const oldest = same[0]
+        // A different dish waiting right behind this one on the feeding belt would be stuck: drop now.
+        const at = neighbor(building.x, building.y, fromDir)
+        const sender = buildingAt(state, at.x, at.y)
+        const feeder = sender === null ? undefined : state.buildings[sender]
+        const behind = feeder !== undefined && feeder.kind === 'belt' ? feeder.slots[0] : null
+        const blocksOther = behind !== null && behind.type !== item.type
+        if (!blocksOther && oldest !== undefined && state.tick - oldest.bornTick < PASS_DROP_AGE_TICKS) return false
         if (oldest !== undefined) {
           building.shelf.splice(building.shelf.indexOf(oldest), 1)
           state.today.wasteSpoiled += 1

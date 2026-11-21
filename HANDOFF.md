@@ -1,6 +1,6 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, pass shelf and goal 5, 2026-11-22)
+- **Last Updated By:** Claude (main chat, delayed pass drop, 2026-11-22)
 - **Current Goal:** First playable is finished (Steps 1 to 18 `done`). Two user decisions were applied this session: non-blocking pass shelf and a rewritten goal 5. The side effect on profit needs a decision.
 - **Recent Changes & Files Touched:**
   - Pass shelf (`src/sim/transfer.ts`): the pass never refuses a dish; a 5th copy of a dish (PASS_SHELF_CAP 4) drops the oldest unsold copy, counted as spoiled (`wasteSpoiled`, `spoiledByItem`, `spoiled` event). `src/ui/blockReason.ts` and `buildingInfo.ts` text updated. Tests in `src/sim/customers.test.ts`.
@@ -12,3 +12,5 @@
   - Open proposals: pantry stops when the shelf is full, money sink after the upgrade, goal 6 about $450, second pass.
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
 - **Exact Next Step:** The user decides how to stop the overproduction waste (see PROBLEM) and the pace target; then change the design doc first, the numbers or rule next, and re-run `npm run sim -- --journey --seeds 30` and the layout table.
+
+- **Update 2026-11-22 (supersedes the profit-side-effect item above):** the pass now refuses a 5th copy of a full dish (back-pressure) unless a different dish waits behind it on the feeding belt or the oldest copy is 450 ticks old (`PASS_DROP_AGE_TICKS`). 20/20 journey seeds finish with the throttle (19/20 without), 0 loss days; layout profits mostly recovered. Details in the plan's Re-measure follow-up.

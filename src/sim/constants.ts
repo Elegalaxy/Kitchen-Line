@@ -29,6 +29,12 @@ export const FAST_BELT_STEP_TICKS = 2
 /** Plan 2.5: processors hold at most 2 input items (output 1); the pass shelf holds 4 dishes. */
 export const STATION_INPUT_CAP = 2
 export const PASS_SHELF_CAP = 4
+/**
+ * GAME_DESIGN 5.3: when the shelf holds PASS_SHELF_CAP of a dish, a new copy is refused (the belt
+ * backs up and the pantries stop buying) unless a different dish waits behind it on the feeding
+ * belt, or the oldest copy is at least this old (45 s); then the oldest is thrown away.
+ */
+export const PASS_DROP_AGE_TICKS = 450
 /** Plan 2.5 / GAME_DESIGN 5.3: an assembler takes 30 ticks per dish and holds up to 2 of each input. */
 export const ASSEMBLER_TICKS = 30
 export const ASSEMBLER_INPUT_CAP = 2

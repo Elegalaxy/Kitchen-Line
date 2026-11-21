@@ -66,7 +66,7 @@ Building happens while service is paused or running. **[provisional: building is
 | Stove | Cooks (raw patty → cooked patty, rice → cooked rice) | Slower; the usual bottleneck |
 | Fryer | Fries (potato strips → fries) | |
 | Assembler (2 × 1) | Combines up to 3 inputs into a dish per recipe | Recipe selected per station |
-| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish. The pass never refuses a dish: when the shelf already holds 4 of it, the oldest unsold copy is thrown away (counted as spoiled waste), so an unsold dish cannot jam the belt behind it or keep the others off the pass (2026-11-20, no-block 2026-11-22) |
+| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish. A 5th copy is refused (the belt backs up and the pantries stop buying) unless a different dish waits right behind it on the feeding belt, or the oldest copy is 45 s old; then the oldest is thrown away (counted as spoiled waste) and the new one takes its place. So a one-dish line stops buying when nothing sells, and an unsold dish cannot jam a mixed belt (2026-11-20, refined 2026-11-22) |
 | Bin | Destroys items | Counts as waste |
 
 ### 5.4 Recipes
@@ -161,6 +161,7 @@ No open questions remain for the first playable.
 
 - 2026-11-22: Restaurant goal 5 changed (provisional numbers, no **[confirmed]** rule): from "have 5 dishes on the menu" to "sell 5 different dishes, 10+ of each, in one day" (`GOAL_DISH_SALES` = 10 in `sim/constants.ts`). The goal id `menu-5` is kept so old saves still load. Goal 6 is unchanged.
 
+- 2026-11-22: User decision after the re-measure (rule change in 5.3, no **[confirmed]** rule): the pass drop is no longer unconditional. A full shelf (4 of a dish) refuses a 5th copy (back-pressure, so the pantries stop buying) unless a different dish waits right behind it on the feeding belt, or the oldest copy is `PASS_DROP_AGE_TICKS` (450 ticks, 45 s, provisional) old; then the oldest copy is dropped. Reason: the always-accepting shelf removed the free back-pressure, so pantries overbought and saladLine / sandwichLine lost money (-$20 / -$102 over 5 days). Measured (20 seeds): 20/20 finish with the pantry throttle and 0 loss days, 19/20 without it; saladLine / sandwichLine 5-day profit $112 / $98.
 - 2026-11-22: User decision after the journey simulation (rule change in 5.3, no **[confirmed]** rule): the pass shelf is non-blocking. It still holds at most 4 of each dish (`PASS_SHELF_CAP`), but a 5th copy is accepted and the oldest unsold copy of that dish is thrown away and counted as spoiled waste, instead of the dish being refused and jamming the belt. Reason: with 5 dishes sharing pass sides only 16/30 simulated runs could finish.
 
 - 2026-11-20: Balance pass (plan Step 18). Only provisional numbers changed, no **[confirmed]** rule: arrival gaps 150 / 50 → 100 / 30 ticks (about 31 → 51 customers a day at 3★), customer budget 90–140% → 100–160% of the first-choice dish's reference price, finished dishes spoil after 600 ticks (was 300) in 5.2, fryer 4 s → 6 s in 5.3. One small rule change in 5.3: the pass shelf holds up to 4 of each dish (was 4 dishes in total). Evidence is in the plan's Step 18 Progress line.

@@ -44,7 +44,7 @@ export const BUILDING_INFO: Record<BuildingKind, BuildingInfo> = {
     inOut: 'In: back and sides. Out: front of the second tile.',
   },
   pass: {
-    what: 'The serving counter. Finished dishes wait here for customers; it holds up to 4 of each dish and throws away the oldest unsold one when a new one arrives.',
+    what: 'The serving counter. Finished dishes wait here for customers; it holds up to 4 of each dish. A 5th waits on the belt, so the line stops buying. If another dish is stuck behind it, or after about 45 s, the oldest unsold copy is thrown away.',
     inOut: 'In: any side, dishes only.',
   },
   bin: {

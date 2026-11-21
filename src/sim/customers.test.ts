@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from './commands.ts'
-import { ARRIVAL_GAP_QUIET, ARRIVAL_GAP_RUSH, DAY_TICKS, WAITING_CAP } from './constants.ts'
+import { ARRIVAL_GAP_QUIET, ARRIVAL_GAP_RUSH, DAY_TICKS, PASS_DROP_AGE_TICKS, WAITING_CAP } from './constants.ts'
 import { arrivalChance, stepArrivals } from './customers.ts'
 import { profitOf } from './economy.ts'
 import { createGame } from './game.ts'
@@ -310,8 +310,9 @@ describe('the pass and sales', () => {
     expect(shelf.length).toBeLessThanOrEqual(4)
   })
 
-  it('keeps at most 4 of each dish: a 5th copy is accepted and the OLDEST copy is thrown away (GAME_DESIGN 5.3)', () => {
+  it('keeps at most 4 of each dish: once the oldest copy is old enough a 5th is accepted and the OLDEST is thrown away (GAME_DESIGN 5.3)', () => {
     const s = bare(2280)
+    s.tick = PASS_DROP_AGE_TICKS // items are born at tick 0, so the oldest copy is old enough to drop
     pass(s).shelf = [item(1, 'fries'), item(2, 'fries'), item(3, 'fries'), item(4, 'fries')]
     expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(true)
     expect(pass(s).shelf.map((i) => i.id)).toEqual([2, 3, 4, 5]) // id 1 (oldest) is gone
@@ -321,8 +322,46 @@ describe('the pass and sales', () => {
     expect(pass(s).delivered).toBe(2)
   })
 
+  it('a full shelf of YOUNG copies refuses a 5th one (the belt backs up) until the oldest reaches the drop age', () => {
+    const s = bare(2280)
+    s.tick = 1000
+    const young = s.tick - (PASS_DROP_AGE_TICKS - 1)
+    const copy = (id: number) => ({ id, type: 'fries', bornTick: young })
+    pass(s).shelf = [copy(1), copy(2), copy(3), copy(4)]
+    expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(false)
+    expect(pass(s).shelf).toHaveLength(4)
+    expect(pass(s).delivered).toBe(0)
+    expect(s.today.wasteSpoiled).toBe(0)
+    s.tick += 1 // the oldest copy is now exactly PASS_DROP_AGE_TICKS old
+    expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(true)
+    expect(pass(s).shelf.map((i) => i.id)).toEqual([2, 3, 4, 5])
+    expect(s.today.wasteSpoiled).toBe(1)
+  })
+
+  it('a full shelf drops at once when a DIFFERENT dish waits behind on the feeding belt, and refuses when it is the same dish', () => {
+    const base = bare(500)
+    const placed = applyCommand(base, DEFS, { type: 'place', kind: 'belt', x: 6, y: 2, dir: 1 })
+    if (!placed.result.ok) throw new Error(`command failed: ${placed.result.reason}`)
+    const make = (behind: string) => {
+      const s = structuredClone(placed.state)
+      s.tick = 1000
+      const belt = Object.values(s.buildings).find((x) => x.kind === 'belt')
+      if (belt === undefined || belt.kind !== 'belt') throw new Error('no belt')
+      belt.slots = [{ id: 30, type: behind, bornTick: s.tick }, { id: 10, type: 'fries', bornTick: s.tick }]
+      pass(s).shelf = [1, 2, 3, 4].map((id) => ({ id, type: 'fries', bornTick: s.tick }))
+      return s
+    }
+    const mixed = make('salad')
+    expect(tryInsert(mixed, DEFS, pass(mixed), { id: 10, type: 'fries', bornTick: 1000 }, 3)).toBe(true)
+    expect(pass(mixed).shelf.map((i) => i.id)).toEqual([2, 3, 4, 10])
+    const same = make('fries')
+    expect(tryInsert(same, DEFS, pass(same), { id: 10, type: 'fries', bornTick: 1000 }, 3)).toBe(false)
+    expect(pass(same).shelf).toHaveLength(4)
+  })
+
   it('records the dropped dish as spoiled waste (counter, per item and a spoiled event)', () => {
     const s = bare(2280)
+    s.tick = PASS_DROP_AGE_TICKS
     pass(s).shelf = [item(1, 'fries'), item(2, 'fries'), item(3, 'fries'), item(4, 'fries')]
     tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)
     expect(s.today.wasteSpoiled).toBe(1)
@@ -334,7 +373,7 @@ describe('the pass and sales', () => {
   })
 
   it('an unsold dish no longer jams the belt behind it: a salad queued behind a 5th fries still arrives', () => {
-    const s = bare(100)
+    const s = bare(500)
     s.menu = [] // nobody buys anything
     const placed = applyCommand(s, DEFS, { type: 'place', kind: 'belt', x: 6, y: 2, dir: 1 })
     if (!placed.result.ok) throw new Error(`command failed: ${placed.result.reason}`)
@@ -344,6 +383,7 @@ describe('the pass and sales', () => {
     if (belt === undefined || belt.kind !== 'belt') throw new Error('no belt')
     belt.onlineAt = 0
     const born = cur.tick
+    // Young shelf copies: a different dish waiting behind makes the pass drop the oldest at once.
     pass(cur).shelf = [1, 2, 3, 4].map((id) => ({ id, type: 'fries', bornTick: born }))
     belt.slots = [{ id: 20, type: 'salad', bornTick: born }, { id: 10, type: 'fries', bornTick: born }]
     cur = runTicks(cur, DEFS, 40)

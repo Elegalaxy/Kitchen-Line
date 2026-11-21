@@ -3,7 +3,7 @@
 // the stuck item, then explains the refusal, so the text can never disagree with the rules.
 // Returns null when there is nothing to explain (building working, idle, or able to move on).
 
-import { ASSEMBLER_INPUT_CAP, STATION_INPUT_CAP } from '../sim/constants.ts'
+import { ASSEMBLER_INPUT_CAP, PASS_DROP_AGE_TICKS, PASS_SHELF_CAP, STATION_INPUT_CAP } from '../sim/constants.ts'
 import { buildingAt, inBounds, neighbor } from '../sim/grid.ts'
 import { findStationRecipe, opposite, tryInsert } from '../sim/transfer.ts'
 import type { Building, Defs, Dir, GameState, Item } from '../sim/types.ts'
@@ -68,8 +68,8 @@ function refusal(state: GameState, defs: Defs, target: Building, item: Item, fro
       return `The assembler ahead already has enough ${itemName} (${ASSEMBLER_INPUT_CAP}).`
     }
     case 'pass':
-      // A dish is never refused (a full shelf drops its oldest copy), so only non-dishes get here.
-      return `The pass only takes finished dishes, not ${itemName}.`
+      if (defs.items[item.type]?.kind !== 'dish') return `The pass only takes finished dishes, not ${itemName}.`
+      return `The pass shelf already holds ${PASS_SHELF_CAP} ${itemName}: nobody is buying it. The line waits (or drops the oldest after about ${PASS_DROP_AGE_TICKS / 10} s). Change the menu or the price.`
     case 'splitter':
     case 'filter':
       return fromDir === opposite(target.dir)
