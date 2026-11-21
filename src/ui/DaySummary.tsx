@@ -146,7 +146,8 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
               <Row k="Lost: ran out of patience" v={last.lostPatience} />
               <Row k="Lost: no match" v={last.lostNoMatch} />
               <Row k="Lost: queue full" v={last.lostFull} />
-              <Row k="Waste: spoiled" v={last.wasteSpoiled} />
+              <Row k="Waste: spoiled" v={last.wasteSpoiled - last.wasteOvernight} />
+              <Row k="Waste: left at close" v={last.wasteOvernight} />
               <Row k="Waste: binned" v={last.wasteBinned} />
               <Row k="Waste: destroyed" v={last.wasteDestroyed} />
             </dl>

@@ -36,6 +36,18 @@ describe('bottleneckHintOf', () => {
     })
   })
 
+  it('ignores what was thrown away at close: only in-service spoilage is a hint', () => {
+    const closing = stats({ wasteSpoiled: 9, wasteOvernight: 9, spoiledByItem: { potato: 9 }, overnightByItem: { potato: 9 } })
+    expect(bottleneckHintOf(closing)).toBeNull()
+    const mixed = stats({
+      wasteSpoiled: 9,
+      wasteOvernight: 6,
+      spoiledByItem: { potato: 6, lettuce: 3 },
+      overnightByItem: { potato: 6 },
+    })
+    expect(bottleneckHintOf(mixed)).toEqual({ kind: 'waste', item: 'lettuce', count: 3 })
+  })
+
   it('picks waste and names the item that spoiled most', () => {
     const s = stats({ lostPatience: 1, lostNoMatch: 2, wasteSpoiled: 5, spoiledByItem: { tomato: 2, lettuce: 3 } })
     expect(bottleneckHintOf(s)).toEqual({ kind: 'waste', item: 'lettuce', count: 5 })

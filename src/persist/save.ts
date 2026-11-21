@@ -143,6 +143,13 @@ function dayStats(v: unknown, path: string): void {
   for (const [id, n] of Object.entries(obj(o.spoiledByItem, `${path}.spoiledByItem`))) {
     int(n, `${path}.spoiledByItem.${id}`)
   }
+  // Saves from before the overnight cleanup have neither field: they mean 0 / none.
+  if (o.wasteOvernight === undefined) o.wasteOvernight = 0
+  int(o.wasteOvernight, `${path}.wasteOvernight`)
+  if (o.overnightByItem === undefined) o.overnightByItem = {}
+  for (const [id, n] of Object.entries(obj(o.overnightByItem, `${path}.overnightByItem`))) {
+    int(n, `${path}.overnightByItem.${id}`)
+  }
   for (const [id, d] of Object.entries(obj(o.byDish, `${path}.byDish`))) {
     const e = obj(d, `${path}.byDish.${id}`)
     for (const k of ['served', 'lost', 'sales']) int(e[k], `${path}.byDish.${id}.${k}`)

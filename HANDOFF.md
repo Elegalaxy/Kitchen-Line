@@ -1,16 +1,14 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (main chat, delayed pass drop, 2026-11-22)
-- **Current Goal:** First playable is finished (Steps 1 to 18 `done`). Two user decisions were applied this session: non-blocking pass shelf and a rewritten goal 5. The side effect on profit needs a decision.
+- **Last Updated By:** Claude (implementer, production-line control, 2026-11-22)
+- **Current Goal:** First playable is finished (Steps 1 to 18 `done`). This round added two user-decided controls: pantry pause and overnight cleanup. Remaining work is the user's playtest and the balance decision below.
 - **Recent Changes & Files Touched:**
-  - Pass shelf (`src/sim/transfer.ts`): the pass never refuses a dish; a 5th copy of a dish (PASS_SHELF_CAP 4) drops the oldest unsold copy, counted as spoiled (`wasteSpoiled`, `spoiledByItem`, `spoiled` event). `src/ui/blockReason.ts` and `buildingInfo.ts` text updated. Tests in `src/sim/customers.test.ts`.
-  - Goal 5 (`src/content/goals.ts`, `GOAL_DISH_SALES` = 10 in `src/sim/constants.ts`): "Sell 5 different dishes, 10+ of each, in one day"; id `menu-5` kept (old saves load); checks today and, at day end (summary), the last day; note lists the best day's dishes. Tests in `goals.test.ts`, `goalsView.test.ts`, `save.test.ts`.
-  - Docs: GAME_DESIGN 5.3 row, section 8 and changelog; plan 2.5 goal row and a "Re-measure" note under Journey simulation. Harness `player.ts` comments only.
-- **Active Decisions / Constraints (30-seed journey):**
-  - Throttled player: 30/30 finish (was 29/30); goal 5 day 12, goal 6 day 11, end screen day 12 (was 10, 9, 10); about 48 min of service at 1x. Goal 5 now comes about with goal 6. Without the throttle 26/30 finish (was 17/30).
-  - PROBLEM: back-pressure used to throttle pantries for free; now surplus is thrown away at the pass (about 87 dishes a day with the throttle, 145 without). Single-dish layouts lose profit: saladLine 5-day profit $152 to -$20, sandwichLine $158 to -$102, friesSaladLine $390 to $268. The Step 18 target "no layout loses money" fails for salad and sandwich. Not tuned (user said stop and report).
-  - Open proposals: pantry stops when the shelf is full, money sink after the upgrade, goal 6 about $450, second pass.
+  - Pantry pause (commit 1): `configure { paused }` and `setPantriesPaused` (`src/sim/commands.ts`, `grid.ts`, `tick.ts`, `types.ts`), status `paused`, one undo entry for the bulk command (`src/ui/undo.ts`), view helper `src/ui/pantryPause.ts`, Inspector toggle, Build panel "Pause / Resume pantries" button, canvas badge, `blockReason.ts`. The flag exists only while paused, so no hash changed; old saves load (`src/persist/save.ts`). Pause works in every phase.
+  - Overnight cleanup (commit 2): `clearOvernight` in `src/sim/spoil.ts`, called by `endDay` (`day.ts`); new stats `wasteOvernight` / `overnightByItem` (part of `wasteSpoiled`), optional on load; summary row "Waste: left at close"; the bottleneck hint ignores it.
+  - Docs: GAME_DESIGN section 4, 5.3, 6.3 and changelog; plan note "Production-line control" after the Journey simulation.
+- **Active Decisions / Constraints:**
+  - Re-measure (20 seeds): throttled journey still 20/20 (end screen day 11 -> 12). `--no-throttle` drops from 19/20 to 11/20. Every layout still profits but less: 5-day profit saladLine 112 -> 77, sandwichLine 98 -> 55, friesLine 271 -> 262, friesSaladLine 324 -> 286, burgerLine 76 -> 43, soupLine 105 -> 93, riceBowlLine 214 -> 196. Cause: the pipeline is refilled every morning and binned at close.
+  - No other numbers were changed. The scripted player (`src/harness/player.ts`) never pauses pantries.
+  - Wall-clock perf tests (`src/harness/perf.test.ts`) fail when the machine is loaded (they also failed on the previous commit); run them alone.
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
-- **Exact Next Step:** The user decides how to stop the overproduction waste (see PROBLEM) and the pace target; then change the design doc first, the numbers or rule next, and re-run `npm run sim -- --journey --seeds 30` and the layout table.
-
-- **Update 2026-11-22 (supersedes the profit-side-effect item above):** the pass now refuses a 5th copy of a full dish (back-pressure) unless a different dish waits behind it on the feeding belt or the oldest copy is 450 ticks old (`PASS_DROP_AGE_TICKS`). 20/20 journey seeds finish with the throttle (19/20 without), 0 loss days; layout profits mostly recovered. Details in the plan's Re-measure follow-up.
+- **Exact Next Step:** The user decides whether the overnight cost is acceptable (options in the plan note: teach the player to pause pantries before close, cheaper refills, or leave it), then re-run `npm run sim -- --journey --seeds 20` with and without `--no-throttle`. Earlier playtest asks still stand: 2 days of fries then salad, judge money pace, waiting and waste clarity, and try the new pause buttons.

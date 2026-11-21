@@ -146,7 +146,7 @@ Rough stall economy check (rewritten in Step 18 with the harness): taste splits 
   - **Copy/paste deferred to a follow-up.** On grids up to 16×12, drag-belts plus undo cover most of the value, and paste needs selection, cost preview and collision rules.
 - **Q4. Tutorial.** Recommended: **partly pre-built**. A new game starts with the pass, a potato pantry and Fries on the menu. The Goals panel shows a 4-item checklist for the first goal: place a chopper, place a fryer, connect them with belts to the pass, open for service. An empty start makes the 5-minute target hard. A fully built line teaches nothing. Extended 2026-11-21: the checklist stays up through the day summary, adding Salad, and serving one, with ghost tiles for a second line on the north side of the pass.
 - **Q5. Exact numbers.** Use the table in 2.5. They are tuned in Step 18 with the harness.
-- **Q6. Leftover customers at close (new).** Recommended: customers still waiting at tick 2400 leave without a rating and are not counted as lost. Items on belts stay into the next day.
+- **Q6. Leftover customers at close (new).** Recommended: customers still waiting at tick 2400 leave without a rating and are not counted as lost. Items on belts stay into the next day. (Superseded 2026-11-22: leftover items are now thrown away at day end, see GAME_DESIGN section 4 and the Overnight cleanup note after the Journey simulation.)
 - **Q7. Selling refund (new).** Recommended: 100% in the first playable, so experimenting is free. Revisit when money gets tight.
 
 ## 4. Data model (src/sim/types.ts)
@@ -599,6 +599,36 @@ SIDE EFFECT TO DECIDE (not tuned): back-pressure used to throttle the pantries f
 
 
 **Follow-up (2026-11-22, user chose "delay the drop"): back-pressure restored.** The always-accepting shelf made pantries overbuy (saladLine / sandwichLine 5-day profit -$20 / -$102). Tried: a plain 30 s / 45 s delay (45 s: $112 / $98, but only 18/20 journey seeds finish, 30-35 loss days: jams return). Final rule (`transfer.ts`, `PASS_DROP_AGE_TICKS` = 450 in `constants.ts`): a full shelf refuses a 5th copy unless a different dish waits right behind it on the feeding belt (drop the oldest at once) or the oldest copy is 45 s old. Measured with `--journey --seeds 20`: with the pantry throttle 20/20 finish, 0 loss days of 226, end screen median day 11; without the throttle 19/20 finish (was 26/30 always-accept, 17/30 original), 0 loss days. Layout 5-day profit (seed demo): saladLine $112, sandwichLine $98, friesLine $271, friesSaladLine $324, burgerLine $76, soupLine $105, riceBowlLine $214 (original blocking shelf: 152 / 158 / 278 / 390 / 115 / 118 / 233, so a little waste remains). Limits: the "different dish behind" test only sees the next slot of the feeding belt; the age is the dish's age since cooking, not its time on the shelf.
+
+#### Production-line control: pantry pause and overnight cleanup (2026-11-22)
+
+Two user decisions (design doc first). (A) A pantry can be paused (Inspector toggle, or "Pause pantries" / "Resume pantries" for all in the Build panel, one undo entry); paused = no emit, no charge, cooldown frozen, any phase. The `paused` flag exists on a pantry only while paused, so no existing hash changed. (B) At day end everything still held on the line is thrown away and counted as spoiled waste of the ending day (`wasteSpoiled`, `spoiledByItem`; `wasteOvernight` / `overnightByItem` say how much was left at close; the summary shows "Waste: left at close" and the bottleneck hint ignores it). Pantry cooldowns are untouched. Old saves load (missing fields mean running / 0).
+
+Re-measure (20 seeds, scripted player, which never pauses pantries):
+
+| | before | after |
+|---|---|---|
+| Throttled (80-tick shared pantries): seeds that reach the end screen | 20/20 | 20/20 |
+| Throttled: end-screen day median (min-max) | 11 (10-14) | 12 (10-15) |
+| Throttled: service time at 1x | 44 min (max 56) | 48 min (max 60) |
+| Throttled: days with a loss | 0 of 226 | 0 of 240 |
+| `--no-throttle`: seeds that reach the end screen | 19/20 | **11/20** |
+| `--no-throttle`: end-screen day median (max) | 13 (28) | 25 (40, the cap) |
+| `--no-throttle`: days with a loss | 0 of 341 | 0 of 631 |
+
+5-day profit per layout (seed demo) and waste per day (spoiled + binned, now includes what is left at close):
+
+| layout | profit before | profit after | waste/day before | after |
+|---|---|---|---|---|
+| saladLine | $112 | $77 | 31.2 | 52.4 |
+| sandwichLine | $98 | $55 | 31.8 | 56.4 |
+| friesLine | $271 | $262 | 16.0 | 25.4 |
+| friesSaladLine | $324 | $286 | 65.0 | 94.4 |
+| burgerLine | $76 | $43 | 25.6 | 42.4 |
+| soupLine | $105 | $93 | 28.8 | 38.2 |
+| riceBowlLine | $214 | $196 | 23.4 | 32.2 |
+
+No layout loses money and served customers per day are unchanged, but every layout earns less: each morning the pantries refill the whole pipeline (belts, stations, shelf) and that stock is binned at close. The cost is largest on the long, multi-station lines (sandwich, burger, salad: -$35 to -$43 over 5 days). Without the pantry throttle (every pantry at full speed) 9 of 20 simulated runs no longer finish within 40 days (money is tight while the line refills). No other numbers were changed. The new pause control is the intended answer for the player (pause pantries before closing, or when the pass is full); the scripted player does not use it. Possible follow-ups for the user: skip the overnight loss for the last N seconds by letting the player pause pantries earlier, or lower the cost of a refill (pantry interval, belt length), or teach the scripted player to pause pantries in the last minute of a day.
 
 ## 6. Testing summary
 

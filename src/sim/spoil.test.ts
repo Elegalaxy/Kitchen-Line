@@ -115,7 +115,8 @@ describe('spoilage', () => {
     const belt = add(s, 'belt', 3, 4, 1)
     if (belt.kind !== 'belt') throw new Error('belt')
     belt.slots[1] = item(1, 'potato', 0)
-    const out = runTo(s, 5000)
+    // Well past any spoil time but before the day ends (day end throws everything away).
+    const out = runTo(s, 2000)
     expect(buildingItems(out.buildings[belt.id]).length).toBe(1)
     expect(out.today.wasteSpoiled).toBe(0)
   })

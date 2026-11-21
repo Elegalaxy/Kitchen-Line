@@ -35,6 +35,8 @@ export function emptyDayStats(day: number): DayStats {
     waitTicksTotal: 0,
     wasteSpoiled: 0,
     spoiledByItem: {},
+    wasteOvernight: 0,
+    overnightByItem: {},
     wasteBinned: 0,
     wasteDestroyed: 0,
     byDish: {},

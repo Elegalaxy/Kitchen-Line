@@ -4,7 +4,8 @@
 // passes it in (`now`, and `atDayStart` for the change over the day).
 //
 // Bottleneck hint rule: three reasons compete, each with a count: lost to patience
-// (`lostPatience`), lost to no match (`lostNoMatch`) and spoiled items (`wasteSpoiled`).
+// (`lostPatience`), lost to no match (`lostNoMatch`) and items that spoiled during service
+// (`wasteSpoiled` minus `wasteOvernight`: what was thrown away at close is not a hint).
 // The largest count wins; ties go patience, then noMatch, then waste. All counts 0 means no
 // hint (null). Queue-full losses and binned/destroyed waste are not hints. The dish named
 // for patience is the worst dish; the item named for waste is the item that spoiled most
@@ -90,12 +91,14 @@ export function worstDishOf(stats: DayStats): DishId | null {
 export function bottleneckHintOf(stats: DayStats): BottleneckHint | null {
   const patience = stats.lostPatience
   const noMatch = stats.lostNoMatch
-  const waste = stats.wasteSpoiled
+  const waste = stats.wasteSpoiled - stats.wasteOvernight // left-at-close items are not a hint
   const top = Math.max(patience, noMatch, waste)
   if (top <= 0) return null
   if (patience === top) return { kind: 'patience', dish: worstDishOf(stats), count: patience }
   if (noMatch === top) return { kind: 'noMatch', count: noMatch }
-  return { kind: 'waste', item: maxKey(stats.spoiledByItem), count: waste }
+  const duringService: Record<string, number> = {}
+  for (const [item, n] of Object.entries(stats.spoiledByItem)) duringService[item] = n - (stats.overnightByItem[item] ?? 0)
+  return { kind: 'waste', item: maxKey(duringService), count: waste }
 }
 
 function nullableDiff(a: number | null, b: number | null): number | null {

@@ -6,6 +6,9 @@
 // `spoiled` event at the building's anchor tile. An item born at tick B therefore
 // spoils during tick B + spoilTicks. Items without `spoilTicks` (potatoes) never spoil.
 // Buildings are visited by id, belt slots back to front, so the order is deterministic.
+// `clearOvernight` (called by day.ts at day end) throws away EVERYTHING still held: it adds to
+// `wasteSpoiled` / `spoiledByItem` like spoilage and also to `wasteOvernight` / `overnightByItem`
+// so the summary can split "left at close" from normal spoilage. No per-item events.
 
 import type { Building, Defs, GameState, Item } from './types.ts'
 
@@ -98,6 +101,59 @@ export function stepSpoilage(state: GameState, defs: Defs): void {
       state.today.wasteSpoiled += 1
       state.today.spoiledByItem[item.type] = (state.today.spoiledByItem[item.type] ?? 0) + 1
       state.events.push({ type: 'spoiled', tick: state.tick, x: b.x, y: b.y, item: item.type })
+    }
+  }
+}
+
+/** Empty every holder of `b` (it keeps its settings); returns the items that were in it. */
+function emptyBuilding(b: Building): Item[] {
+  const gone = buildingItems(b)
+  switch (b.kind) {
+    case 'belt':
+      b.slots = [null, null]
+      b.stalled = false
+      break
+    case 'splitter':
+    case 'merger':
+    case 'filter':
+      b.buf = null
+      break
+    case 'chopper':
+    case 'fryer':
+    case 'stove':
+      b.input = []
+      b.output = null
+      b.progress = 0
+      break
+    case 'assembler':
+      b.inputs = {}
+      b.output = null
+      b.progress = 0
+      break
+    case 'pass':
+      b.shelf = []
+      break
+    default:
+      return gone
+  }
+  if (gone.length > 0 && b.status === 'blocked') b.status = 'idle'
+  return gone
+}
+
+/**
+ * Day end: throw away every item still held anywhere (belts, routing buffers, station and
+ * assembler inputs and outputs, the pass shelf). Counted as spoiled waste of the ending day and
+ * as `wasteOvernight`. Pantries hold no items and keep their cooldown. Mutates `state`.
+ */
+export function clearOvernight(state: GameState): void {
+  for (const key of Object.keys(state.buildings)) {
+    const b = state.buildings[Number(key)]
+    if (b === undefined) continue
+    for (const item of emptyBuilding(b)) {
+      state.today.wasteSpoiled += 1
+      state.today.wasteOvernight += 1
+      state.today.spoiledByItem[item.type] = (state.today.spoiledByItem[item.type] ?? 0) + 1
+      state.today.overnightByItem[item.type] = (state.today.overnightByItem[item.type] ?? 0) + 1
     }
   }
 }

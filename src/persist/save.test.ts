@@ -320,3 +320,35 @@ describe('paused pantries', () => {
     expect(stateHash(roundTrip(ticked))).toBe(stateHash(ticked))
   })
 })
+
+describe('overnight waste stats', () => {
+  it('round trips the new stats', () => {
+    let s = friesService()
+    s = runTicks(s, DEFS, 2400)
+    expect(s.phase).toBe('summary')
+    expect(s.lastDay?.wasteOvernight).toBeGreaterThan(0)
+    expect(stateHash(roundTrip(s))).toBe(stateHash(s))
+  })
+
+  it('loads an old save without them (0 and none) and rejects wrong types', () => {
+    const s = runTicks(friesService(), DEFS, 2400)
+    const strip = (e: { state: Record<string, unknown> }): void => {
+      for (const k of ['today', 'lastDay', 'prevDay']) {
+        const d = e.state[k] as Record<string, unknown> | null
+        if (d !== null) {
+          delete d.wasteOvernight
+          delete d.overnightByItem
+        }
+      }
+    }
+    const r = loadSave(damaged(s, strip))
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.state.lastDay?.wasteOvernight).toBe(0)
+      expect(r.state.lastDay?.overnightByItem).toEqual({})
+      expect(r.state.today.wasteOvernight).toBe(0)
+    }
+    expectRejected(damaged(s, (e) => ((e.state.today as Record<string, unknown>).wasteOvernight = 'many')), 'wasteOvernight')
+    expectRejected(damaged(s, (e) => ((e.state.today as Record<string, unknown>).overnightByItem = { potato: 1.5 })), 'overnightByItem')
+  })
+})

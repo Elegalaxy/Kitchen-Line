@@ -92,6 +92,10 @@ export type DayStats = {
   wasteSpoiled: number
   /** Spoiled items today per item type (sums to wasteSpoiled); feeds the summary hint (Step 15). */
   spoiledByItem: Record<ItemId, number>
+  /** Part of `wasteSpoiled`: items thrown away at day end (still on the line at close). */
+  wasteOvernight: number
+  /** Part of `spoiledByItem`: the same overnight items per type. */
+  overnightByItem: Record<ItemId, number>
   wasteBinned: number
   wasteDestroyed: number
   byDish: Record<DishId, { served: number; lost: number; sales: number }>

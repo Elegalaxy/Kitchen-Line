@@ -8,10 +8,12 @@ import { describe, expect, it } from 'vitest'
 import { applyCommand } from './commands.ts'
 import { DAY_TICKS } from './constants.ts'
 import { phaseAt } from './day.ts'
-import { createGame } from './game.ts'
+import { createGame, newBuilding } from './game.ts'
+import { tileIndex } from './grid.ts'
 import { stateHash } from './hash.ts'
 import { runTicks } from './tick.ts'
-import type { BuildingDef, BuildingKind, Command, Defs, GameState } from './types.ts'
+import { buildingItems } from './spoil.ts'
+import type { BuildingDef, BuildingKind, Command, Defs, GameState, Item } from './types.ts'
 
 function bd(kind: BuildingKind, cost: number, extra: Partial<BuildingDef> = {}): BuildingDef {
   return { kind, name: kind, emoji: '?', cost, requiresTier: 'stall', tiles: 1, placeable: true, ...extra }
@@ -147,3 +149,113 @@ describe('day cycle', () => {
     }
   })
 })
+
+describe('overnight cleanup', () => {
+  const item = (id: number, type: string): Item => ({ id, type, bornTick: 0 })
+
+  /** One of every holder, full of items, on the start grid, one tick before the day ends. */
+  function loaded(): GameState {
+    const s = inService()
+    s.buildings = {}
+    s.tiles = s.tiles.map(() => null)
+    s.nextId = 1
+    let n = 0
+    const add = (kind: BuildingKind, dir: 0 | 1 | 2 | 3 = 2) => {
+      const x = n % 4 * 2
+      const y = Math.floor(n / 4) * 2
+      n += 1
+      const b = newBuilding(kind, s.nextId++, x, y, dir, 0, { ingredient: 'potato' })
+      s.buildings[b.id] = b
+      s.tiles[tileIndex(s, x, y)] = b.id
+      return b
+    }
+    const belt = add('belt')
+    if (belt.kind === 'belt') belt.slots = [item(1, 'tomato'), item(2, 'tomato')]
+    for (const kind of ['splitter', 'merger', 'filter'] as const) {
+      const b = add(kind)
+      if (b.kind === kind && 'buf' in b) b.buf = item(10 + n, 'potato')
+    }
+    for (const kind of ['chopper', 'fryer', 'stove'] as const) {
+      const b = add(kind)
+      if (b.kind === 'chopper' || b.kind === 'fryer' || b.kind === 'stove') {
+        b.input = [item(20 + n, 'potato'), item(30 + n, 'tomato')]
+        b.output = item(40 + n, 'fries')
+        b.progress = 7
+      }
+    }
+    const asm = add('assembler')
+    if (asm.kind === 'assembler') {
+      asm.recipe = 'fries'
+      asm.inputs = { potato: [item(50, 'potato')], tomato: [item(51, 'tomato')] }
+      asm.output = item(52, 'fries')
+      asm.progress = 9
+    }
+    const pantry = add('pantry')
+    if (pantry.kind === 'pantry') pantry.cooldown = 7
+    const pass = add('pass')
+    if (pass.kind === 'pass') pass.shelf = [item(60, 'fries'), item(61, 'fries'), item(62, 'fries')]
+    add('bin')
+    s.dayTick = DAY_TICKS - 1
+    return s
+  }
+
+  it('throws away everything held anywhere and counts it as waste of the ending day', () => {
+    const s = loaded()
+    const held = Object.values(s.buildings).flatMap(buildingItems)
+    expect(held.length).toBe(2 + 3 + 9 + 3 + 3)
+    const end = runTicks(s, DEFS, 1)
+    expect(end.phase).toBe('summary')
+    for (const b of Object.values(end.buildings)) expect(buildingItems(b), b.kind).toEqual([])
+    expect(end.lastDay?.wasteSpoiled).toBe(held.length)
+    expect(end.lastDay?.wasteOvernight).toBe(held.length)
+    const byType: Record<string, number> = {}
+    for (const i of held) byType[i.type] = (byType[i.type] ?? 0) + 1
+    expect(end.lastDay?.spoiledByItem).toEqual(byType)
+    expect(end.lastDay?.overnightByItem).toEqual(byType)
+    expect(end.lastDay?.wasteBinned).toBe(0)
+    expect(end.lastDay?.wasteDestroyed).toBe(0)
+  })
+
+  it('resets station progress but leaves pantry cooldowns and settings alone', () => {
+    const end = runTicks(loaded(), DEFS, 1)
+    for (const b of Object.values(end.buildings)) {
+      if (b.kind === 'chopper' || b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') {
+        expect(b.progress, b.kind).toBe(0)
+      }
+      if (b.kind === 'assembler') expect(b.recipe).toBe('fries')
+      if (b.kind === 'pantry') expect(b.cooldown).toBe(6) // 7, one pantry step before the day ended
+    }
+  })
+
+  it('counts normal spoilage and overnight waste together, with overnight as a part', () => {
+    const s = inService()
+    const belt = newBuilding('belt', s.nextId++, 3, 4, 1, 0, { ingredient: 'potato' })
+    if (belt.kind !== 'belt') throw new Error('belt')
+    belt.slots = [null, item(1, 'potato')]
+    s.buildings[belt.id] = belt
+    s.tiles[tileIndex(s, 3, 4)] = belt.id
+    s.today.wasteSpoiled = 2
+    s.today.spoiledByItem = { tomato: 2 }
+    const end = runTicks({ ...s, dayTick: DAY_TICKS - 1 }, DEFS, 1)
+    expect(end.lastDay).toMatchObject({ wasteSpoiled: 3, wasteOvernight: 1, overnightByItem: { potato: 1 } })
+    expect(end.lastDay?.spoiledByItem).toEqual({ tomato: 2, potato: 1 })
+  })
+
+  it('an empty kitchen wastes nothing at day end', () => {
+    const end = runTicks(createGameInService(), DEFS, DAY_TICKS)
+    expect(end.lastDay?.wasteOvernight).toBe(0)
+  })
+
+  it('the next day starts with an empty kitchen and fresh stats', () => {
+    const summary = runTicks(loaded(), DEFS, 1)
+    const next = must(must(summary, { type: 'dismissSummary' }), { type: 'openService' })
+    expect(next.today.wasteSpoiled).toBe(0)
+    expect(next.today.wasteOvernight).toBe(0)
+    for (const b of Object.values(next.buildings)) expect(buildingItems(b)).toEqual([])
+    expect(next.lastDay?.wasteOvernight).toBeGreaterThan(0)
+  })
+})
+
+function createGameInService(): GameState {
+  return must(createGame(DEFS, 'empty'), { type: 'openService' })
+}

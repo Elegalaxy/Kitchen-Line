@@ -39,6 +39,7 @@ Building happens while service is paused or running. **[provisional: building is
 - The game runs on a fixed simulation tick. **[confirmed: tick-based]** Provisional: 10 ticks per second at 1× speed, with 2× and 4× speed and pause.
 - A day is one service: open → lunch rush → quiet → dinner rush → close. **[provisional]** Provisional length: about 4 real minutes at 1×.
 - Between days: an end-of-day summary, then the build/menu phase with no time pressure. **[provisional]**
+- Overnight cleanup: when the day ends, everything still held on the line (belts, routing buffers, station and assembler inputs and outputs, the pass shelf) is thrown away, so every day starts with an empty kitchen. It counts as spoiled waste of the ending day and the summary lists it separately as "left at close". Pantry cooldowns are untouched. **[provisional, 2026-11-22]**
 - Offline progress (the restaurant serves while the player is away) is **[later]**. The simulation must be deterministic from state plus elapsed ticks so offline catch-up can be added without a rewrite.
 
 ## 5. Back of house: the kitchen grid
@@ -95,7 +96,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 - Each served or lost customer leaves a rating from wait time, price versus their budget, and whether they got a dish they wanted. **[provisional]**
 - Reputation is a rolling average of recent ratings and scales the arrival rate. **[provisional]**
-- The end-of-day summary shows sales, lost customers, waste, average wait, and a few written reviews that name the problem ("waited forever for fries"). **[provisional]**
+- The end-of-day summary shows sales, lost customers, waste (spoiled during the day and left at close, listed separately), average wait, and a few written reviews that name the problem ("waited forever for fries"). **[provisional]**
 
 ## 7. Economy
 
@@ -161,6 +162,7 @@ No open questions remain for the first playable.
 
 - 2026-11-22: Tutorial extended (confirmed rule in section 13). The checklist no longer stops at the first Fries sale. It continues through the day summary, adding Salad to the menu, and serving one Salad, with ghost tiles for a second line on the north side of the pass.
 
+- 2026-11-22: User decision (production-line control, no **[confirmed]** rule): overnight cleanup. At day end every item still held anywhere on the line is thrown away and counted as spoiled waste of the ending day (`wasteSpoiled`, `spoiledByItem`; the new `wasteOvernight` / `overnightByItem` say how much of it was left at close). This replaces the Q6 note "items on belts stay into the next day" for items; leftover customers were already dropped. Reason: a flooded kitchen carried its stock into the next day and pantries kept buying ingredients nobody needed.
 - 2026-11-22: User decision (production-line control, no **[confirmed]** rule): a pantry can be paused and resumed, in any phase including mid-service. A paused pantry emits nothing, charges nothing and keeps its cooldown frozen (status "Paused"). One pantry is toggled in the Inspector; a top-bar control pauses or resumes all pantries at once. Old saves load with every pantry running.
 
 - 2026-11-22: Restaurant goal 5 changed (provisional numbers, no **[confirmed]** rule): from "have 5 dishes on the menu" to "sell 5 different dishes, 10+ of each, in one day" (`GOAL_DISH_SALES` = 10 in `sim/constants.ts`). The goal id `menu-5` is kept so old saves still load. Goal 6 is unchanged.
