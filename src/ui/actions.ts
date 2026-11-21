@@ -9,6 +9,7 @@ import { planBeltDrag, stepTile } from './canvas/input.ts'
 import { reasonText } from './format.ts'
 import type { HotkeyAction } from './hotkeys.ts'
 import { paletteKinds, paletteReason } from './palette.ts'
+import { pantryPauseView } from './pantryPause.ts'
 import type { GameStore } from './store.ts'
 import type { Tool, UiStore } from './uiState.ts'
 
@@ -146,6 +147,16 @@ export function undoAction(ctx: Ctx): void {
   if (out.ok) ctx.ui.showToast(`Undid: ${out.label}`, 'info')
   else if (out.reason === 'empty') ctx.ui.showToast('Nothing to undo')
   else ctx.ui.showToast(`Cannot undo ${out.label}: ${reasonText(out.reason)}`)
+}
+
+/** Pause every pantry, or resume them all when all are already paused (one undo entry). */
+export function togglePantriesAction(ctx: Ctx): boolean {
+  const view = pantryPauseView(ctx.store.getState())
+  if (view.disabledReason !== null) {
+    ctx.ui.showToast(view.disabledReason)
+    return false
+  }
+  return report(ctx, ctx.store.dispatch({ type: 'setPantriesPaused', paused: view.next === 'pause' }))
 }
 
 /** Esc: cancel the drag, else leave the tool, else deselect. */

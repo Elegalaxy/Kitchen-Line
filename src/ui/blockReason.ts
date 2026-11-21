@@ -110,6 +110,7 @@ function splitterReason(state: GameState, defs: Defs, b: Extract<Building, { kin
 /** The text for the Inspector "Why" row, or null. */
 export function blockReason(state: GameState, defs: Defs, b: Building): string | null {
   if (b.status === 'warming') return 'Just placed: it starts working in a moment.'
+  if (b.status === 'paused') return "Paused by you. Resume it in the Inspector or with 'Resume pantries'."
   if (b.status === 'noCash') {
     return b.kind === 'pantry'
       ? `Not enough money for the next ${defs.items[b.ingredient]?.name ?? 'ingredient'}.`

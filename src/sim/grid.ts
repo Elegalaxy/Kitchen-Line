@@ -64,13 +64,14 @@ export function configReason(
 ): RejectReason | null {
   if (config === undefined) return null
   if (typeof config !== 'object' || config === null) return 'invalid config'
-  const { ingredient, interval, filterItem, recipe, fast } = config
+  const { ingredient, interval, filterItem, recipe, fast, paused } = config
   if (fast !== undefined && (typeof fast !== 'boolean' || kind !== 'belt')) return 'invalid config'
   if (ingredient !== undefined) {
     if (kind !== 'pantry') return 'invalid config'
     const def = typeof ingredient === 'string' ? defs.items[ingredient] : undefined
     if (def === undefined || def.kind !== 'raw' || def.cost === undefined) return 'invalid config'
   }
+  if (paused !== undefined && (typeof paused !== 'boolean' || kind !== 'pantry')) return 'invalid config'
   if (interval !== undefined) {
     if (kind !== 'pantry' || !PANTRY_INTERVALS.includes(interval)) return 'invalid config'
   }

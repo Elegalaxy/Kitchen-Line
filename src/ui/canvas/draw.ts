@@ -284,6 +284,8 @@ function statusBadge(status: string, p: Palette): { glyph: string; color: string
       return { glyph: '$', color: p.warn }
     case 'noRecipe':
       return { glyph: '❓', color: p.warn }
+    case 'paused':
+      return { glyph: '⏸', color: p.info }
     default:
       return null
   }

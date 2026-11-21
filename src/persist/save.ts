@@ -26,7 +26,7 @@ const MAX_ITEMS_PER_BUILDING = 64
 const MAX_LIST = 100000
 
 const KINDS = ['belt', 'pantry', 'splitter', 'merger', 'filter', 'chopper', 'fryer', 'stove', 'assembler', 'pass', 'bin']
-const STATUSES = ['ok', 'idle', 'blocked', 'warming', 'noCash', 'noRecipe']
+const STATUSES = ['ok', 'idle', 'blocked', 'warming', 'noCash', 'noRecipe', 'paused']
 const PHASES = ['build', 'service', 'summary', 'won']
 const TIERS = ['stall', 'restaurant']
 const REASONS = ['waitedLong', 'overpriced', 'notFirstChoice', 'noMatch', 'queueFull', 'gaveUp', 'great']
@@ -186,6 +186,8 @@ function building(v: unknown, path: string, key: string, width: number, height: 
       str(o.ingredient, `${path}.ingredient`)
       int(o.interval, `${path}.interval`, 1)
       int(o.cooldown, `${path}.cooldown`)
+      // Saves from before the pause toggle have no `paused`: that means running.
+      if (o.paused !== undefined) bool(o.paused, `${path}.paused`)
       break
     case 'splitter':
     case 'merger':

@@ -4,11 +4,12 @@
 // second entry right after the belt (same drag tool, its own cost and tier); it has no number
 // hotkey, so 1-9 and 0 keep mapping to the buildings in DEFS order.
 
-import { selectTool, undoAction } from './actions.ts'
+import { selectTool, togglePantriesAction, undoAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { formatMoney } from './format.ts'
 import { labelForIndex } from './hotkeys.ts'
 import { hasFastVariant, paletteCost, paletteKinds, paletteReason } from './palette.ts'
+import { pantryPauseView } from './pantryPause.ts'
 import type { BuildingKind } from '../sim/types.ts'
 import type { Snapshot } from './store.ts'
 import type { UiState } from './uiState.ts'
@@ -32,6 +33,7 @@ export default function BuildPalette({
     return hasFastVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true, hotkey: '', name: 'Fast belt' }] : [base]
   })
   const undo = snap.undo
+  const pantries = pantryPauseView(snap.state)
   return (
     <section className="panel" aria-label="Build palette">
       <h2 className="panel-title">Build</h2>
@@ -59,6 +61,18 @@ export default function BuildPalette({
           <span className="btn-sub">{ui.tool === 'remove' ? 'Click a building' : 'Or press X'}</span>
         </button>
       </div>
+      <button
+        type="button"
+        className="btn pause-all-btn"
+        aria-pressed={pantries.total > 0 && pantries.paused === pantries.total}
+        disabled={pantries.disabledReason !== null}
+        onClick={() => togglePantriesAction(ctx)}
+      >
+        <span className="btn-main">
+          <span aria-hidden="true">{pantries.next === 'resume' ? '▶' : '⏸'}</span> {pantries.label}
+        </span>
+        <span className="btn-sub">{pantries.disabledReason ?? pantries.summary}</span>
+      </button>
       <div className="palette">
         {entries.map(({ key, kind, fast, hotkey, name }) => {
           const def = defs.buildings[kind]

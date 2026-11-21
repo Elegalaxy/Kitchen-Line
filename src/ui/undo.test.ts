@@ -189,3 +189,27 @@ describe('stack', () => {
     expect(store.undo()).toMatchObject({ ok: false, reason: 'empty' })
   })
 })
+
+describe('undo of pausing pantries', () => {
+  it('configure paused is undone to the previous state', () => {
+    const store = makeStore()
+    const before = store.getState()
+    expect(store.dispatch({ type: 'configure', x: 0, y: 2, paused: true }).ok).toBe(true)
+    expect(store.undo().ok).toBe(true)
+    expect(hashOf(store.getState())).toBe(hashOf(before))
+  })
+
+  it('the bulk command is ONE undo entry that restores each pantry', () => {
+    const store = makeStore()
+    store.dispatch({ type: 'place', kind: 'pantry', x: 0, y: 4, dir: 1 })
+    store.dispatch({ type: 'configure', x: 0, y: 4, paused: true })
+    const before = store.getState()
+    const depth = store.getSnapshot().undo.count
+    expect(store.dispatch({ type: 'setPantriesPaused', paused: true }).ok).toBe(true)
+    expect(store.getSnapshot().undo.count).toBe(depth + 1)
+    expect(store.getSnapshot().undo.label).toBe('Pause pantries')
+    expect(store.undo().ok).toBe(true)
+    expect(hashOf(store.getState())).toBe(hashOf(before))
+    expect(store.getSnapshot().undo.count).toBe(depth)
+  })
+})

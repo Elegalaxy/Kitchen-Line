@@ -171,6 +171,20 @@ export default function Inspector({
 
       {b.kind === 'pantry' && (
         <div className="controls">
+          <button
+            type="button"
+            className="btn pause-btn"
+            aria-pressed={b.paused === true}
+            onClick={() => configure({ paused: b.paused !== true })}
+          >
+            <span className="btn-main">
+              <span aria-hidden="true">{b.paused === true ? '▶' : '⏸'}</span>{' '}
+              {b.paused === true ? 'Paused: click to resume' : 'Running: click to pause'}
+            </span>
+            <span className="btn-sub">
+              {b.paused === true ? 'Buys and emits nothing until resumed.' : 'Pausing stops buying and emitting.'}
+            </span>
+          </button>
           <label className="field">
             <span>Ingredient</span>
             <select value={b.ingredient} onChange={(e) => configure({ ingredient: e.target.value })}>

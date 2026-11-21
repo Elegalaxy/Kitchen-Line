@@ -2,7 +2,7 @@
 
 Living design document. Source of truth for rules, numbers, and first-playable scope. The portfolio brief is [docs/ideas/kitchen-line.md](../../docs/ideas/kitchen-line.md).
 
-Last updated: 2026-11-20
+Last updated: 2026-11-22
 
 Every rule is tagged:
 
@@ -58,7 +58,7 @@ Building happens while service is paused or running. **[provisional: building is
 
 | Building | Function | Provisional notes |
 | --- | --- | --- |
-| Pantry (input) | Emits one ingredient type at a set rate; costs money per item | Stocked automatically; cost charged on emit |
+| Pantry (input) | Emits one ingredient type at a set rate; costs money per item | Stocked automatically; cost charged on emit. It can be paused and resumed by the player (one pantry in the Inspector, or all pantries at once); a paused pantry emits nothing, charges nothing and keeps its cooldown frozen, in any phase (2026-11-22) |
 | Conveyor | Moves items one tile per N ticks | Base speed; faster belt is an upgrade |
 | Splitter / merger | Splits one lane into two, or merges two into one | Round-robin |
 | Filter | Sends one item type left, the rest straight | Needed once the line carries several ingredients |
@@ -158,6 +158,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-22: User decision (production-line control, no **[confirmed]** rule): a pantry can be paused and resumed, in any phase including mid-service. A paused pantry emits nothing, charges nothing and keeps its cooldown frozen (status "Paused"). One pantry is toggled in the Inspector; a top-bar control pauses or resumes all pantries at once. Old saves load with every pantry running.
 
 - 2026-11-22: Restaurant goal 5 changed (provisional numbers, no **[confirmed]** rule): from "have 5 dishes on the menu" to "sell 5 different dishes, 10+ of each, in one day" (`GOAL_DISH_SALES` = 10 in `sim/constants.ts`). The goal id `menu-5` is kept so old saves still load. Goal 6 is unchanged.
 

@@ -28,7 +28,7 @@ export type BuildingKind =
   | 'pass'
   | 'bin'
 
-export type BuildingStatus = 'ok' | 'idle' | 'blocked' | 'warming' | 'noCash' | 'noRecipe'
+export type BuildingStatus = 'ok' | 'idle' | 'blocked' | 'warming' | 'noCash' | 'noRecipe' | 'paused'
 
 export type Base = {
   id: number
@@ -42,7 +42,8 @@ export type Base = {
 export type Building = Base &
   (
     | { kind: 'belt'; fast: boolean; slots: [Item | null, Item | null]; stalled: boolean }
-    | { kind: 'pantry'; ingredient: ItemId; interval: number; cooldown: number }
+    /** `paused` is only present (true) while the player has paused it; absent means running. */
+    | { kind: 'pantry'; ingredient: ItemId; interval: number; cooldown: number; paused?: boolean }
     | { kind: 'splitter'; buf: Item | null; rr: number }
     | { kind: 'merger'; buf: Item | null; rr: number }
     | { kind: 'filter'; filterItem: ItemId | null; buf: Item | null }
@@ -287,6 +288,8 @@ export type ConfigFields = {
   interval?: number
   filterItem?: ItemId | null
   recipe?: DishId | null
+  /** Pantry only: true pauses it (no emit, no cost, cooldown frozen), false resumes it. */
+  paused?: boolean
 }
 
 export type Command =
@@ -301,6 +304,8 @@ export type Command =
   | { type: 'remove'; x: number; y: number }
   | { type: 'rotate'; x: number; y: number }
   | ({ type: 'configure'; x: number; y: number } & ConfigFields)
+  /** Pause or resume every pantry at once (any phase). */
+  | { type: 'setPantriesPaused'; paused: boolean }
   | { type: 'setMenu'; dishes: DishId[] }
   | { type: 'setPrice'; dish: DishId; cents: number }
   | { type: 'unlockRecipe'; dish: DishId }

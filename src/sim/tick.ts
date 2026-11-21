@@ -9,6 +9,7 @@
 //   - Pantry: cooldown counts down; at 0 it emits if money >= cost and its front accepts,
 //     charging the cost to today.ingredientCost and resetting the cooldown. Otherwise the
 //     status is noCash or blocked and it retries next tick (the first emit is at tick 0).
+//     A pantry paused by the player skips all of that: status `paused`, cooldown frozen.
 //   - Chopper/fryer/stove (stations.ts): push a held output out the front, else count
 //     progress up for the first input; the output pushes the tick it is made. Stations
 //     update with the other non-belts, before the belts.
@@ -62,6 +63,11 @@ function stepBelt(state: GameState, defs: Defs, b: BeltBuilding, moved: Set<numb
 }
 
 function stepPantry(state: GameState, defs: Defs, b: PantryBuilding, moved: Set<number>): void {
+  // Paused by the player: no emit, no charge, and the cooldown stays frozen.
+  if (b.paused === true) {
+    b.status = 'paused'
+    return
+  }
   if (b.cooldown > 0) b.cooldown -= 1
   if (b.cooldown > 0) {
     b.status = 'ok'

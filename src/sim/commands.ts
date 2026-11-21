@@ -2,7 +2,7 @@
 // Commands are untrusted. The input state is never mutated: a valid command works on one
 // structuredClone; a rejected command returns the ORIGINAL state object untouched and a
 // `commandRejected` event inside the result (not in state.events, so the state hash is
-// unchanged). Handled now: place, remove, rotate, configure, setMenu, setPrice, unlockRecipe,
+// unchanged). Handled now: place, remove, rotate, configure (only `paused` works in any phase), setPantriesPaused (any phase), setMenu, setPrice, unlockRecipe,
 // openService, dismissSummary. Money is integer cents:
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
@@ -110,6 +110,21 @@ function place(state: GameState, defs: Defs, cmd: PlaceCommand): ApplyOutcome {
   return { state: next, result: { ok: true } }
 }
 
+/**
+ * Pause or resume a pantry. The status follows at once (time may be frozen in the build phase,
+ * so the next tick cannot be relied on to refresh it); the flag is only present while paused.
+ */
+function setPaused(b: Building, paused: boolean): void {
+  if (b.kind !== 'pantry') return
+  if (paused) {
+    b.paused = true
+    if (b.status !== 'warming') b.status = 'paused'
+  } else {
+    delete b.paused
+    if (b.status === 'paused') b.status = 'idle'
+  }
+}
+
 /** Apply already-validated config fields to a (cloned) building. Returns destroyed item count. */
 function applyConfig(b: Building, config: (ConfigFields & { fast?: boolean }) | undefined): number {
   if (config === undefined) return 0
@@ -118,6 +133,7 @@ function applyConfig(b: Building, config: (ConfigFields & { fast?: boolean }) | 
   if (b.kind === 'pantry') {
     if (config.ingredient !== undefined) b.ingredient = config.ingredient
     if (config.interval !== undefined) b.interval = config.interval
+    if (config.paused !== undefined) setPaused(b, config.paused)
   }
   if (b.kind === 'filter' && config.filterItem !== undefined) {
     destroyed += b.buf === null ? 0 : 1
@@ -180,7 +196,14 @@ function rotate(state: GameState, x: number, y: number): ApplyOutcome {
 }
 
 function configure(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'configure' }>): ApplyOutcome {
-  if (state.phase !== 'build' && state.phase !== 'service') return reject(state, cmd, 'wrong phase')
+  // Pausing a pantry works in every phase; every other setting is build / service only.
+  const onlyPause =
+    cmd.paused !== undefined &&
+    cmd.ingredient === undefined &&
+    cmd.interval === undefined &&
+    cmd.filterItem === undefined &&
+    cmd.recipe === undefined
+  if (!onlyPause && state.phase !== 'build' && state.phase !== 'service') return reject(state, cmd, 'wrong phase')
   if (!Number.isInteger(cmd.x) || !Number.isInteger(cmd.y)) return reject(state, cmd, 'invalid command')
   const id = buildingAt(state, cmd.x, cmd.y)
   const found = id === null ? undefined : state.buildings[id]
@@ -190,6 +213,7 @@ function configure(state: GameState, defs: Defs, cmd: Extract<Command, { type: '
     interval: cmd.interval,
     filterItem: cmd.filterItem,
     recipe: cmd.recipe,
+    paused: cmd.paused,
   }
   const clean = Object.fromEntries(Object.entries(config).filter(([, v]) => v !== undefined)) as ConfigFields
   if (Object.keys(clean).length === 0) return reject(state, cmd, 'invalid config')
@@ -197,6 +221,20 @@ function configure(state: GameState, defs: Defs, cmd: Extract<Command, { type: '
   if (why !== null) return reject(state, cmd, why)
   const next = structuredClone(state)
   next.today.wasteDestroyed += applyConfig(next.buildings[found.id], clean)
+  return { state: next, result: { ok: true } }
+}
+
+/**
+ * Pause or resume every pantry (any phase). Rejected with 'invalid command' for a non-boolean
+ * and 'nothing there' when there is no pantry. Pantries already in the wanted state are untouched.
+ */
+function setPantriesPaused(state: GameState, cmd: Extract<Command, { type: 'setPantriesPaused' }>): ApplyOutcome {
+  if (typeof cmd.paused !== 'boolean') return reject(state, cmd, 'invalid command')
+  if (!Object.values(state.buildings).some((b) => b.kind === 'pantry')) return reject(state, cmd, 'nothing there')
+  const next = structuredClone(state)
+  for (const b of Object.values(next.buildings)) {
+    setPaused(b, cmd.paused)
+  }
   return { state: next, result: { ok: true } }
 }
 
@@ -330,6 +368,8 @@ function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutco
       return rotate(state, cmd.x, cmd.y)
     case 'configure':
       return configure(state, defs, cmd)
+    case 'setPantriesPaused':
+      return setPantriesPaused(state, cmd)
     case 'setMenu':
       return setMenu(state, defs, cmd)
     case 'setPrice':

@@ -277,3 +277,46 @@ describe('rejection', () => {
     }
   })
 })
+
+describe('paused pantries', () => {
+  const pantryOf = (s: GameState) => Object.values(s.buildings).find((b) => b.kind === 'pantry')
+  const buildingsOf = (e: { state: Record<string, unknown> }): Record<string, Record<string, unknown>> =>
+    e.state.buildings as Record<string, Record<string, unknown>>
+
+  it('keeps a paused pantry through a save and load', () => {
+    const s = must(friesService(), { type: 'setPantriesPaused', paused: true })
+    const loaded = roundTrip(s)
+    expect(stateHash(loaded)).toBe(stateHash(s))
+    const p = pantryOf(loaded)
+    expect(p?.kind === 'pantry' && p.paused).toBe(true)
+  })
+
+  it('loads an old save whose pantries have no paused field (they run)', () => {
+    const s = midService()
+    const id = String(pantryOf(s)?.id)
+    const text = damaged(s, (e) => {
+      expect(buildingsOf(e)[id]).not.toHaveProperty('paused')
+      delete buildingsOf(e)[id].paused
+    })
+    const r = loadSave(text)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(stateHash(r.state)).toBe(stateHash(s))
+  })
+
+  it('rejects a paused value that is not true or false', () => {
+    const s = friesService()
+    const id = String(pantryOf(s)?.id)
+    const set = (v: unknown) => damaged(s, (e) => (buildingsOf(e)[id].paused = v))
+    expectRejected(set('yes'), 'paused')
+    expectRejected(set(1), 'paused')
+    expectRejected(set(null), 'paused')
+    expect(loadSave(set(false)).ok).toBe(true)
+  })
+
+  it('accepts the paused status', () => {
+    const s = must(friesService(), { type: 'setPantriesPaused', paused: true })
+    const ticked = runTicks(s, DEFS, 5)
+    expect(pantryOf(ticked)?.status).toBe('paused')
+    expect(stateHash(roundTrip(ticked))).toBe(stateHash(ticked))
+  })
+})

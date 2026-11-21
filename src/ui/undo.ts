@@ -1,6 +1,6 @@
 // Undo (plan Step 5). The stack holds up to 50 entries; each entry is a list of inverse
 // commands that undoes one player action (a drag of 6 belts is ONE entry):
-//   place -> remove at the same tile; remove -> place with the same kind, dir and config;
+//   setPantriesPaused -> configure each changed pantry back; place -> remove at the same tile; remove -> place with the same kind, dir and config;
 //   rotate -> rotate x3; configure -> configure back to the previous values.
 // Inverses are computed from the state BEFORE the command. A group of commands is applied
 // all-or-nothing: if any command is rejected, the original state is kept. Undo pops the top
@@ -24,7 +24,13 @@ export type GroupResult =
 
 /** Only these command types are undoable (build commands). */
 export function isUndoable(cmd: Command): boolean {
-  return cmd.type === 'place' || cmd.type === 'remove' || cmd.type === 'rotate' || cmd.type === 'configure'
+  return (
+    cmd.type === 'place' ||
+    cmd.type === 'remove' ||
+    cmd.type === 'rotate' ||
+    cmd.type === 'configure' ||
+    cmd.type === 'setPantriesPaused'
+  )
 }
 
 function configOf(b: Building): (ConfigFields & { fast?: boolean }) | undefined {
@@ -32,7 +38,7 @@ function configOf(b: Building): (ConfigFields & { fast?: boolean }) | undefined 
     case 'belt':
       return b.fast ? { fast: true } : undefined
     case 'pantry':
-      return { ingredient: b.ingredient, interval: b.interval }
+      return { ingredient: b.ingredient, interval: b.interval, ...(b.paused === true ? { paused: true } : {}) }
     case 'filter':
       return { filterItem: b.filterItem }
     case 'assembler':
@@ -47,6 +53,7 @@ function previousConfig(b: Building, cmd: Extract<Command, { type: 'configure' }
   if (b.kind === 'pantry') {
     if (cmd.ingredient !== undefined) prev.ingredient = b.ingredient
     if (cmd.interval !== undefined) prev.interval = b.interval
+    if (cmd.paused !== undefined) prev.paused = b.paused === true
   }
   if (b.kind === 'filter' && cmd.filterItem !== undefined) prev.filterItem = b.filterItem
   if (b.kind === 'assembler' && cmd.recipe !== undefined) prev.recipe = b.recipe
@@ -56,6 +63,14 @@ function previousConfig(b: Building, cmd: Extract<Command, { type: 'configure' }
 /** Inverse of `cmd` against `state` (the state before it runs), or null if it has none. */
 export function inverseOf(state: GameState, cmd: Command): Command[] | null {
   if (cmd.type === 'place') return [{ type: 'remove', x: cmd.x, y: cmd.y }]
+  if (cmd.type === 'setPantriesPaused') {
+    // One configure per pantry whose state would change, so the whole bulk action is ONE undo entry.
+    return Object.values(state.buildings).flatMap((b): Command[] =>
+      b.kind === 'pantry' && (b.paused === true) !== cmd.paused
+        ? [{ type: 'configure', x: b.x, y: b.y, paused: b.paused === true }]
+        : [],
+    )
+  }
   if (cmd.type !== 'remove' && cmd.type !== 'rotate' && cmd.type !== 'configure') return null
   const id = buildingAt(state, cmd.x, cmd.y)
   const b = id === null ? undefined : state.buildings[id]
@@ -114,6 +129,7 @@ export function undoLast(state: GameState, defs: Defs, stack: readonly UndoEntry
 /** Short label for the Undo button, e.g. "Place Belt". Computed against the state before `cmd`. */
 export function labelFor(state: GameState, defs: Defs, cmd: Command): string {
   if (cmd.type === 'place') return `Place ${defs.buildings[cmd.kind]?.name ?? cmd.kind}`
+  if (cmd.type === 'setPantriesPaused') return cmd.paused ? 'Pause pantries' : 'Resume pantries'
   if (cmd.type !== 'remove' && cmd.type !== 'rotate' && cmd.type !== 'configure') return cmd.type
   const id = buildingAt(state, cmd.x, cmd.y)
   const name = id === null ? '' : (defs.buildings[state.buildings[id].kind]?.name ?? '')

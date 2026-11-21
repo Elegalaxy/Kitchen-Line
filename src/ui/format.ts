@@ -89,6 +89,7 @@ export const STATUS_TEXT: Record<BuildingStatus, { icon: string; word: string }>
   warming: { icon: '⏳', word: 'Warming up' },
   noCash: { icon: '💸', word: 'No cash' },
   noRecipe: { icon: '❓', word: 'No recipe set' },
+  paused: { icon: '⏸', word: 'Paused' },
 }
 
 /** Day clock "HH:MM": 11:00 at dayTick 0 to 22:00 at DAY_TICKS (11 hours over the day). */

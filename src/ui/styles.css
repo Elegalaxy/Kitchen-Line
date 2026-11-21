@@ -275,6 +275,15 @@ kbd {
   margin: 12px 0 0;
 }
 
+.pause-btn {
+  width: 100%;
+}
+
+.pause-all-btn {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
 .palette {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -71,3 +71,14 @@ describe('blockReason', () => {
     expect(blockReason(s, DEFS, at(s, 1, 2))).toBeNull()
   })
 })
+
+describe('blockReason for a paused pantry', () => {
+  it('says the player paused it and how to resume', () => {
+    const s = run(build([{ type: 'setPantriesPaused', paused: true }]))
+    const p = Object.values(s.buildings).find((x) => x.kind === 'pantry')
+    if (p === undefined) throw new Error('no pantry')
+    expect(p.status).toBe('paused')
+    expect(blockReason(s, DEFS, p)).toContain('Paused by you')
+    expect(blockReason(s, DEFS, p)).toContain('Resume pantries')
+  })
+})
