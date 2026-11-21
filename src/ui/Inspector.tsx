@@ -9,6 +9,7 @@ import type { Building, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { DIR_ARROW, dirName, formatMoney, STATUS_TEXT } from './format.ts'
+import { blockReason } from './blockReason.ts'
 import { BUILDING_INFO } from './buildingInfo.ts'
 import type { PaletteHover } from './BuildPalette.tsx'
 import type { Snapshot } from './store.ts'
@@ -129,6 +130,7 @@ export default function Inspector({
   const def = defs.buildings[b.kind]
   const status = STATUS_TEXT[b.status]
   const pct = progressPct(defs, b)
+  const why = blockReason(snap.state, defs, b)
   const configure = (fields: ConfigFields): void => {
     report(ctx, ctx.store.dispatch({ type: 'configure', x: b.x, y: b.y, ...fields }))
   }
@@ -153,6 +155,11 @@ export default function Inspector({
         <Row k="Status">
           <span aria-hidden="true">{status.icon}</span> {status.word}
         </Row>
+        {why !== null && (
+          <div className="why" role="status">
+            <span aria-hidden="true">💡</span> {why}
+          </div>
+        )}
         <Row k="Holding">{heldText(defs, heldItems(b))}</Row>
         {b.kind === 'pass' && (
           <Row k="Delivered">

@@ -1564,3 +1564,13 @@ kbd {
 .goal-chip .goal-bar {
   margin-top: 0;
 }
+
+/* Inspector "Why" line: the plain-language reason a building is blocked or not working. */
+.why {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
