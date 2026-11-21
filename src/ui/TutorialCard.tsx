@@ -1,33 +1,38 @@
-// First-goal checklist card (plan Step 18, decision Q4), shown above the side tabs for a new
-// game until the first dish is served. Four rows, each with a mark and a word (never colour
-// alone); the current step is highlighted and gets its hint plus one button that does it
-// (pick the tool, or open for service). "Hide hints" toggles the ghost hint tiles on the grid.
-// Progress comes from tutorial.ts (derived from the state, nothing is saved).
+// Getting-started card. Shown above the side tabs until every step is done, then remembered
+// on this machine so it does not return. The current step is highlighted and gets its hint
+// plus one button (pick a tool, open service, open the Menu tab, or select a building).
+// "Hide hints" toggles the ghost tiles. Progress comes from tutorial.ts.
 
+import { useEffect } from 'react'
+import { buildingAt } from '../sim/grid.ts'
 import { selectTool } from './actions.ts'
 import type { Ctx } from './actions.ts'
+import { debugLog } from './debug.ts'
 import { paletteReason } from './palette.ts'
+import { getBrowserStorage } from './persistence.ts'
 import type { Snapshot } from './store.ts'
 import { tutorialView } from './tutorial.ts'
-import type { TutorialStepId } from './tutorial.ts'
+import { writeTutorialDone } from './tutorialLatch.ts'
 import type { UiState } from './uiState.ts'
-
-const TOOL_FOR_STEP: Partial<Record<TutorialStepId, 'chopper' | 'fryer' | 'belt'>> = {
-  chopper: 'chopper',
-  fryer: 'fryer',
-  connect: 'belt',
-}
 
 export default function TutorialCard({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
   const { store } = ctx
   const view = tutorialView(snap.state)
-  if (!view.open) return null
+  useEffect(() => {
+    if (view.open || ui.guideDone) return
+    writeTutorialDone(getBrowserStorage())
+    ctx.ui.set({ guideDone: true })
+    debugLog('[ui]', 'tutorial finished')
+  }, [view.open, ui.guideDone, ctx.ui])
+  if (ui.guideDone || !view.open) return null
   const current = view.current === -1 ? null : view.steps[view.current]
-  const tool = current === null ? undefined : TOOL_FOR_STEP[current.id]
-  const toolName = tool === undefined ? '' : store.defs.buildings[tool].name
-  const toolReason = tool === undefined ? null : paletteReason(snap.state, store.defs, tool)
+  const coach = view.coach
+  const tool = coach?.kind === 'tool' ? coach.tool : undefined
+  const toolName = tool === undefined ? '' : tool === 'remove' ? 'Sell' : store.defs.buildings[tool].name
+  const toolReason = tool === undefined || tool === 'remove' ? null : paletteReason(snap.state, store.defs, tool)
   const toolActive = tool !== undefined && ui.tool === tool && !ui.fast
   const openReason = snap.state.phase === 'build' ? null : 'Service is already open'
+  const menuReason = snap.state.phase === 'build' ? null : 'The menu is locked during service'
 
   return (
     <section className="panel tutorial" aria-label="Getting started">
@@ -53,35 +58,52 @@ export default function TutorialCard({ ctx, snap, ui }: { ctx: Ctx; snap: Snapsh
           )
         })}
       </ol>
-      {current === null ? (
-        <p className="tut-hint">All steps done. Your first customer pays as soon as a dish reaches the pass.</p>
-      ) : (
-        <>
-          <p className="tut-hint">{current.hint}</p>
-          {current.id === 'open' ? (
-            <button
-              type="button"
-              className="btn-primary tut-btn"
-              disabled={openReason !== null}
-              onClick={() => store.dispatch({ type: 'openService' })}
-            >
-              <span aria-hidden="true">▶</span> Open for service
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn-primary tut-btn"
-              disabled={toolReason !== null || toolActive}
-              onClick={() => tool !== undefined && selectTool(ctx, tool)}
-            >
-              {toolActive ? `${toolName} selected` : `Pick ${toolName}`}
-            </button>
-          )}
-          {(toolReason !== null || openReason !== null) && (
-            <p className="goal-reason">⚠ {current.id === 'open' ? openReason : toolReason}</p>
-          )}
-        </>
+      {current !== null && <p className="tut-hint">{current.hint}</p>}
+      {coach?.kind === 'open' && (
+        <button
+          type="button"
+          className="btn-primary tut-btn"
+          disabled={openReason !== null}
+          onClick={() => store.dispatch({ type: 'openService' })}
+        >
+          <span aria-hidden="true">▶</span> Open for service
+        </button>
       )}
+      {coach?.kind === 'menu' && (
+        <button
+          type="button"
+          className="btn-primary tut-btn"
+          disabled={menuReason !== null || ui.tab === 'menu'}
+          onClick={() => ctx.ui.set({ tab: 'menu' })}
+        >
+          {ui.tab === 'menu' ? 'Menu open' : 'Open Menu'}
+        </button>
+      )}
+      {coach?.kind === 'select' && (
+        <button
+          type="button"
+          className="btn-primary tut-btn"
+          onClick={() => {
+            const id = buildingAt(snap.state, coach.x, coach.y)
+            ctx.ui.set({ selectedId: id, tab: 'build', tool: null })
+          }}
+        >
+          Select it
+        </button>
+      )}
+      {coach?.kind === 'tool' && (
+        <button
+          type="button"
+          className="btn-primary tut-btn"
+          disabled={toolReason !== null || toolActive}
+          onClick={() => tool !== undefined && selectTool(ctx, tool)}
+        >
+          {toolActive ? `${toolName} selected` : `Pick ${toolName}`}
+        </button>
+      )}
+      {coach?.kind === 'tool' && toolReason !== null && <p className="goal-reason">⚠ {toolReason}</p>}
+      {coach?.kind === 'open' && openReason !== null && <p className="goal-reason">⚠ {openReason}</p>}
+      {coach?.kind === 'menu' && menuReason !== null && <p className="goal-reason">⚠ {menuReason}</p>}
       <button
         type="button"
         className="btn tut-toggle"

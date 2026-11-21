@@ -16,6 +16,8 @@ const ui = (patch: Partial<UiState>): UiState => ({
   cursorFromKeys: false,
   fast: false,
   hintsHidden: false,
+  tab: 'build',
+  guideDone: false,
   drag: null,
   selectedId: null,
   toast: null,

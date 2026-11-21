@@ -12,8 +12,10 @@ import { interpretKey } from './hotkeys.ts'
 import { startLoop } from './loop.ts'
 import OrdersStrip from './OrdersStrip.tsx'
 import SidePanel from './SidePanel.tsx'
+import { getBrowserStorage } from './persistence.ts'
 import SaveNotice from './SaveNotice.tsx'
 import { getGameSession } from './session.ts'
+import { clearTutorialDone, readTutorialDone } from './tutorialLatch.ts'
 import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TileInfo from './TileInfo.tsx'
@@ -44,10 +46,15 @@ export default function App() {
   const session = getGameSession()
   const store = session.store
   const [notice, setNotice] = useState(session.notice)
-  const [uiStore] = useState(() => createUiStore())
+  const [uiStore] = useState(() => {
+    const ui = createUiStore()
+    if (readTutorialDone(getBrowserStorage())) ui.set({ guideDone: true })
+    return ui
+  })
   const newGame = (): void => {
     session.newGame()
-    uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false })
+    clearTutorialDone(getBrowserStorage())
+    uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: false, tab: 'build' })
     setNotice(null)
   }
   const snap = useSnapshot(store)

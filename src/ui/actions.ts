@@ -4,13 +4,15 @@
 
 import { buildingAt, inBounds } from '../sim/grid.ts'
 import type { Point } from '../sim/grid.ts'
-import type { CommandResult, Dir } from '../sim/types.ts'
+import type { CommandResult, ConfigFields, Dir } from '../sim/types.ts'
 import { planBeltDrag, stepTile } from './canvas/input.ts'
+import { debugLog } from './debug.ts'
 import { reasonText } from './format.ts'
 import type { HotkeyAction } from './hotkeys.ts'
 import { paletteKinds, paletteReason } from './palette.ts'
 import { pantryPauseView } from './pantryPause.ts'
 import type { GameStore } from './store.ts'
+import { tutorialHints } from './tutorial.ts'
 import type { Tool, UiStore } from './uiState.ts'
 
 export type Ctx = { store: GameStore; ui: UiStore }
@@ -49,8 +51,15 @@ export function placeAt(ctx: Ctx, at: Point): boolean {
   const { ui, store } = ctx
   const tool = ui.get().tool
   if (tool === null || tool === 'remove') return false
-  const cmd = { type: 'place' as const, kind: tool, x: at.x, y: at.y, dir: ui.get().dir }
-  return report(ctx, store.dispatch(tool === 'belt' && ui.get().fast ? { ...cmd, config: { fast: true } } : cmd))
+  const hint = tutorialHints(store.getState()).find((h) => h.kind === tool && h.x === at.x && h.y === at.y)
+  const dir = hint?.dir ?? ui.get().dir
+  const config: ConfigFields & { fast?: boolean } = {}
+  if (tool === 'belt' && ui.get().fast) config.fast = true
+  if (hint?.ingredient !== undefined) config.ingredient = hint.ingredient
+  if (hint?.recipe !== undefined) config.recipe = hint.recipe
+  if (hint !== undefined) debugLog('[ui]', 'tutorial hint place', hint.kind, hint.x, hint.y, hint.dir, hint.ingredient ?? hint.recipe ?? '')
+  const hasConfig = Object.keys(config).length > 0
+  return report(ctx, store.dispatch({ type: 'place', kind: tool, x: at.x, y: at.y, dir, ...(hasConfig ? { config } : {}) }))
 }
 
 /** Sell the building covering `at`; clears the selection if it was selected. */

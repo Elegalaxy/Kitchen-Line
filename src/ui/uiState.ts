@@ -6,6 +6,7 @@
 import { useSyncExternalStore } from 'react'
 import type { BuildingKind, Dir } from '../sim/types.ts'
 import type { Point } from '../sim/grid.ts'
+import type { SideTab } from './sideTabs.ts'
 
 /** A building kind to place, 'remove' (sell mode) or null (select mode). */
 export type Tool = BuildingKind | 'remove' | null
@@ -25,6 +26,10 @@ export type UiState = {
   fast: boolean
   /** The player hid the tutorial hint tiles on the grid (per session; not saved). */
   hintsHidden: boolean
+  /** Which side-panel tab is showing. The guide switches this when it says to open the menu. */
+  tab: SideTab
+  /** The getting-started guide has finished (also stored on this machine; a new game clears it). */
+  guideDone: boolean
 }
 
 export const TOAST_MS = 3200
@@ -51,6 +56,8 @@ export function createUiStore(deps?: Partial<UiDeps>): UiStore {
     toast: null,
     fast: false,
     hintsHidden: false,
+    tab: 'build',
+    guideDone: false,
   }
   let toastId = 0
   const listeners = new Set<() => void>()

@@ -24,6 +24,7 @@ import type { DeltaView } from './daySummaryView.ts'
 import Money from './Money.tsx'
 import { clipText } from './format.ts'
 import { handleModalKeys } from './modalKeys.ts'
+import { tutorialView } from './tutorial.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
   if (d === null) return <span className="sum-delta flat">&nbsp;</span>
@@ -76,6 +77,8 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
   if (last === null || sum === null) return null
 
   const hint = hintText(sum.bottleneckHint, defs)
+  const guide = tutorialView(state)
+  const teachingSummary = guide.steps[guide.current]?.id === 'summary'
   const reviews = pickReviews(last.reviews)
   const d = sum.deltas
   const dishName = (id: string): string => defs.dishes[id]?.name ?? id
@@ -223,6 +226,12 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
             })}
           </ul>
         </section>
+
+        {teachingSummary && (
+          <p className="sum-hint">
+            This is the day's result: sales, customers who left, and waste. The line below names the biggest problem. When you go back, add Salad to the menu.
+          </p>
+        )}
 
         <p className={`sum-hint${hint === null ? ' none' : ''}`}>
           <span aria-hidden="true">{hint === null ? 'ℹ' : '💡'}</span>{' '}

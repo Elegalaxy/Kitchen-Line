@@ -150,7 +150,7 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 - Building during service: allowed. New non-belt buildings take 30 ticks to come online. The menu and prices are locked during service. **[confirmed]**
 - Spoilage: only fresh produce and finished dishes spoil. **[confirmed]**
 - Undo (last 50 build actions) and drag-to-draw belts are in. Copy/paste is **[later]**. **[confirmed]**
-- Tutorial: partly pre-built start (pass, potato pantry, Fries on the menu) with a 4-item first-goal checklist. **[confirmed]**
+- Tutorial: partly pre-built start (pass, potato pantry, Fries on the menu). The checklist stays until a Salad is served: build the Fries line and open for service, finish the day and read the summary, add Salad to the menu (its price starts at the reference price), then build a second line into the north side of the pass. Ghost tiles suggest each layout and can be dismissed. **[confirmed]**
 - Numbers: the plan's section 2.5 table, tuned with the harness. **[provisional]**
 - Customers still waiting at closing leave without a rating. **[confirmed]**
 - Selling a building refunds 100% in the first playable. **[confirmed]**
@@ -158,6 +158,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-22: Tutorial extended (confirmed rule in section 13). The checklist no longer stops at the first Fries sale. It continues through the day summary, adding Salad to the menu, and serving one Salad, with ghost tiles for a second line on the north side of the pass.
 
 - 2026-11-22: User decision (production-line control, no **[confirmed]** rule): a pantry can be paused and resumed, in any phase including mid-service. A paused pantry emits nothing, charges nothing and keeps its cooldown frozen (status "Paused"). One pantry is toggled in the Inspector; a top-bar control pauses or resumes all pantries at once. Old saves load with every pantry running.
 

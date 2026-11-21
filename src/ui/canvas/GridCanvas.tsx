@@ -62,7 +62,7 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       puffs = puffs.filter((pf) => t - pf.start < PUFF_MS)
       drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, puffs })
       const uiState = ui.get()
-      if (!uiState.hintsHidden) drawHints(ctx, tutorialHints(state), store.defs, tile, palette, t, motionQuery.matches)
+      if (!uiState.hintsHidden && !uiState.guideDone) drawHints(ctx, tutorialHints(state), store.defs, tile, palette, t, motionQuery.matches)
       const overlay = computeOverlay(state, store.defs, uiState)
       drawOverlay(ctx, overlay, store.defs, uiState.cursor, tile, state.width, state.height, palette)
       canvas.style.cursor = overlay.clickable ? 'pointer' : uiState.tool !== null ? 'crosshair' : 'default'

@@ -555,15 +555,15 @@ export function drawHints(ctx: CanvasRenderingContext2D, hints: HintTile[], defs
   if (hints.length === 0) return
   const pulse = reducedMotion ? 0.7 : 0.55 + 0.25 * Math.sin(now / 450)
   for (const h of hints) {
+    const tiles = footprint(h.kind, h.x, h.y, h.dir)
     const cx = h.x * tile + tile / 2
     const cy = h.y * tile + tile / 2
     ctx.save()
-    ctx.globalAlpha = pulse
     ctx.fillStyle = p.info
     ctx.globalAlpha = pulse * 0.18
-    ctx.fillRect(h.x * tile + 2, h.y * tile + 2, tile - 4, tile - 4)
+    for (const t of tiles) ctx.fillRect(t.x * tile + 2, t.y * tile + 2, tile - 4, tile - 4)
     ctx.globalAlpha = pulse
-    outlineTiles(ctx, [{ x: h.x, y: h.y }], tile, p.info, 2, [6, 4])
+    outlineTiles(ctx, tiles, tile, p.info, 2, [6, 4])
     ctx.fillStyle = p.text
     if (h.kind !== 'belt') glyph(ctx, defs.buildings[h.kind].emoji, cx, cy, tile * 0.46)
     drawArrow(ctx, cx, cy, h.dir, tile, p.info)

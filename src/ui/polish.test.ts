@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { applyCommand } from '../sim/commands.ts'
-import { createGame } from '../sim/game.ts'
+import { createGame, emptyDayStats } from '../sim/game.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Command, GameState } from '../sim/types.ts'
 import { beginDrag, endDrag, placeAt, selectTool } from './actions.ts'
@@ -17,6 +17,7 @@ import { hasFastVariant, paletteCost, paletteReason } from './palette.ts'
 import { createStore } from './store.ts'
 import { freshnessSeconds, tileItems, tileSummary, tileTooltip } from './tileInfo.ts'
 import { lineReachesPass, tutorialHints, tutorialView } from './tutorial.ts'
+import { clearTutorialDone, readTutorialDone, writeTutorialDone } from './tutorialLatch.ts'
 import { createUiStore } from './uiState.ts'
 
 const fresh = (): GameState => createGame(DEFS, 'polish')
@@ -39,7 +40,7 @@ describe('tutorial checklist', () => {
   it('starts open with nothing done and the chopper step current', () => {
     const v = tutorialView(fresh())
     expect(v.open).toBe(true)
-    expect(v.steps.map((s) => s.id)).toEqual(['chopper', 'fryer', 'connect', 'open'])
+    expect(v.steps.map((s) => s.id)).toEqual(['chopper', 'fryer', 'connect', 'open', 'day', 'summary', 'menu', 'salad'])
     expect(v.steps.every((s) => !s.done)).toBe(true)
     expect(v.current).toBe(0)
     expect(v.doneCount).toBe(0)
@@ -57,7 +58,7 @@ describe('tutorial checklist', () => {
     expect(lineReachesPass(s)).toBe(true)
     expect(tutorialView(s)).toMatchObject({ doneCount: 3, current: 3 })
     s = run(s, { type: 'openService' })
-    expect(tutorialView(s)).toMatchObject({ open: true, doneCount: 4, current: -1 })
+    expect(tutorialView(s)).toMatchObject({ open: true, doneCount: 4, current: 4 })
   })
 
   it('does not count a belt that faces back against the flow as connected', () => {
@@ -70,9 +71,27 @@ describe('tutorial checklist', () => {
     expect(lineReachesPass(s)).toBe(false)
   })
 
-  it('closes once a dish is served', () => {
-    const s = fresh()
+  it('stays open after the first dish and walks through the summary, the menu and a salad', () => {
+    let s = run(fresh(), place('chopper', 2))
+    s = run(s, place('fryer', 4))
+    for (const x of [1, 3, 5, 6]) s = run(s, place('belt', x))
+    s = run(s, { type: 'openService' })
+    s.tick = 1
     s.totals.served = 1
+    expect(tutorialView(s).steps.find((step) => step.id === 'day')?.done).toBe(false)
+    s.phase = 'summary'
+    s.lastDay = emptyDayStats(1)
+    s.totals.days = 1
+    expect(tutorialView(s).steps[tutorialView(s).current]?.id).toBe('summary')
+    s.phase = 'build'
+    expect(tutorialView(s).steps.find((step) => step.id === 'summary')?.done).toBe(true)
+    s.phase = 'summary'
+    s.totals.days = 2
+    expect(tutorialView(s).steps.find((step) => step.id === 'summary')?.done).toBe(true)
+    s.phase = 'build'
+    s = run(s, { type: 'setMenu', dishes: ['fries', 'salad'] })
+    expect(tutorialView(s).steps[tutorialView(s).current]?.id).toBe('salad')
+    s.today.byDish['salad'] = { served: 1, lost: 0, sales: 450 }
     expect(tutorialView(s).open).toBe(false)
     expect(tutorialHints(s)).toEqual([])
   })
@@ -108,7 +127,71 @@ describe('tutorial checklist', () => {
       ticks += 10
     }
     expect(s.totals.served).toBeGreaterThan(0)
-    expect(tutorialView(s).open).toBe(false)
+    expect(tutorialView(s).open).toBe(true)
+    expect(tutorialView(s).steps[tutorialView(s).current]?.id).toBe('day')
+    expect(tutorialHints(s)).toEqual([])
+  })
+
+  it('stages salad ghosts, and clicking one places its facing and ingredient or recipe', () => {
+    let s = run(fresh(), place('chopper', 2))
+    s = run(s, place('fryer', 4))
+    for (const x of [1, 3, 5, 6]) s = run(s, place('belt', x))
+    s.phase = 'build'
+    s.tick = 1
+    s.lastDay = emptyDayStats(1)
+    s.totals.days = 1
+    s.money = 50000
+    s = run(s, { type: 'setMenu', dishes: ['fries', 'salad'] })
+    expect(tutorialHints(s).map((h) => [h.kind, h.ingredient])).toEqual([
+      ['pantry', 'lettuce'],
+      ['pantry', 'tomato'],
+    ])
+    const store = createStore(DEFS, s)
+    const ui = createUiStore({ setTimer: () => undefined })
+    const ctx = { store, ui }
+    let guard = 0
+    while (tutorialHints(store.getState()).length > 0 && guard < 20) {
+      const h = tutorialHints(store.getState())[0]
+      ui.set({ tool: h.kind, dir: 0, fast: false })
+      expect(placeAt(ctx, { x: h.x, y: h.y })).toBe(true)
+      guard += 1
+    }
+    expect(guard).toBeGreaterThan(0)
+    expect(tutorialHints(store.getState())).toEqual([])
+    const built = store.getState()
+    const find = (x: number, y: number) => {
+      const id = Object.values(built.buildings).find((b) => b.x === x && b.y === y)
+      if (id === undefined) throw new Error(`nothing at ${x},${y}`)
+      return id
+    }
+    expect(find(0, 0)).toMatchObject({ kind: 'pantry', ingredient: 'lettuce', dir: 1 })
+    expect(find(0, 1)).toMatchObject({ kind: 'pantry', ingredient: 'tomato', dir: 1 })
+    expect(find(4, 0)).toMatchObject({ kind: 'assembler', recipe: 'salad', dir: 1 })
+    expect(find(7, 0)).toMatchObject({ kind: 'belt', dir: 2 })
+    expect(find(7, 1)).toMatchObject({ kind: 'belt', dir: 2 })
+    let playing = run(built, { type: 'openService' })
+    let ticks = 0
+    while ((playing.today.byDish['salad']?.served ?? 0) === 0 && ticks < 4800) {
+      playing = runTicks(playing, DEFS, 20)
+      ticks += 20
+    }
+    expect(playing.today.byDish['salad']?.served ?? 0).toBeGreaterThan(0)
+    expect(tutorialView(playing).open).toBe(false)
+  })
+
+  it('remembers a finished guide and a new game clears that memory', () => {
+    const storage = new Map<string, string>()
+    const box = {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => void storage.set(k, v),
+      removeItem: (k: string) => void storage.delete(k),
+    }
+    expect(readTutorialDone(box)).toBe(false)
+    writeTutorialDone(box)
+    expect(readTutorialDone(box)).toBe(true)
+    expect(readTutorialDone(null)).toBe(false)
+    clearTutorialDone(box)
+    expect(readTutorialDone(box)).toBe(false)
   })
 })
 

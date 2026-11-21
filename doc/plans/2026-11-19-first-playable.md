@@ -144,7 +144,7 @@ Rough stall economy check (rewritten in Step 18 with the harness): taste splits 
   - **Undo yes:** Ctrl+Z, last 50 build actions, done as inverse commands. It works because refunds are 100%.
   - **Drag-to-draw belts yes:** press and drag lays a belt path with automatic directions.
   - **Copy/paste deferred to a follow-up.** On grids up to 16×12, drag-belts plus undo cover most of the value, and paste needs selection, cost preview and collision rules.
-- **Q4. Tutorial.** Recommended: **partly pre-built**. A new game starts with the pass, a potato pantry and Fries on the menu. The Goals panel shows a 4-item checklist for the first goal: place a chopper, place a fryer, connect them with belts to the pass, open for service. An empty start makes the 5-minute target hard. A fully built line teaches nothing.
+- **Q4. Tutorial.** Recommended: **partly pre-built**. A new game starts with the pass, a potato pantry and Fries on the menu. The Goals panel shows a 4-item checklist for the first goal: place a chopper, place a fryer, connect them with belts to the pass, open for service. An empty start makes the 5-minute target hard. A fully built line teaches nothing. Extended 2026-11-21: the checklist stays up through the day summary, adding Salad, and serving one, with ghost tiles for a second line on the north side of the pass.
 - **Q5. Exact numbers.** Use the table in 2.5. They are tuned in Step 18 with the harness.
 - **Q6. Leftover customers at close (new).** Recommended: customers still waiting at tick 2400 leave without a rating and are not counted as lost. Items on belts stay into the next day.
 - **Q7. Selling refund (new).** Recommended: 100% in the first playable, so experimenting is free. Revisit when money gets tight.

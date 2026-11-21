@@ -18,7 +18,7 @@ import type { Snapshot } from './store.ts'
 import type { UiState } from './uiState.ts'
 
 export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
-  const [tab, setTab] = useState<SideTab>('build')
+  const tab = ui.tab
   const [hover, setHover] = useState<PaletteHover | null>(null)
   const tabRefs = useRef<Partial<Record<SideTab, HTMLButtonElement | null>>>({})
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>): void => {
@@ -26,7 +26,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
     if (next === null) return
     e.preventDefault()
     e.stopPropagation()
-    setTab(next)
+    ctx.ui.set({ tab: next })
     tabRefs.current[next]?.focus()
   }
   return (
@@ -46,7 +46,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
             aria-selected={tab === t.id}
             aria-controls={`tabpanel-${t.id}`}
             tabIndex={tab === t.id ? 0 : -1}
-            onClick={() => setTab(t.id)}
+            onClick={() => ctx.ui.set({ tab: t.id })}
             onKeyDown={onKeyDown}
           >
             <span aria-hidden="true">{t.icon}</span> {t.label}
