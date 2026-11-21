@@ -127,6 +127,24 @@ body {
   gap: 8px;
 }
 
+/* Getting started sits beside the grid so the side panel stays the menu. */
+.play {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.play-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .grid-wrap {
   flex: 1;
   min-height: 0;
@@ -402,6 +420,10 @@ kbd {
 
 @media (max-width: 1023px) {
   .workspace {
+    flex-direction: column;
+  }
+
+  .play {
     flex-direction: column;
   }
 
@@ -1463,6 +1485,17 @@ kbd {
 /* Step 18: tutorial card, tile info line, empty states. Tokens only. */
 .tutorial {
   flex: none;
+  width: 280px;
+  max-height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .tutorial {
+    width: auto;
+    max-height: 32dvh;
+  }
 }
 
 .tut-list {

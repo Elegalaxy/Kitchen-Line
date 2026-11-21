@@ -20,6 +20,7 @@ import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TileInfo from './TileInfo.tsx'
 import TopBar from './TopBar.tsx'
+import TutorialCard from './TutorialCard.tsx'
 import { createUiStore, useUi } from './uiState.ts'
 import type { UiState } from './uiState.ts'
 
@@ -104,9 +105,14 @@ export default function App() {
         <div className="stage">
           <GoalTracker snap={snap} defs={store.defs} />
           <OrdersStrip state={snap.state} defs={store.defs} />
-          <GridCanvas store={store} ui={uiStore} />
-          <TileInfo state={snap.state} defs={store.defs} ui={ui} />
-          <p className="hint">{hintFor(store.defs, ui)}</p>
+          <div className="play">
+            <TutorialCard ctx={ctx} snap={snap} ui={ui} />
+            <div className="play-main">
+              <GridCanvas store={store} ui={uiStore} />
+              <TileInfo state={snap.state} defs={store.defs} ui={ui} />
+              <p className="hint">{hintFor(store.defs, ui)}</p>
+            </div>
+          </div>
         </div>
         <SidePanel ctx={ctx} snap={snap} ui={ui} />
       </div>

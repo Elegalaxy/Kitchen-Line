@@ -1,4 +1,4 @@
-// Getting-started card. Shown above the side tabs until every step is done, then remembered
+// Getting-started card. Shown beside the grid until every step is done, then remembered
 // on this machine so it does not return. The current step is highlighted and gets its hint
 // plus one button (pick a tool, open service, open the Menu tab, or select a building).
 // "Hide hints" toggles the ghost tiles. Progress comes from tutorial.ts.
