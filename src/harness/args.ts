@@ -6,16 +6,28 @@ import type { MenuEntry } from './run.ts'
 
 export const USAGE = [
   'usage: npm run sim -- --layout <name> --seed <text> --days <1-100> [--menu dish:cents,dish:cents] [--speedtest]',
+  '       npm run sim -- --journey [--seeds <1-200>] [--cautious] [--no-throttle] [--fryer auto|always|never] [--max-days <1-100>] [--example <n>]',
   '       npm run sim -- --list',
   '  --menu       dishes on the menu with prices in cents (fries:300,salad:450); default: the layout menu',
   '  --speedtest  also print ticks per second (wall-clock time, harness only)',
   '  --list       print layouts and dishes',
+  '  --journey    scripted player from the empty start to the end screen over many seeds (stall, upgrade, restaurant goals)',
+  '  --seeds      journey: number of seeds journey-1..journey-N (default 20)',
+  '  --cautious   journey: slower to spend (one purchase a day, bigger cash reserve)',
+  '  --no-throttle  journey: leave the pantries of the two lines sharing the east pass side at 20 ticks',
+  '  --fryer      journey: second fryer line at the restaurant tier: auto (default, when fries customers gave up), always, never',
+  '  --max-days   journey: give up after this many days (default 40)',
+  '  --example    journey: per-day table for seed journey-<n> (default 1)',
 ].join('\n')
 
 export const DAYS_MAX = 100
+export const SEEDS_MAX = 200
+
+export type FryerMode = 'auto' | 'always' | 'never'
 
 export type CliOptions =
   | { mode: 'list' }
+  | { mode: 'journey'; seeds: number; cautious: boolean; throttle: boolean; fryer: FryerMode; maxDays: number; example: number }
   | { mode: 'run'; layout: string; seed: string; days: number; menu: MenuEntry[] | undefined; speedtest: boolean }
 
 export type ParseResult = { ok: true; options: CliOptions } | { ok: false; error: string }
@@ -47,11 +59,37 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
   let menu: MenuEntry[] | undefined
   let speedtest = false
   let list = false
+  let journey = false
+  let cautious = false
+  let throttle = true
+  let fryer: FryerMode = 'auto'
+  let seeds = 20
+  let maxDays = 40
+  let example = 1
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (arg === '--list') list = true
     else if (arg === '--speedtest') speedtest = true
-    else if (arg === '--layout' || arg === '--seed' || arg === '--days' || arg === '--menu') {
+    else if (arg === '--journey') journey = true
+    else if (arg === '--cautious') cautious = true
+    else if (arg === '--no-throttle') throttle = false
+    else if (arg === '--fryer') {
+      const value = argv[i + 1]
+      if (value !== 'auto' && value !== 'always' && value !== 'never') return bad(`--fryer must be auto, always or never, received ${JSON.stringify(value)}`)
+      i += 1
+      fryer = value
+    } else if (arg === '--seeds' || arg === '--max-days' || arg === '--example') {
+      const value = argv[i + 1]
+      if (value === undefined || value.startsWith('--')) return bad(`${arg} requires a value`)
+      i += 1
+      const max = arg === '--seeds' ? SEEDS_MAX : DAYS_MAX
+      if (!/^[1-9][0-9]*$/.test(value) || Number(value) > max) {
+        return bad(`${arg} must be an integer from 1 to ${max}, received ${JSON.stringify(value)}`)
+      }
+      if (arg === '--seeds') seeds = Number(value)
+      else if (arg === '--max-days') maxDays = Number(value)
+      else example = Number(value)
+    } else if (arg === '--layout' || arg === '--seed' || arg === '--days' || arg === '--menu') {
       const value = argv[i + 1]
       if (value === undefined || value.startsWith('--')) return bad(`${arg} requires a value`)
       i += 1
@@ -76,6 +114,10 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
     }
   }
   if (list) return { ok: true, options: { mode: 'list' } }
+  if (journey) {
+    if (example > seeds) return bad(`--example ${example} is beyond --seeds ${seeds}`)
+    return { ok: true, options: { mode: 'journey', seeds, cautious, throttle, fryer, maxDays, example } }
+  }
   if (layout === undefined) return bad('--layout is required')
   if (seed === undefined) return bad('--seed is required')
   if (days === undefined) return bad('--days is required')

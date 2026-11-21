@@ -6,6 +6,7 @@
 import { DEFS } from '../content/index.ts'
 import { DAY_TICKS } from '../sim/constants.ts'
 import { USAGE, parseArgs } from './args.ts'
+import { formatFailures, formatFryerLoad, formatJourneyDays, formatJourneyTable, runJourneySet } from './journey.ts'
 import { formatRun, layoutNames, runDays } from './run.ts'
 import type { RunResult } from './run.ts'
 
@@ -21,6 +22,22 @@ const options = parsed.options
 if (options.mode === 'list') {
   console.log(`[sim] layouts: ${layoutNames().join(', ')}`)
   console.log(`[sim] dishes: ${Object.keys(DEFS.dishes).join(', ')}`)
+} else if (options.mode === 'journey') {
+  const interval = options.throttle ? 80 : 20
+  const results = runJourneySet(DEFS, {
+    seeds: options.seeds,
+    cautious: options.cautious,
+    maxDays: options.maxDays,
+    sharedInterval: interval,
+    secondFryer: options.fryer,
+  })
+  console.log(`[journey] ${options.cautious ? 'cautious' : 'efficient'} player, shared-line pantry interval ${interval}, second fryer ${options.fryer}, ${options.seeds} seeds, max ${options.maxDays} days`)
+  for (const line of formatJourneyTable(results)) console.log(line)
+  for (const line of formatFryerLoad(results)) console.log(line)
+  for (const line of formatJourneyDays(results[options.example - 1])) console.log(line)
+  const failures = formatFailures(results)
+  console.log(`issues (rejected commands, dishes that sold 0): ${failures.length === 0 ? 'none' : ''}`)
+  for (const line of failures) console.log(line)
 } else {
   const start = performance.now()
   let result: RunResult

@@ -69,4 +69,26 @@ describe('parseArgs', () => {
     expect(errorOf('--seed', 'a', '--days', '1')).toContain('--layout is required')
     expect(errorOf('--layout', 'friesLine', '--days', '1')).toContain('--seed is required')
   })
+
+  it('parses journey mode with defaults and flags', () => {
+    expect(parse('--journey')).toEqual({
+      ok: true,
+      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, fryer: 'auto', maxDays: 40, example: 1 },
+    })
+    expect(
+      parse('--journey', '--seeds', '5', '--cautious', '--no-throttle', '--fryer', 'never', '--max-days', '15', '--example', '3'),
+    ).toEqual({
+      ok: true,
+      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, fryer: 'never', maxDays: 15, example: 3 },
+    })
+  })
+
+  it('rejects bad journey values', () => {
+    expect(errorOf('--journey', '--seeds', '0')).toContain('--seeds')
+    expect(errorOf('--journey', '--seeds', '201')).toContain('--seeds')
+    expect(errorOf('--journey', '--max-days', 'x')).toContain('--max-days')
+    expect(errorOf('--journey', '--fryer', 'two')).toContain('--fryer')
+    expect(errorOf('--journey', '--seeds', '2', '--example', '3')).toContain('beyond')
+    expect(errorOf('--journey', '--seeds')).toContain('requires a value')
+  })
 })
