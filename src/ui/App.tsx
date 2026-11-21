@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Defs } from '../sim/types.ts'
-import { handleHotkey } from './actions.ts'
+import { handleHotkey, togglePantriesAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import GridCanvas from './canvas/GridCanvas.tsx'
 import DaySummary from './DaySummary.tsx'
@@ -96,7 +96,9 @@ export default function App() {
     <main className="app">
       <TopBar ctx={ctx} store={store} snap={snap} onNewGame={newGame} />
       {snap.state.phase === 'summary' && (
-        <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })} />
+        <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })}
+          onTogglePantries={() => togglePantriesAction(ctx)}
+        />
       )}
       {snap.state.phase === 'won' && (
         <EndScreen state={snap.state} onKeepPlaying={() => store.dispatch({ type: 'dismissSummary' })} />

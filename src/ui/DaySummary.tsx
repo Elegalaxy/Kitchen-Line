@@ -24,6 +24,7 @@ import type { DeltaView } from './daySummaryView.ts'
 import Money from './Money.tsx'
 import { clipText } from './format.ts'
 import { handleModalKeys } from './modalKeys.ts'
+import { pantryPauseView } from './pantryPause.ts'
 import { tutorialView } from './tutorial.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
@@ -60,7 +61,17 @@ function Row({ k, v }: { k: string; v: ReactNode }) {
 /** Review text longer than this is cut with an ellipsis (the full text is in the title and read by screen readers). */
 const REVIEW_MAX_CHARS = 90
 
-export default function DaySummary({ state, defs, onDismiss }: { state: GameState; defs: Defs; onDismiss: () => void }) {
+export default function DaySummary({
+  state,
+  defs,
+  onDismiss,
+  onTogglePantries,
+}: {
+  state: GameState
+  defs: Defs
+  onDismiss: () => void
+  onTogglePantries: () => void
+}) {
   const last = state.lastDay
   const rep = reputationOf(state)
   const sum = useMemo(
@@ -76,6 +87,7 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
 
   if (last === null || sum === null) return null
 
+  const pantries = pantryPauseView(state)
   const hint = hintText(sum.bottleneckHint, defs)
   const guide = tutorialView(state)
   const teachingSummary = guide.steps[guide.current]?.id === 'summary'
@@ -241,6 +253,22 @@ export default function DaySummary({ state, defs, onDismiss }: { state: GameStat
               ? 'No customers came today. Check your menu, prices and reputation.'
               : 'No bottleneck: nobody was lost and nothing spoiled.')}
         </p>
+
+        <div className="sum-pantries">
+          <button
+            type="button"
+            className="btn pause-all-btn"
+            aria-pressed={pantries.total > 0 && pantries.paused === pantries.total}
+            disabled={pantries.disabledReason !== null}
+            onClick={onTogglePantries}
+          >
+            <span className="btn-main">
+              <span aria-hidden="true">{pantries.next === 'resume' ? '▶' : '⏸'}</span> {pantries.label}
+            </span>
+            <span className="btn-sub">{pantries.disabledReason ?? pantries.summary}</span>
+          </button>
+          <span className="sum-pantries-note">Paused pantries buy nothing. Resume them before the next day starts.</span>
+        </div>
 
         <button ref={buttonRef} type="button" className="btn-primary sum-button" onClick={onDismiss}>
           Back to kitchen
