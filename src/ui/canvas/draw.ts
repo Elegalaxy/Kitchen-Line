@@ -121,7 +121,7 @@ function drawEdgeArrow(ctx: CanvasRenderingContext2D, cx: number, cy: number, si
 
 /**
  * Exits and entrances of the routing buildings (arrows beside the glyph, so the shape
- * differs even without colour): splitter = out left and right, merger = in from left,
+ * differs even without colour): splitter = in from the back, out left and right (no front arrow), merger = in from left,
  * right and back, filter = out left (with the chosen item's emoji, or a dash) plus the
  * main front arrow.
  */
@@ -133,6 +133,7 @@ function drawRouting(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, cx:
   if (b.kind === 'splitter') {
     drawEdgeArrow(ctx, cx, cy, left, true, tile, color)
     drawEdgeArrow(ctx, cx, cy, right, true, tile, color)
+    drawEdgeArrow(ctx, cx, cy, back, false, tile, color) // the one input
   } else if (b.kind === 'merger') {
     for (const side of [left, right, back]) drawEdgeArrow(ctx, cx, cy, side, false, tile, color)
   } else {
@@ -389,7 +390,8 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   const cy = b.y * tile + tile / 2
   ctx.fillStyle = p.text
   glyph(ctx, defs.buildings[b.kind].emoji, cx, cy, tile * 0.46)
-  drawArrow(ctx, cx, cy, b.dir, tile, tint, true)
+  // A splitter has no front output (it exits left and right), so no front arrow there.
+  if (b.kind !== 'splitter') drawArrow(ctx, cx, cy, b.dir, tile, tint, true)
   drawRouting(ctx, b, defs, cx, cy, tile, tint)
   // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
   if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
