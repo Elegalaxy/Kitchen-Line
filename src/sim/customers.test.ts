@@ -310,12 +310,48 @@ describe('the pass and sales', () => {
     expect(shelf.length).toBeLessThanOrEqual(4)
   })
 
-  it('caps the shelf per dish, so one unsold dish cannot keep another off the pass (Step 18 balance)', () => {
+  it('keeps at most 4 of each dish: a 5th copy is accepted and the OLDEST copy is thrown away (GAME_DESIGN 5.3)', () => {
     const s = bare(2280)
     pass(s).shelf = [item(1, 'fries'), item(2, 'fries'), item(3, 'fries'), item(4, 'fries')]
-    expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(false) // a fifth fries is refused
-    expect(tryInsert(s, DEFS, pass(s), item(6, 'salad'), 3)).toBe(true) // a salad still fits
+    expect(tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)).toBe(true)
+    expect(pass(s).shelf.map((i) => i.id)).toEqual([2, 3, 4, 5]) // id 1 (oldest) is gone
+    expect(tryInsert(s, DEFS, pass(s), item(6, 'salad'), 3)).toBe(true) // a salad fits next to them
     expect(pass(s).shelf.map((i) => i.type)).toEqual(['fries', 'fries', 'fries', 'fries', 'salad'])
+    // A dropped dish is not delivered twice; both new dishes count, and nothing else was dropped.
+    expect(pass(s).delivered).toBe(2)
+  })
+
+  it('records the dropped dish as spoiled waste (counter, per item and a spoiled event)', () => {
+    const s = bare(2280)
+    pass(s).shelf = [item(1, 'fries'), item(2, 'fries'), item(3, 'fries'), item(4, 'fries')]
+    tryInsert(s, DEFS, pass(s), item(5, 'fries'), 3)
+    expect(s.today.wasteSpoiled).toBe(1)
+    expect(s.today.spoiledByItem['fries']).toBe(1)
+    expect(s.events.filter((e) => e.type === 'spoiled')).toHaveLength(1)
+    // A salad onto a shelf with room throws nothing away.
+    tryInsert(s, DEFS, pass(s), item(6, 'salad'), 3)
+    expect(s.today.wasteSpoiled).toBe(1)
+  })
+
+  it('an unsold dish no longer jams the belt behind it: a salad queued behind a 5th fries still arrives', () => {
+    const s = bare(100)
+    s.menu = [] // nobody buys anything
+    const placed = applyCommand(s, DEFS, { type: 'place', kind: 'belt', x: 6, y: 2, dir: 1 })
+    if (!placed.result.ok) throw new Error(`command failed: ${placed.result.reason}`)
+    let cur = placed.state
+    cur.phase = 'service'
+    const belt = Object.values(cur.buildings).find((x) => x.kind === 'belt')
+    if (belt === undefined || belt.kind !== 'belt') throw new Error('no belt')
+    belt.onlineAt = 0
+    const born = cur.tick
+    pass(cur).shelf = [1, 2, 3, 4].map((id) => ({ id, type: 'fries', bornTick: born }))
+    belt.slots = [{ id: 20, type: 'salad', bornTick: born }, { id: 10, type: 'fries', bornTick: born }]
+    cur = runTicks(cur, DEFS, 40)
+    const shelf = pass(cur).shelf.map((i) => i.type)
+    expect(shelf.filter((t) => t === 'fries')).toHaveLength(4)
+    expect(shelf).toContain('salad')
+    const after = Object.values(cur.buildings).find((x) => x.kind === 'belt')
+    expect(after !== undefined && after.kind === 'belt' ? after.slots : null).toEqual([null, null])
   })
 
   it('wait is 0 when the dish is already on the shelf, and the delivery delay when it is not (the avgWait finding)', () => {

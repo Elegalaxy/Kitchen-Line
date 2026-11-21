@@ -11,9 +11,12 @@
 //         nothing accepted), that input holds fewer than ASSEMBLER_INPUT_CAP items, and it
 //         does not come from the front of the building (back, left and right are fine;
 //         the front is the direction `dir`, which for the second tile is also refused).
-//   pass: accepts dishes only (by the item's def kind), up to PASS_SHELF_CAP of each dish
-//         on the shelf (so one unsold dish cannot hog the shelf), from any side.
-//         The dish goes onto the shelf and counts in `delivered`;
+//   pass: accepts dishes only (by the item's def kind), from any side, and never blocks a
+//         dish. The shelf keeps at most PASS_SHELF_CAP of each dish: when it already holds
+//         that many, the OLDEST unsold copy of that dish is thrown away to make room (counted
+//         as spoiled waste: `wasteSpoiled`, `spoiledByItem` and a `spoiled` event), so one
+//         unsold dish can never jam the belt behind it. The new dish goes onto the shelf and
+//         counts in `delivered` (every dish delivered counts, dropped or not);
 //         customers.ts matches shelf dishes to waiting customers each tick (a sale).
 //   bin:  accepts any item from any side and counts it as binned waste.
 //   splitter/merger/filter: one-item buffer, see logistics.ts (`acceptRouting`).
@@ -65,7 +68,17 @@ export function tryInsert(state: GameState, defs: Defs, building: Building, item
       return acceptRouting(state, building, item, fromDir)
     case 'pass': {
       if (defs.items[item.type]?.kind !== 'dish') return false
-      if (building.shelf.filter((d) => d.type === item.type).length >= PASS_SHELF_CAP) return false
+      const same = building.shelf.filter((d) => d.type === item.type)
+      if (same.length >= PASS_SHELF_CAP) {
+        // Shelf full of this dish: throw away the oldest unsold copy (GAME_DESIGN 5.3).
+        const oldest = same[0]
+        if (oldest !== undefined) {
+          building.shelf.splice(building.shelf.indexOf(oldest), 1)
+          state.today.wasteSpoiled += 1
+          state.today.spoiledByItem[oldest.type] = (state.today.spoiledByItem[oldest.type] ?? 0) + 1
+          state.events.push({ type: 'spoiled', tick: state.tick, x: building.x, y: building.y, item: oldest.type })
+        }
+      }
       building.shelf.push(item)
       building.delivered += 1
       building.status = 'ok'
