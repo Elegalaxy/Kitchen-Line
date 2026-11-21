@@ -73,36 +73,42 @@ export default function BuildPalette({
         </span>
         <span className="btn-sub">{pantries.disabledReason ?? pantries.summary}</span>
       </button>
-      <div className="palette">
+      <div
+        className="palette"
+        onMouseLeave={() => onHover(null)}
+        onBlur={(e) => {
+          const next = e.relatedTarget
+          if (next instanceof Node && e.currentTarget.contains(next)) return
+          onHover(null)
+        }}
+      >
         {entries.map(({ key, kind, fast, hotkey, name }) => {
           const def = defs.buildings[kind]
           const reason = paletteReason(snap.state, defs, kind, fast)
           const cost = paletteCost(defs, kind, fast)
           return (
-            <button
-              key={key}
-              type="button"
-              className="btn pal-btn"
-              aria-pressed={ui.tool === kind && (kind !== 'belt' || ui.fast === fast)}
-              disabled={reason !== null}
-              onClick={() => selectTool(ctx, kind, fast)}
-              onMouseEnter={() => onHover({ kind, fast })}
-              onMouseLeave={() => onHover(null)}
-              onFocus={() => onHover({ kind, fast })}
-              onBlur={() => onHover(null)}
-            >
-              <span className="btn-main">
-                <span className="pal-glyph" aria-hidden="true">
-                  {fast ? '⏩' : def.emoji}
+            <div key={key} className="pal-hit" onMouseEnter={() => onHover({ kind, fast })}>
+              <button
+                type="button"
+                className="btn pal-btn"
+                aria-pressed={ui.tool === kind && (kind !== 'belt' || ui.fast === fast)}
+                disabled={reason !== null}
+                onClick={() => selectTool(ctx, kind, fast)}
+                onFocus={() => onHover({ kind, fast })}
+              >
+                <span className="btn-main">
+                  <span className="pal-glyph" aria-hidden="true">
+                    {fast ? '⏩' : def.emoji}
+                  </span>
+                  <span className="pal-name">{name}</span>
                 </span>
-                <span className="pal-name">{name}</span>
-              </span>
-              <span className="btn-main">
-                <span className="btn-sub num pal-cost">{formatMoney(cost)}</span>
-                {hotkey !== '' && <kbd>{hotkey}</kbd>}
-              </span>
-              <span className="pal-reason">{reason === null ? '' : `⚠ ${reason}`}</span>
-            </button>
+                <span className="btn-main">
+                  <span className="btn-sub num pal-cost">{formatMoney(cost)}</span>
+                  {hotkey !== '' && <kbd>{hotkey}</kbd>}
+                </span>
+                <span className="pal-reason">{reason === null ? '' : `⚠ ${reason}`}</span>
+              </button>
+            </div>
           )
         })}
       </div>

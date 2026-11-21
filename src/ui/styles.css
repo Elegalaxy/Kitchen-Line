@@ -163,6 +163,9 @@ body {
   flex: none;
   width: 320px;
   overflow-y: auto;
+  /* The inspector under the palette changes height as its text changes. Scroll
+     anchoring would shift the list under the pointer and snap between entries. */
+  overflow-anchor: none;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -288,6 +291,17 @@ kbd {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+/* Hit target around the button so a disabled entry can still be inspected. */
+.pal-hit {
+  display: flex;
+  min-width: 0;
+}
+
+.pal-hit > .btn {
+  flex: 1;
+  width: 100%;
 }
 
 .pal-glyph {
@@ -1540,7 +1554,21 @@ kbd {
   font-size: 0.875rem;
 }
 
-/* Inspector description card while hovering a build palette entry. */
+/* Inspector description card while hovering a build palette entry.
+   Every entry is stacked in one cell so the card stays as tall as the longest
+   one; a shorter description must not resize the list above it. */
+.info-card {
+  display: grid;
+}
+
+.info-variant {
+  grid-area: 1 / 1;
+}
+
+.info-variant.is-sizer {
+  visibility: hidden;
+}
+
 .info-card .info-name {
   margin: 0 0 4px;
   font-size: 1.05rem;

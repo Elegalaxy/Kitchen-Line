@@ -5,14 +5,47 @@
 
 import type { ReactNode } from 'react'
 import { ASSEMBLER_TICKS, PANTRY_INTERVALS } from '../sim/constants.ts'
-import type { Building, ConfigFields, Defs, Item } from '../sim/types.ts'
+import type { Building, BuildingKind, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { DIR_ARROW, dirName, formatMoney, STATUS_TEXT } from './format.ts'
 import { blockReason } from './blockReason.ts'
 import { BUILDING_INFO } from './buildingInfo.ts'
 import type { PaletteHover } from './BuildPalette.tsx'
+import { hasFastVariant, paletteKinds } from './palette.ts'
 import type { Snapshot } from './store.ts'
+
+const FAST_WHAT = 'A faster belt: items move through it quicker. Same rules as the belt.'
+
+function hoverEntries(defs: Defs): { key: string; kind: BuildingKind; fast: boolean }[] {
+  return paletteKinds(defs).flatMap((kind) => {
+    const base = { key: kind, kind, fast: false }
+    return hasFastVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true }] : [base]
+  })
+}
+
+function HoverCopy({ defs, kind, fast }: { defs: Defs; kind: BuildingKind; fast: boolean }) {
+  const def = defs.buildings[kind]
+  const info = BUILDING_INFO[kind]
+  const name = fast ? 'Fast belt' : def.name
+  const cost = fast && def.fast !== undefined ? def.fast.cost : def.cost
+  const tier = fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
+  return (
+    <>
+      <p className="info-name">
+        <span aria-hidden="true">{fast ? '⏩' : def.emoji}</span> {name}
+      </p>
+      <p className="info-what">{fast ? FAST_WHAT : info.what}</p>
+      <dl className="kv">
+        <Row k="Cost">
+          <span className="num">{formatMoney(cost)}</span>
+        </Row>
+        <Row k="Tier">{tier === 'stall' ? 'Stall' : 'Restaurant'}</Row>
+        <Row k="Items">{info.inOut}</Row>
+      </dl>
+    </>
+  )
+}
 
 const TICKS_PER_SECOND = 10
 
@@ -86,28 +119,22 @@ export default function Inspector({
 }) {
   const { defs } = ctx.store
   if (hover !== null) {
-    const def = defs.buildings[hover.kind]
-    const info = BUILDING_INFO[hover.kind]
-    const name = hover.fast ? 'Fast belt' : def.name
-    const cost = hover.fast && def.fast !== undefined ? def.fast.cost : def.cost
-    const tier = hover.fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
     return (
       <section className="panel" aria-label="Inspector">
         <h2 className="panel-title">Inspector</h2>
         <div className="info-card">
-          <p className="info-name">
-            <span aria-hidden="true">{hover.fast ? '⏩' : def.emoji}</span> {name}
-          </p>
-          <p className="info-what">
-            {hover.fast ? 'A faster belt: items move through it quicker. Same rules as the belt.' : info.what}
-          </p>
-          <dl className="kv">
-            <Row k="Cost">
-              <span className="num">{formatMoney(cost)}</span>
-            </Row>
-            <Row k="Tier">{tier === 'stall' ? 'Stall' : 'Restaurant'}</Row>
-            <Row k="Items">{info.inOut}</Row>
-          </dl>
+          {hoverEntries(defs).map((entry) => {
+            const active = entry.kind === hover.kind && entry.fast === hover.fast
+            return (
+              <div
+                key={entry.key}
+                className={active ? 'info-variant' : 'info-variant is-sizer'}
+                aria-hidden={active ? undefined : true}
+              >
+                <HoverCopy defs={defs} kind={entry.kind} fast={entry.fast} />
+              </div>
+            )
+          })}
         </div>
       </section>
     )
