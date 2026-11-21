@@ -6,7 +6,7 @@ import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Building, Command, GameState } from '../sim/types.ts'
-import { blockReason } from './blockReason.ts'
+import { blockReason, PANTRY_BACKUP_HINT } from './blockReason.ts'
 
 function build(cmds: Command[]): GameState {
   let s = createGame(DEFS, 'why')
@@ -80,5 +80,36 @@ describe('blockReason for a paused pantry', () => {
     expect(p.status).toBe('paused')
     expect(blockReason(s, DEFS, p)).toContain('Paused by you')
     expect(blockReason(s, DEFS, p)).toContain('Resume pantries')
+  })
+})
+
+describe('blockReason pantry backup hint', () => {
+  it('a pantry whose output is full downstream suggests pausing it', () => {
+    const s = run(
+      build([
+        { type: 'place', kind: 'pantry', x: 1, y: 2, dir: 1 },
+        { type: 'place', kind: 'chopper', x: 2, y: 2, dir: 1 },
+      ]),
+    )
+    expect(blockReason(s, DEFS, at(s, 1, 2))).toContain(PANTRY_BACKUP_HINT)
+  })
+
+  it('no hint for layout mistakes (nothing ahead, facing back) or for non-pantries', () => {
+    const empty = run(build([{ type: 'place', kind: 'pantry', x: 1, y: 2, dir: 1 }]))
+    expect(blockReason(empty, DEFS, at(empty, 1, 2))).not.toContain(PANTRY_BACKUP_HINT)
+    const back = run(
+      build([
+        { type: 'place', kind: 'pantry', x: 1, y: 2, dir: 1 },
+        { type: 'place', kind: 'chopper', x: 2, y: 2, dir: 3 },
+      ]),
+    )
+    expect(blockReason(back, DEFS, at(back, 1, 2))).not.toContain(PANTRY_BACKUP_HINT)
+    const chain = run(
+      build([
+        { type: 'place', kind: 'pantry', x: 1, y: 2, dir: 1 },
+        { type: 'place', kind: 'chopper', x: 2, y: 2, dir: 1 },
+      ]),
+    )
+    expect(blockReason(chain, DEFS, at(chain, 2, 2))).not.toContain(PANTRY_BACKUP_HINT)
   })
 })

@@ -107,6 +107,11 @@ function splitterReason(state: GameState, defs: Defs, b: Extract<Building, { kin
   return `Neither exit can take the item (a splitter never pushes forward). Left: ${left} Right: ${right}`
 }
 
+/** Hint added to a blocked pantry whose output is refused only because the line ahead is full (not a layout mistake). */
+export const PANTRY_BACKUP_HINT = 'Output is backing up: pause this pantry to stop buying ingredients.'
+/** Refusal texts above that mean "full", as opposed to "wrong direction / nothing there / no recipe". */
+const BACKED_UP = /is full|already has enough|already holds|holding another item|input is full/
+
 /** The text for the Inspector "Why" row, or null. */
 export function blockReason(state: GameState, defs: Defs, b: Building): string | null {
   if (b.status === 'warming') return 'Just placed: it starts working in a moment.'
@@ -128,5 +133,7 @@ export function blockReason(state: GameState, defs: Defs, b: Building): string |
   const dir =
     b.kind === 'filter' && b.filterItem !== null && s.item.type === b.filterItem ? (((b.dir + 3) % 4) as Dir) : s.dir
   const problem = exitProblem(state, defs, b, s.item, dir)
-  return problem === null ? null : `${s.what}: ${problem}`
+  if (problem === null) return null
+  const text = `${s.what}: ${problem}`
+  return b.kind === 'pantry' && BACKED_UP.test(problem) ? `${text} ${PANTRY_BACKUP_HINT}` : text
 }
