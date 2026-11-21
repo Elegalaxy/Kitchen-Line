@@ -973,6 +973,46 @@ kbd {
   overflow-wrap: anywhere;
 }
 
+.btn-quiet.recipe-btn {
+  align-self: flex-start;
+  min-height: 32px;
+  margin: 2px 0;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
+
+.cell-recipe {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  padding-top: 4px;
+}
+
+.recipe-list {
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.recipe-step {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 0.8125rem;
+}
+
+.recipe-item {
+  min-width: 0;
+}
+
+.recipe-made {
+  flex: none;
+  color: var(--text-muted);
+  text-align: right;
+}
+
 .menu-locked .dish-name {
   color: var(--text-muted);
 }

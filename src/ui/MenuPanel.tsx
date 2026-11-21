@@ -1,7 +1,8 @@
 // Menu tab (plan Step 14): one table row per dish. Columns: on-menu toggle, glyph and name,
 // price input, reference price, ingredient cost, margin (arrow, sign and word) and served
-// today. A locked dish shows an "Unlock $X" button instead of the toggle and price. The
-// panel is read-only outside the build phase. Rows are laid out as small cards (the side
+// today. A locked dish shows an "Unlock $X" button instead of the toggle and price. Each
+// row has a Recipe button that opens that dish's steps (pantry ingredients and stations).
+// The panel is read-only outside the build phase. Rows are laid out as small cards (the side
 // panel is narrow) with the table roles kept for assistive tech.
 //
 // Price input: type dollars, Enter or leaving the field commits, Escape reverts. Invalid
@@ -14,9 +15,12 @@ import { ingredientCostOf } from '../content/dishes.ts'
 import { report } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { formatMoney, reasonText } from './format.ts'
+import { debugLog } from './debug.ts'
 import { checkPriceText, menuView } from './menuView.ts'
 import type { MenuRow } from './menuView.ts'
 import { centsToInput } from './money.ts'
+import { recipeSteps } from './recipeView.ts'
+import type { RecipeStep } from './recipeView.ts'
 import type { Snapshot } from './store.ts'
 
 function PriceInput({ ctx, row, disabled }: { ctx: Ctx; row: MenuRow; disabled: boolean }) {
@@ -93,7 +97,36 @@ function PriceInput({ ctx, row, disabled }: { ctx: Ctx; row: MenuRow; disabled: 
   )
 }
 
-function Row({ ctx, row, readOnly, onUnlocked }: { ctx: Ctx; row: MenuRow; readOnly: boolean; onUnlocked: (id: string) => void }) {
+function RecipeList({ dishId, steps }: { dishId: string; steps: RecipeStep[] }) {
+  return (
+    <ol id={`recipe-${dishId}`} className="recipe-list">
+      {steps.map((step, i) => (
+        <li key={`${step.id}-${i}`} className="recipe-step" style={{ paddingLeft: step.depth * 12 }}>
+          <span className="recipe-item">
+            <span aria-hidden="true">{step.emoji}</span> {step.name}
+          </span>
+          <span className="recipe-made">{step.made}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function Row({
+  ctx,
+  row,
+  readOnly,
+  recipeOpen,
+  onToggleRecipe,
+  onUnlocked,
+}: {
+  ctx: Ctx
+  row: MenuRow
+  readOnly: boolean
+  recipeOpen: boolean
+  onToggleRecipe: (id: string) => void
+  onUnlocked: (id: string) => void
+}) {
   const { store } = ctx
   const state = store.getState()
   const toggle = (on: boolean): void => {
@@ -130,6 +163,16 @@ function Row({ ctx, row, readOnly, onUnlocked }: { ctx: Ctx; row: MenuRow; readO
         <span className="dish-name">
           <span aria-hidden="true">{row.emoji}</span> {row.name}
         </span>
+        <button
+          type="button"
+          className="btn-quiet recipe-btn"
+          aria-label={`Recipe for ${row.name}`}
+          aria-expanded={recipeOpen}
+          aria-controls={recipeOpen ? `recipe-${row.id}` : undefined}
+          onClick={() => onToggleRecipe(row.id)}
+        >
+          Recipe
+        </button>
         <span className="pal-reason">{reason === null ? '' : `⚠ ${reason}`}</span>
       </td>
       <td className="cell-price" role="cell">
@@ -169,6 +212,11 @@ function Row({ ctx, row, readOnly, onUnlocked }: { ctx: Ctx; row: MenuRow; readO
       <td className="cell-stat cell-served num" role="cell" data-label="Served">
         {row.locked ? <span className="faint">—</span> : row.served}
       </td>
+      {recipeOpen && (
+        <td className="cell-recipe" role="cell">
+          <RecipeList dishId={row.id} steps={recipeSteps(store.defs, row.id)} />
+        </td>
+      )}
     </tr>
   )
 }
@@ -176,7 +224,14 @@ function Row({ ctx, row, readOnly, onUnlocked }: { ctx: Ctx; row: MenuRow; readO
 export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
   const view = menuView(snap.state, ctx.store.defs, ingredientCostOf)
   const [focusDish, setFocusDish] = useState<string | null>(null)
+  const [openRecipe, setOpenRecipe] = useState<string | null>(null)
   const tableRef = useRef<HTMLTableElement>(null)
+
+  const toggleRecipe = (id: string): void => {
+    const next = openRecipe === id ? null : id
+    debugLog('[ui]', 'menu recipe', id, next === null ? 'closed' : 'open')
+    setOpenRecipe(next)
+  }
 
   // After an unlock the Unlock button is replaced by the toggle: keep keyboard focus in the row.
   useEffect(() => {
@@ -214,7 +269,15 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
         </thead>
         <tbody role="rowgroup">
           {view.rows.map((row) => (
-            <Row key={row.id} ctx={ctx} row={row} readOnly={view.readOnly} onUnlocked={setFocusDish} />
+            <Row
+              key={row.id}
+              ctx={ctx}
+              row={row}
+              readOnly={view.readOnly}
+              recipeOpen={openRecipe === row.id}
+              onToggleRecipe={toggleRecipe}
+              onUnlocked={setFocusDish}
+            />
           ))}
         </tbody>
       </table>
