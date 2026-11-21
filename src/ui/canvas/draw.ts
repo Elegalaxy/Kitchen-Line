@@ -5,7 +5,7 @@
 // dish = circle with a plate ring, spoiling = warning badge. Stalled belt = hatching + no-entry glyph.
 
 import { ASSEMBLER_TICKS } from '../../sim/constants.ts'
-import { footprint } from '../../sim/grid.ts'
+import { buildingAt, footprint, neighbor } from '../../sim/grid.ts'
 import { buildingItems } from '../../sim/spoil.ts'
 import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
 import type { HintTile } from '../tutorial.ts'
@@ -95,15 +95,17 @@ function drawFloor(ctx: CanvasRenderingContext2D, state: GameState, tile: number
   }
 }
 
-function drawArrow(ctx: CanvasRenderingContext2D, cx: number, cy: number, dir: Dir, tile: number, color: string): void {
+function drawArrow(ctx: CanvasRenderingContext2D, cx: number, cy: number, dir: Dir, tile: number, color: string, big = false): void {
+  const w = big ? 0.17 : 0.1
+  const base = big ? 0.28 : 0.35
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate((dir * Math.PI) / 2)
   ctx.fillStyle = color
   ctx.beginPath()
   ctx.moveTo(0, -tile * 0.47)
-  ctx.lineTo(tile * 0.1, -tile * 0.35)
-  ctx.lineTo(-tile * 0.1, -tile * 0.35)
+  ctx.lineTo(tile * w, -tile * base)
+  ctx.lineTo(-tile * w, -tile * base)
   ctx.closePath()
   ctx.fill()
   ctx.restore()
@@ -150,15 +152,64 @@ function drawRouting(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, cx:
   }
 }
 
-function drawBelt(ctx: CanvasRenderingContext2D, x: number, y: number, dir: Dir, fast: boolean, stalled: boolean, tile: number, p: Palette): void {
+/** -1 / +1 when this belt turns a corner (fed only from its left / right), else 0. */
+function beltBend(state: GameState, x: number, y: number, dir: Dir): -1 | 0 | 1 {
+  const feeds = (side: Dir): boolean => {
+    const n = neighbor(x, y, side)
+    const id = buildingAt(state, n.x, n.y)
+    const nb = id === null ? undefined : state.buildings[id]
+    return nb !== undefined && nb.kind === 'belt' && nb.dir === (((side + 2) % 4) as Dir)
+  }
+  if (feeds(((dir + 2) % 4) as Dir)) return 0
+  const left = feeds(((dir + 3) % 4) as Dir)
+  const right = feeds(((dir + 1) % 4) as Dir)
+  if (left === right) return 0
+  return left ? -1 : 1
+}
+
+function drawBelt(ctx: CanvasRenderingContext2D, state: GameState, x: number, y: number, dir: Dir, fast: boolean, stalled: boolean, tile: number, p: Palette): void {
   const cx = x * tile + tile / 2
   const cy = y * tile + tile / 2
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate((dir * Math.PI) / 2)
+  const bend = beltBend(state, x, y, dir)
   ctx.fillStyle = p.surfaceRaised
   ctx.strokeStyle = fast ? p.info : p.textFaint
   ctx.lineWidth = 1.5
+  if (bend !== 0) {
+    // Corner: a quarter ring around the tile corner between the entry side and the front.
+    ctx.scale(bend === -1 ? 1 : -1, 1)
+    const rIn = tile * 0.14
+    const rOut = tile * 0.86
+    ctx.beginPath()
+    ctx.arc(-tile / 2, -tile / 2, rOut, 0, Math.PI / 2)
+    ctx.arc(-tile / 2, -tile / 2, rIn, Math.PI / 2, 0, true)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(-tile / 2, -tile / 2, rOut, 0, Math.PI / 2)
+    ctx.moveTo(-tile / 2 + rIn, -tile / 2)
+    ctx.arc(-tile / 2, -tile / 2, rIn, 0, Math.PI / 2)
+    ctx.stroke()
+    // Arrow chevron at the middle of the arc, pointing along the turn.
+    ctx.strokeStyle = p.textFaint
+    ctx.lineWidth = Math.max(1.5, tile / 20)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    const mid = Math.PI / 4
+    const r = tile * 0.5
+    const mx = -tile / 2 + r * Math.cos(mid)
+    const my = -tile / 2 + r * Math.sin(mid)
+    ctx.beginPath()
+    ctx.moveTo(mx + tile * 0.1, my + tile * 0.02)
+    ctx.lineTo(mx, my - tile * 0.07)
+    ctx.lineTo(mx - tile * 0.02, my + tile * 0.1)
+    ctx.stroke()
+    ctx.restore()
+    if (stalled) drawStall(ctx, x, y, tile, p)
+    return
+  }
   ctx.beginPath()
   ctx.rect(-tile * 0.36, -tile / 2, tile * 0.72, tile)
   ctx.fill()
@@ -181,24 +232,26 @@ function drawBelt(ctx: CanvasRenderingContext2D, x: number, y: number, dir: Dir,
     ctx.stroke()
   }
   ctx.restore()
-  if (stalled) {
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(x * tile, y * tile, tile, tile)
-    ctx.clip()
-    ctx.strokeStyle = p.bad
-    ctx.globalAlpha = 0.55
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    for (let d = -tile; d < tile * 2; d += tile / 4) {
-      ctx.moveTo(x * tile + d, y * tile + tile)
-      ctx.lineTo(x * tile + d + tile, y * tile)
-    }
-    ctx.stroke()
-    ctx.restore()
-    ctx.fillStyle = p.text
-    glyph(ctx, '⛔', x * tile + tile * 0.8, y * tile + tile * 0.2, tile * 0.28)
+  if (stalled) drawStall(ctx, x, y, tile, p)
+}
+
+function drawStall(ctx: CanvasRenderingContext2D, x: number, y: number, tile: number, p: Palette): void {
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(x * tile, y * tile, tile, tile)
+  ctx.clip()
+  ctx.strokeStyle = p.bad
+  ctx.globalAlpha = 0.55
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  for (let d = -tile; d < tile * 2; d += tile / 4) {
+    ctx.moveTo(x * tile + d, y * tile + tile)
+    ctx.lineTo(x * tile + d + tile, y * tile)
   }
+  ctx.stroke()
+  ctx.restore()
+  ctx.fillStyle = p.text
+  glyph(ctx, '⛔', x * tile + tile * 0.8, y * tile + tile * 0.2, tile * 0.28)
 }
 
 function badge(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, tile: number, p: Palette): void {
@@ -336,7 +389,7 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   const cy = b.y * tile + tile / 2
   ctx.fillStyle = p.text
   glyph(ctx, defs.buildings[b.kind].emoji, cx, cy, tile * 0.46)
-  drawArrow(ctx, cx, cy, b.dir, tile, tint)
+  drawArrow(ctx, cx, cy, b.dir, tile, tint, true)
   drawRouting(ctx, b, defs, cx, cy, tile, tint)
   // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
   if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
@@ -578,7 +631,7 @@ export function drawScene(
   drawFloor(ctx, state, tile, p)
   const stations: number[] = []
   for (const b of Object.values(state.buildings)) {
-    if (b.kind === 'belt') drawBelt(ctx, b.x, b.y, b.dir, b.fast, b.stalled, tile, p)
+    if (b.kind === 'belt') drawBelt(ctx, state, b.x, b.y, b.dir, b.fast, b.stalled, tile, p)
     else stations.push(b.id)
   }
   for (const id of stations) drawStation(ctx, state, defs, id, tile, p, fx)
