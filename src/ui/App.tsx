@@ -6,6 +6,7 @@ import GridCanvas from './canvas/GridCanvas.tsx'
 import DaySummary from './DaySummary.tsx'
 import { debugLog } from './debug.ts'
 import EndScreen from './EndScreen.tsx'
+import GoalTracker from './GoalTracker.tsx'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
 import { startLoop } from './loop.ts'
@@ -94,6 +95,7 @@ export default function App() {
       )}
       <div className="workspace">
         <div className="stage">
+          <GoalTracker snap={snap} defs={store.defs} />
           <OrdersStrip state={snap.state} defs={store.defs} />
           <GridCanvas store={store} ui={uiStore} />
           <TileInfo state={snap.state} defs={store.defs} ui={ui} />

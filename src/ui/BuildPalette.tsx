@@ -9,10 +9,23 @@ import type { Ctx } from './actions.ts'
 import { formatMoney } from './format.ts'
 import { labelForIndex } from './hotkeys.ts'
 import { hasFastVariant, paletteCost, paletteKinds, paletteReason } from './palette.ts'
+import type { BuildingKind } from '../sim/types.ts'
 import type { Snapshot } from './store.ts'
 import type { UiState } from './uiState.ts'
 
-export default function BuildPalette({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
+export type PaletteHover = { kind: BuildingKind; fast: boolean }
+
+export default function BuildPalette({
+  ctx,
+  snap,
+  ui,
+  onHover,
+}: {
+  ctx: Ctx
+  snap: Snapshot
+  ui: UiState
+  onHover: (h: PaletteHover | null) => void
+}) {
   const { defs } = ctx.store
   const entries = paletteKinds(defs).flatMap((kind, i) => {
     const base = { key: kind, kind, fast: false, hotkey: labelForIndex(i), name: defs.buildings[kind].name }
@@ -43,7 +56,7 @@ export default function BuildPalette({ ctx, snap, ui }: { ctx: Ctx; snap: Snapsh
           <span className="btn-main">
             <span aria-hidden="true">💰</span> Sell <kbd>X</kbd>
           </span>
-          <span className="btn-sub">{ui.tool === 'remove' ? 'Click a building' : 'Right-click also sells'}</span>
+          <span className="btn-sub">{ui.tool === 'remove' ? 'Click a building' : 'Or press X'}</span>
         </button>
       </div>
       <div className="palette">
@@ -59,6 +72,10 @@ export default function BuildPalette({ ctx, snap, ui }: { ctx: Ctx; snap: Snapsh
               aria-pressed={ui.tool === kind && (kind !== 'belt' || ui.fast === fast)}
               disabled={reason !== null}
               onClick={() => selectTool(ctx, kind, fast)}
+              onMouseEnter={() => onHover({ kind, fast })}
+              onMouseLeave={() => onHover(null)}
+              onFocus={() => onHover({ kind, fast })}
+              onBlur={() => onHover(null)}
             >
               <span className="btn-main">
                 <span className="pal-glyph" aria-hidden="true">

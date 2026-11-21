@@ -5,7 +5,7 @@
 // items jump (item positions are in tile units).
 
 import { useEffect, useRef } from 'react'
-import { beginDrag, cancelAction, endDrag, primaryAt, removeAt } from '../actions.ts'
+import { beginDrag, cancelAction, endDrag, primaryAt } from '../actions.ts'
 import { debugLog } from '../debug.ts'
 import type { GameStore } from '../store.ts'
 import type { UiStore } from '../uiState.ts'
@@ -84,8 +84,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       if (at === null) return
       ui.setCursor(at, false)
       if (e.button === 2) {
-        if (ui.get().drag !== null) cancelAction(ctxActions)
-        else removeAt(ctxActions, at)
+        // Right-click backs out one level, like Esc: drag, then tool, then selection.
+        cancelAction(ctxActions)
         return
       }
       if (e.button !== 0) return

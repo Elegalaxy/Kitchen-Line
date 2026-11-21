@@ -7,6 +7,7 @@ import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { Ctx } from './actions.ts'
 import BuildPalette from './BuildPalette.tsx'
+import type { PaletteHover } from './BuildPalette.tsx'
 import GoalsPanel from './GoalsPanel.tsx'
 import Inspector from './Inspector.tsx'
 import MenuPanel from './MenuPanel.tsx'
@@ -18,6 +19,7 @@ import type { UiState } from './uiState.ts'
 
 export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
   const [tab, setTab] = useState<SideTab>('build')
+  const [hover, setHover] = useState<PaletteHover | null>(null)
   const tabRefs = useRef<Partial<Record<SideTab, HTMLButtonElement | null>>>({})
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>): void => {
     const next = nextTab(tab, e.key)
@@ -54,8 +56,8 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
       <div role="tabpanel" id={`tabpanel-${tab}`} aria-labelledby={`tab-${tab}`} className="tabpanel">
         {tab === 'build' && (
           <>
-            <BuildPalette ctx={ctx} snap={snap} ui={ui} />
-            <Inspector ctx={ctx} snap={snap} selectedId={ui.selectedId} />
+            <BuildPalette ctx={ctx} snap={snap} ui={ui} onHover={setHover} />
+            <Inspector ctx={ctx} snap={snap} selectedId={ui.selectedId} hover={hover} />
           </>
         )}
         {tab === 'menu' && <MenuPanel ctx={ctx} snap={snap} />}

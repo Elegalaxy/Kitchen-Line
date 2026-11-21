@@ -9,6 +9,8 @@ import type { Building, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { DIR_ARROW, dirName, formatMoney, STATUS_TEXT } from './format.ts'
+import { BUILDING_INFO } from './buildingInfo.ts'
+import type { PaletteHover } from './BuildPalette.tsx'
 import type { Snapshot } from './store.ts'
 
 const TICKS_PER_SECOND = 10
@@ -70,8 +72,45 @@ function Row({ k, children }: { k: string; children: ReactNode }) {
   )
 }
 
-export default function Inspector({ ctx, snap, selectedId }: { ctx: Ctx; snap: Snapshot; selectedId: number | null }) {
+export default function Inspector({
+  ctx,
+  snap,
+  selectedId,
+  hover,
+}: {
+  ctx: Ctx
+  snap: Snapshot
+  selectedId: number | null
+  hover: PaletteHover | null
+}) {
   const { defs } = ctx.store
+  if (hover !== null) {
+    const def = defs.buildings[hover.kind]
+    const info = BUILDING_INFO[hover.kind]
+    const name = hover.fast ? 'Fast belt' : def.name
+    const cost = hover.fast && def.fast !== undefined ? def.fast.cost : def.cost
+    const tier = hover.fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
+    return (
+      <section className="panel" aria-label="Inspector">
+        <h2 className="panel-title">Inspector</h2>
+        <div className="info-card">
+          <p className="info-name">
+            <span aria-hidden="true">{hover.fast ? '⏩' : def.emoji}</span> {name}
+          </p>
+          <p className="info-what">
+            {hover.fast ? 'A faster belt: items move through it quicker. Same rules as the belt.' : info.what}
+          </p>
+          <dl className="kv">
+            <Row k="Cost">
+              <span className="num">{formatMoney(cost)}</span>
+            </Row>
+            <Row k="Tier">{tier === 'stall' ? 'Stall' : 'Restaurant'}</Row>
+            <Row k="Items">{info.inOut}</Row>
+          </dl>
+        </div>
+      </section>
+    )
+  }
   const b = selectedId === null ? undefined : snap.state.buildings[selectedId]
   if (b === undefined) {
     return (

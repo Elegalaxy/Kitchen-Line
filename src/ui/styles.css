@@ -1490,3 +1490,77 @@ kbd {
   color: var(--text-muted);
   font-size: 0.875rem;
 }
+
+/* Inspector description card while hovering a build palette entry. */
+.info-card .info-name {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.info-card .info-what {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Pinned goal tracker above the orders strip: one compact chip per goal of the current tier. */
+.goal-tracker .panel-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.goal-tracker-count {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.goal-tracker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+
+.goal-chip-head {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+.goal-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal-chip-count {
+  color: var(--text);
+}
+
+.goal-chip.done .goal-chip-count,
+.goal-tracker-done {
+  color: var(--good);
+}
+
+.goal-tracker-done {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.goal-chip .goal-bar {
+  margin-top: 0;
+}
