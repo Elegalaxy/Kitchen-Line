@@ -27,6 +27,17 @@ describe('goalsView', () => {
     expect(goalRows(s, DEFS, 'stall').find((r) => r.id === 'first-dish')?.done).toBe(true)
   })
 
+  it('shows goal 5 as dishes at 10+ out of 5 with the best day in the note', () => {
+    const s = createGame(DEFS, 'v')
+    s.tier = 'restaurant'
+    s.phase = 'build'
+    s.lastDay = structuredClone(s.today)
+    s.lastDay.byDish = { fries: { served: 12, lost: 0, sales: 3600 }, salad: { served: 10, lost: 0, sales: 4500 } }
+    const row = goalRows(s, DEFS, 'restaurant').find((r) => r.id === 'menu-5')
+    expect(row).toMatchObject({ label: 'Sell 5 different dishes, 10+ of each, in one day', text: '2 / 5', pct: 40, done: false })
+    expect(row?.note).toBe('Best day: 2 dishes at 10+ (Fries 12, Salad 10)')
+  })
+
   it('gives the upgrade a visible reason until it is available', () => {
     const s = createGame(DEFS, 'v')
     expect(upgradeView(s, DEFS).reason).toBe('Finish the stall goals first (4 left)')

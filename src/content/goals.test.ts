@@ -86,12 +86,49 @@ describe('stall goals', () => {
 })
 
 describe('restaurant goals', () => {
-  it('five dishes on the menu: 4 is not done, 5 is', () => {
+  /** Stats of a day in which each listed dish served the given number of customers. */
+  function sold(served: Record<string, number>): GameState['today'] {
+    const day = fresh().today
+    for (const [dish, n] of Object.entries(served)) day.byDish[dish] = { served: n, lost: 0, sales: n * 300 }
+    return day
+  }
+  const FIVE = { fries: 12, salad: 10, soup: 11, riceBowl: 10, sandwich: 14 }
+
+  it('sell 5 different dishes, 10+ of each, in one day: 4 dishes at 10 is not done, 5 is', () => {
+    expect(goal('menu-5').label).toBe('Sell 5 different dishes, 10+ of each, in one day')
     const s = fresh()
-    s.menu = ['a', 'b', 'c', 'd'].map((dish) => ({ dish, price: 100 }))
+    s.tier = 'restaurant'
+    s.phase = 'service'
+    s.today = sold({ ...FIVE, sandwich: 9 }) // the fifth dish is one short
     expect(goal('menu-5').check(s)).toMatchObject({ done: false, current: 4, target: 5 })
-    s.menu.push({ dish: 'e', price: 100 })
+    s.today = sold(FIVE)
     expect(goal('menu-5').check(s)).toMatchObject({ done: true, current: 5, target: 5 })
+    // Listing 5 dishes on the menu is no longer enough.
+    const listed = fresh()
+    listed.menu = ['a', 'b', 'c', 'd', 'e'].map((dish) => ({ dish, price: 100 }))
+    expect(goal('menu-5').check(listed).done).toBe(false)
+  })
+
+  it('goal 5 counts a finished day at day end (summary phase), not just the day in progress', () => {
+    const s = fresh()
+    s.phase = 'summary'
+    s.lastDay = sold(FIVE)
+    expect(goal('menu-5').check(s)).toMatchObject({ done: true, current: 5 })
+    // Between days (build phase) the last day only shows progress; it does not complete the goal.
+    s.phase = 'build'
+    expect(goal('menu-5').check(s)).toMatchObject({ done: false, current: 5 })
+    // 4 dishes on the last day is not done.
+    s.phase = 'summary'
+    s.lastDay = sold({ ...FIVE, soup: 3 })
+    expect(goal('menu-5').check(s).done).toBe(false)
+  })
+
+  it('goal 5 shows the dishes of the best day in its note', () => {
+    const s = fresh()
+    s.phase = 'build'
+    s.lastDay = sold({ fries: 12, riceBowl: 10, salad: 9 })
+    expect(goal('menu-5').check(s).note).toBe('Best day: 2 dishes at 10+ (Fries 12, Rice bowl 10)')
+    expect(goal('menu-5').check(fresh()).note).toBe('Best day: 0 dishes at 10+')
   })
 
   /** A finished day (summary phase) with the given customers, served and profit. */

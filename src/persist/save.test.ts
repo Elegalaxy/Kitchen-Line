@@ -132,6 +132,12 @@ describe('round trip', () => {
     expect(stateHash(roundTrip(s))).toBe(stateHash(s))
   })
 
+  it('still loads an old save that has the old goal 5 id (menu-5) in goalsDone', () => {
+    const s = createGame(DEFS, 'old')
+    s.goalsDone = ['first-dish', 'menu-5']
+    expect(roundTrip(s).goalsDone).toEqual(['first-dish', 'menu-5'])
+  })
+
   it('keeps the hash of an expanded restaurant that has won', () => {
     let s = createGame(DEFS, 'rest')
     s.goalsDone = ['g1']

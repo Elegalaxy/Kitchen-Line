@@ -97,6 +97,12 @@ export const RATINGS_KEPT = 50
 /** Plan Step 12: up to 20 reviews are kept per day (the lowest-rated always, plus a sample). */
 export const REVIEWS_PER_DAY = 20
 
+/**
+ * GAME_DESIGN 8 (restaurant goal 5, provisional): a dish counts toward goal 5 when it served at least this many
+ * customers in one day. Goal 5 wants RESTAURANT_MENU_TARGET (content/goals.ts) such dishes in the same day.
+ */
+export const GOAL_DISH_SALES = 10
+
 /** Plan 2.5 / GAME_DESIGN 6.1: at most this many dishes on the menu (stall 4, restaurant 6). */
 export const MENU_CAP: Record<Tier, number> = { stall: 4, restaurant: 6 }
 /** Plan 2.5: a price may be 50% to 300% of the dish's reference price, in 10-cent steps. */

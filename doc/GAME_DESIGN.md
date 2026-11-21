@@ -106,6 +106,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 ## 8. Progression and win state
 
 - Milestone goals move the player from **stall** to **small restaurant** (bigger grid, more menu slots, more customers). **[confirmed: milestone goals]** Provisional milestone examples: serve 100 dishes, reach 4★ reputation, earn a set total profit.
+- Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
 - Later tiers: restaurant → chain of branches → franchise. **[later]**
 - Franchise prestige: sell the chain and restart with a better recipe book and blueprints. **[later; confirmed as the long-term structure]**
 - The first playable ends at the restaurant tier with a "you're ready to expand" end screen. **[provisional]**
@@ -157,6 +158,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-22: Restaurant goal 5 changed (provisional numbers, no **[confirmed]** rule): from "have 5 dishes on the menu" to "sell 5 different dishes, 10+ of each, in one day" (`GOAL_DISH_SALES` = 10 in `sim/constants.ts`). The goal id `menu-5` is kept so old saves still load. Goal 6 is unchanged.
 
 - 2026-11-22: User decision after the journey simulation (rule change in 5.3, no **[confirmed]** rule): the pass shelf is non-blocking. It still holds at most 4 of each dish (`PASS_SHELF_CAP`), but a 5th copy is accepted and the oldest unsold copy of that dish is thrown away and counted as spoiled waste, instead of the dish being refused and jamming the belt. Reason: with 5 dishes sharing pass sides only 16/30 simulated runs could finish.
 

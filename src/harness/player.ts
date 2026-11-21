@@ -10,8 +10,8 @@
 //     the player saves UPGRADE_COST instead of buying more stall lines.
 //  3. Upgrade to restaurant as soon as the goals are done and the money is there.
 //  4. Restaurant tier: buy the 12x9 grid, build the sandwich line, put it on the menu (5 dishes,
-//     goal 5). When last day's fries customers gave up (patience) a second fryer line is built
-//     (column x = 9, joining the merger at (8,3)).
+//     goal 5 needs 10+ sold of each of 5 dishes in one day). When last day's fries customers gave
+//     up (patience) a second fryer line is built (column x = 9, joining the merger at (8,3)).
 //  5. Prices stay at the reference prices. Nothing is bought during service.
 //
 // Pass sides (8x6 start): W fries, N salad, S soup. The 4th side E (8,2) needs the 10x8 grid:
@@ -23,10 +23,12 @@
 //   y4-5 rice bowl (assembler (4,4)) -> belts (5..7,4), mergers (8,4) and (8,3) north, belt (8,2) west
 //   y6-8 sandwich (assembler (4,7), lettuce chopper (4,6) from the north) -> (5..7,7), (8,5..7) north into the merger (8,4)
 //   x = 9 second fryer line (pantry (9,7), chopper (9,6), fryer (9,4)) -> (9,3) west into the merger (8,3)
-// Shared side: a dish whose shelf is full (4 unsold) blocks the belt behind it, and with every line
-// out-producing demand that starves the other dish (spoilage then eats what waits). So the player
-// slows the pantries of the lines that share the east side to 80 ticks (an interval is a real
-// pantry setting); `sharedInterval: 20` shows what happens without it.
+// Shared side: since 2026-11-22 the pass shelf never blocks (a 5th copy of a dish drops the oldest
+// unsold one, counted as waste), so a full shelf can no longer starve the other lines. What is left is
+// waste: every line out-produces demand and the surplus is thrown away at the pass, which eats profit
+// (without the throttle 4 of 30 seeds never make the $300 day in 40 days). So the player still slows
+// the pantries of the lines that share the east side to 80 ticks (an interval is a real pantry
+// setting); `sharedInterval: 20` shows the unthrottled result.
 // The "cautious" variant buys one project a day and keeps a bigger cash reserve.
 // Same seed gives the same run (it only uses applyCommand and runTicks).
 
@@ -174,8 +176,7 @@ const rice = (interval: number): Project => ({
     place('assembler', 4, 4),
     recipeAt(4, 4, 'riceBowl'),
     ...belts([5, 6, 7], 4),
-    // Mergers (round-robin) instead of belts at the two joins, so a line that is blocked behind a
-    // full shelf cannot starve the other lines sharing the east side.
+    // Mergers (round-robin) instead of belts at the two joins, so the lines sharing the east side take turns.
     place('merger', 8, 4, 0),
     place('merger', 8, 3, 0),
     place('belt', 8, 2, 3),

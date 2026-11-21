@@ -114,7 +114,7 @@ All values are tuning placeholders. Ticks are at 10 ticks/s.
 | Reputation | Average of the last 50 ratings. A new game is seeded with 10 virtual ratings of 3 |
 | Profit for goals | Sales minus ingredient cost. Building and expansion spending is excluded |
 | Stall goals | (1) Serve your first dish. (2) Serve 100 dishes in total. (3) Reach 4.0★. (4) Earn $300 total profit. All four unlock "Upgrade to restaurant" for $250 |
-| Restaurant goals | (5) Have 5 dishes on the menu. (6) Earn $300 profit in a single day with ≥ 90% of customers served at ≥ 4.2★. Finishing both shows the "Ready to expand" end screen |
+| Restaurant goals | (5) Sell 5 different dishes, 10+ of each, in one day (`GOAL_DISH_SALES` = 10; changed 2026-11-22, was "have 5 dishes on the menu"; the id stays `menu-5`). (6) Earn $300 profit in a single day with ≥ 90% of customers served at ≥ 4.2★. Finishing both shows the "Ready to expand" end screen |
 
 Rough stall economy check (rewritten in Step 18 with the harness): taste splits the customers, so a dish gets only 30–45% of them (fries 0.34–0.50 depending on the menu) and a one-dish menu loses about half of the arrivals as "no match". About 51 customers a day at 3★, a 2–3 dish menu serving about 45–50 of them at about $3.50, minus about $50 ingredients (including the dishes that spoil on the shelf), gives about $100–130 a day once fries, salad and a third dish are running. Goals 2–4 take about 4 days with efficient play (3–6 across seeds), so 5–6 days for a real player. A single fryer (6 s) is busy for the whole rush from about 4★ at the stall and is clearly the bottleneck at the restaurant tier (arrival factor 1.5: it makes about 38 fries a day, orders wait 10–17 s and about 3 customers a day give up; a second fryer serves about 46 and nobody gives up). That is the intended "find and fix" moment.
 
@@ -575,6 +575,27 @@ Answers:
 Proposed changes (NOT applied; design doc first, then code, and re-run `--journey`): (1) a second pass or a pass with more input tiles (or a 2-tile pass) so 5-6 dishes do not share a side, or make a full shelf not block (the pass refuses only the shelf-full dish at the head; alternatives: oldest unsold dish of that kind is discarded as waste when a new one arrives). (2) Goal 5: "5 dishes each sold at least 10 in one day", so it needs real lines. (3) If 1 to 2 hours at 1x service is wanted: raise goal 6 to about $450 a day (needs the 14x11 grid and more throughput, not simulated), or add a later goal; today's numbers give about 40 min. (4) Give the restaurant money a sink (expansions required by a goal, or a rush that needs the second fryer: e.g. raise restaurant arrivals from 1.5 to about 2.0 so one fryer is the real limit). None of these were simulated; the numbers are starting points.
 
 Limits of this measurement: one fixed kitchen layout and policy; a human may do better (a free pass side for a second fryer, price changes) or worse; build time between days is not counted; prices were not tuned; the 6th dish (burger) was not built.
+
+#### Re-measure after the non-blocking shelf and the new goal 5 (2026-11-22)
+
+Two user decisions were applied (design doc first): the pass shelf never blocks (a 5th copy of a dish drops the oldest unsold copy, counted as spoiled waste) and goal 5 became "sell 5 different dishes, 10+ of each, in one day". `npm run sim -- --journey --seeds 30` (efficient player, same seeds):
+
+| | before (throttled) | after (throttled, 80 ticks) | before `--no-throttle` | after `--no-throttle` |
+|---|---|---|---|---|
+| Seeds that reach the end screen | 29/30 | **30/30** | 17/30 | **26/30** |
+| Upgrade day (median) | 6 | 7 | 6 | 7 |
+| Goal 5 day (median, min-max) | 10 (9-11) | 12 (10-17) | 10 | 12 (10-17) |
+| Goal 6 day (median, min-max) | 9 (7-11) | 11 (9-18) | 9 | 18 (9-38, 4 never in 40 days) |
+| End screen day (median) | 10 (9-11) | 12 (10-18) | 10 | 18 |
+| Days from the upgrade to goal 5 / goal 6 | 4 / 3 | 5 (3-10) / 4 (2-10) | 4 / 3 | 5 / 11 |
+| Service time to the end screen at 1x | 40 min | 48 min (max 72) | 40 min | 72 min |
+| Median final money | $533 | $704 | $536 | $2657 |
+| Days with a loss | 12 of 329 | 0 of 373 | 14 of 706 | 0 of 691 |
+| Dishes thrown away at the pass (all days) | 0 (63 spoiled a day on shelf and belts) | 87 a day (median 996 a seed) | n/a | 145 a day (median 2890 a seed) |
+
+Goal 5 now comes at about the same time as goal 6 (both day 11-12; goal 5 first in the seeds where the 5th line is late, goal 6 first in the others) instead of well before it, and it needs a real 5th line that sells 10 a day. No seed is unreachable with the throttle (max 18 days). The player still needs the throttle: without it the lines overproduce and the surplus is dropped at the pass, so 4 of 30 seeds never make a $300 day in 40 days (100% served, but profit $175-277 because 40-80 fries a day are made for about 30 sold).
+
+SIDE EFFECT TO DECIDE (not tuned): back-pressure used to throttle the pantries for free (a full shelf stalled the belt, so the line stopped buying ingredients). Now every pantry runs at full speed and the surplus is thrown away, so ingredient cost per day rises (single-dish `--layout ... --days 5 --seed demo`, profit over 5 days, before to after): saladLine $152 to -$20, sandwichLine $158 to -$102, friesSaladLine $390 to $268, burgerLine $115 to $76, soupLine $118 to $105, riceBowlLine $233 to $214, friesLine $278 to $271 (served is identical everywhere). The Step 18 target "no layout loses money at reference prices" no longer holds for the salad and sandwich layouts. The stall tier is slower too (median upgrade day 7, was 6; stall day profit about $20 lower). Options for the user: a pantry that stops when the belt ahead is full AND the shelf is full (keep the drop only as an overflow), a shelf that stops accepting a dish a pantry-fed line has too much of, or accept it and teach pantry intervals.
 
 ## 6. Testing summary
 

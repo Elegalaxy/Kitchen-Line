@@ -1,14 +1,14 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, journey simulation, 2026-11-22)
-- **Current Goal:** The first playable is finished (Steps 1 to 18 `done`). The whole journey (stall, upgrade, restaurant, end screen) is now simulated; remaining work is the user's playtest and the design decisions listed below.
+- **Last Updated By:** Claude (implementer, pass shelf and goal 5, 2026-11-22)
+- **Current Goal:** First playable is finished (Steps 1 to 18 `done`). Two user decisions were applied this session: non-blocking pass shelf and a rewritten goal 5. The side effect on profit needs a decision.
 - **Recent Changes & Files Touched:**
-  - New harness only (no sim/content/ui change): `src/harness/player.ts` (scripted efficient player, applyCommand only, policy documented at the top), `journey.ts` (tables), `cli.ts`/`args.ts` (`npm run sim -- --journey [--seeds N] [--cautious] [--no-throttle] [--fryer auto|always|never] [--max-days N] [--example N]`), tests `player.test.ts`, `args.test.ts`.
-  - Plan: "Journey simulation" note after Step 18 in `doc/plans/2026-11-19-first-playable.md` with the result tables and answers.
-- **Active Decisions / Constraints (journey results, 30 seeds):**
-  - Efficient player: stall goals done by day 4 (3-5), upgrade day 6 (4-7), goal 5 day 10, goal 6 day 9, end screen day 10 (9-11) = about 40 min of service at 1x, 10 min at 4x, plus build time. Below the 1-2 hour target.
-  - Goals 5 and 6 are reachable (3-4 restaurant days after the upgrade). MENU_CAP 6 fits goal 5 (no contradiction), but goal 5 only checks `menu.length >= 5`, so it needs no production line.
-  - REAL PROBLEM: the pass has 4 sides, the menu allows 6 dishes, so a 5th dish shares a pass side; a full shelf of one dish blocks the other and its items spoil. Without slowing the shared pantries to 80 ticks only 16/30 seeds finish. The single fryer is 95% busy at the restaurant tier but customers rarely give up (0.2 a day); a second fryer cannot get its own pass side and made things worse (`--fryer always`: 13/30 finish).
-  - Proposals (not applied, design doc first): second pass or non-blocking shelf; goal 5 = 5 dishes each sold 10+ in a day; goal 6 about $450 or more arrivals if 1-2 hours at 1x is wanted; a money sink after the upgrade (cash piles up, median $533 at the end).
+  - Pass shelf (`src/sim/transfer.ts`): the pass never refuses a dish; a 5th copy of a dish (PASS_SHELF_CAP 4) drops the oldest unsold copy, counted as spoiled (`wasteSpoiled`, `spoiledByItem`, `spoiled` event). `src/ui/blockReason.ts` and `buildingInfo.ts` text updated. Tests in `src/sim/customers.test.ts`.
+  - Goal 5 (`src/content/goals.ts`, `GOAL_DISH_SALES` = 10 in `src/sim/constants.ts`): "Sell 5 different dishes, 10+ of each, in one day"; id `menu-5` kept (old saves load); checks today and, at day end (summary), the last day; note lists the best day's dishes. Tests in `goals.test.ts`, `goalsView.test.ts`, `save.test.ts`.
+  - Docs: GAME_DESIGN 5.3 row, section 8 and changelog; plan 2.5 goal row and a "Re-measure" note under Journey simulation. Harness `player.ts` comments only.
+- **Active Decisions / Constraints (30-seed journey):**
+  - Throttled player: 30/30 finish (was 29/30); goal 5 day 12, goal 6 day 11, end screen day 12 (was 10, 9, 10); about 48 min of service at 1x. Goal 5 now comes about with goal 6. Without the throttle 26/30 finish (was 17/30).
+  - PROBLEM: back-pressure used to throttle pantries for free; now surplus is thrown away at the pass (about 87 dishes a day with the throttle, 145 without). Single-dish layouts lose profit: saladLine 5-day profit $152 to -$20, sandwichLine $158 to -$102, friesSaladLine $390 to $268. The Step 18 target "no layout loses money" fails for salad and sandwich. Not tuned (user said stop and report).
+  - Open proposals: pantry stops when the shelf is full, money sink after the upgrade, goal 6 about $450, second pass.
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
-- **Exact Next Step:** The user decides on the proposals above (pass sides and goal 5/6 numbers, pace target), then the design doc and numbers change and `npm run sim -- --journey --seeds 30` is re-run. The earlier playtest asks still stand: 2 days of fries then salad, judge money pace and waiting/waste clarity.
+- **Exact Next Step:** The user decides how to stop the overproduction waste (see PROBLEM) and the pace target; then change the design doc first, the numbers or rule next, and re-run `npm run sim -- --journey --seeds 30` and the layout table.

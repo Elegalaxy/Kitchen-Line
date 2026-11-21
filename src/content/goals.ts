@@ -4,9 +4,10 @@
 // (building and expansion spending is excluded). Totals only grow at day end, so the profit
 // of a day in progress is added while service is open.
 
+import { GOAL_DISH_SALES } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
-import type { GameState, GoalDef, GoalProgress } from '../sim/types.ts'
+import type { DayStats, GameState, GoalDef, GoalProgress } from '../sim/types.ts'
 
 /** Plan 2.5 stall goals. */
 export const STALL_SERVE_TARGET = 100
@@ -52,6 +53,40 @@ function bestDay(state: GameState): GoalProgress {
   }
 }
 
+/** Dishes that served at least GOAL_DISH_SALES customers in `day` (most served first), as [dish id, served]. */
+function bigSellers(day: DayStats): [string, number][] {
+  return Object.entries(day.byDish)
+    .map(([dish, v]): [string, number] => [dish, v.served])
+    .filter(([, served]) => served >= GOAL_DISH_SALES)
+    .sort((a, b) => b[1] - a[1])
+}
+
+/** "riceBowl" -> "Rice bowl". */
+function dishLabel(id: string): string {
+  const words = id.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+/**
+ * Restaurant goal 5: RESTAURANT_MENU_TARGET different dishes with GOAL_DISH_SALES or more served each, in ONE
+ * day. The day in progress counts as it happens; a finished day counts at day end only (phase `summary`, like
+ * bestDay), so a day that ended before the check is not lost. The row shows the better of today and the last day.
+ */
+function dishSales(state: GameState): GoalProgress {
+  const target = RESTAURANT_MENU_TARGET
+  const today = bigSellers(state.today)
+  const last = state.lastDay === null ? [] : bigSellers(state.lastDay)
+  const best = today.length >= last.length ? today : last
+  const done = today.length >= target || (state.phase === 'summary' && last.length >= target)
+  const sold = best.map(([dish, n]) => `${dishLabel(dish)} ${n}`).join(', ')
+  return {
+    done,
+    current: Math.min(best.length, target),
+    target,
+    note: `Best day: ${best.length} dishes at ${GOAL_DISH_SALES}+${sold === '' ? '' : ` (${sold})`}`,
+  }
+}
+
 export const GOALS: GoalDef[] = [
   {
     id: 'first-dish',
@@ -88,11 +123,11 @@ export const GOALS: GoalDef[] = [
     },
   },
   {
-    id: 'menu-5',
+    id: 'menu-5', // id kept from the old 'have 5 dishes' goal so saves with it in goalsDone still load
     tier: 'restaurant',
-    label: 'Have 5 dishes on the menu',
+    label: 'Sell 5 different dishes, 10+ of each, in one day',
     unit: 'count',
-    check: (s) => count(s.menu.length, RESTAURANT_MENU_TARGET),
+    check: dishSales,
   },
   {
     id: 'great-day',
