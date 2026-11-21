@@ -548,6 +548,34 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
     - Adjust numbers only in constants and content. Record the before and after table in Progress.
 - Acceptance: the section 8 criteria.
 
+### Journey simulation (2026-11-22, measurement only, no numbers or rules changed)
+
+`npm run sim -- --journey [--seeds 30] [--cautious] [--no-throttle] [--fryer auto|always|never]` (`src/harness/player.ts`, `journey.ts`) plays the whole first playable from the empty start with a scripted player that uses only `applyCommand`. Policy: fries on day 1, then salad, soup, rice bowl (10x8 grid) as money allows, upgrade as soon as the four stall goals are done and $250 is there, then the 12x9 grid and the sandwich line (the 5th dish); prices stay at the reference prices; a second fryer line when 2 or more fries customers gave up the day before. The pass has 4 sides at most (3 on 8x6, the east side opens with 10x8), so the 5th dish JOINS the east belt of the rice bowl through mergers. A day is 2400 ticks = 240 s at 1x (60 s at 4x). Day numbers below are the day a goal was first seen done (30 seeds, `journey-1..30`, efficient player, default options).
+
+| Milestone (day) | median | min | max |
+|---|---|---|---|
+| Stall goals: first dish / 100 served / 4.0 stars / $300 profit | 1 / 3 / 4 / 4 | 1 / 3 / 2 / 3 | 1 / 4 / 5 / 5 |
+| Upgrade to restaurant | 6 | 4 | 7 |
+| Goal 5 (5 dishes on the menu) | 10 | 9 | 11 |
+| Goal 6 ($300 day, 90% served, 4.2 stars) | 9 | 7 | 11 |
+| End screen (both done) | 10 | 9 | 11 |
+
+Cautious player (one purchase a day, $80 reserve): end screen median 11, max 13. Days from the upgrade: goal 6 median 3 (2 to 5), goal 5 median 4 (3 to 5), end screen median 4. Seed `journey-1` per day (profit, served, stars): d1 $53 53% 3.2, d2 $79 52% 3.3, d3 $106 77% 3.9 (salad), d4 $120 88% 4.1 (soup), d5 $128 81% 3.9, d6 $265 88% 4.1 (upgrade), d7 $214 83% 4.0, d8 $243 88% 4.4 (rice bowl), d9 $342 98% 4.4 (goal 6), d10 $274 100% 4.6 (sandwich, 5 dishes, end screen). After the end screen with 5 dishes the profit is a median $333 a day (min $230, max $440, 184 days, 99-100% served).
+
+Answers:
+- **(a) Goals 5 and 6 are reachable**, goal 6 on median 3 restaurant days after the upgrade (2 to 5), goal 5 on median 4. MENU_CAP restaurant is 6, so 5 dishes fit. No contradiction in the cap. Goal 6 is about the median restaurant day ($333 steady state with 5 dishes, $214-342 with 4), so it is neither trivial nor hard; $500 would not be reachable with this kitchen (max seen $440).
+- **(b) The single fryer is NOT a real bottleneck.** At the restaurant tier it makes 38.1 fries a day (cap 40, 95% busy) but only 0.20 fries customers give up a day (5% of days with 2 or more); at the stall 35.8 made and 0.01 gave up. All 30 seeds finish with one fryer (`--fryer never`: end screen median 10, 0 loss days). Adding a second fryer did not help: the kitchen has no free pass side for it, so it joins the east belt, and fries (shelf always full) then block the rice bowl and sandwich behind them. `--fryer always`: only 13 of 30 seeds reach the end screen; `--fryer auto` (build it when fries customers gave up): 29 of 30, and seed 26 never recovered in 25 days after building it (served 55%, stars 2.7 to 3.4, profit about $0). The Step 18 claim "a second fryer gives 46 served" is true for one dish line on its own pass side, not in the 5-dish kitchen. The "find and fix" moment at the restaurant tier therefore does not happen with these numbers.
+- **(c) Playtime is below the 1 to 2 hour target.** The efficient player reaches the end screen on day 10 (9-11): 40 min of service at 1x (44 max), 10 min at 4x, plus build time between days (not simulated). The stall part (to the upgrade) is 24 min at 1x. A human who builds slower, misplaces things and reads the screens might take 1.5 to 2.5 times as long, so about 1 to 1.7 hours at 1x, but with 4x the 1-2 hour target is out of reach.
+- **(d) Contradictions and blocks:**
+  1. **5 dishes need a shared pass side (real design problem).** The pass has 4 sides (3 on 8x6), the restaurant menu allows 6 dishes and goal 5 wants 5. A dish whose shelf is full (4 unsold) blocks the belt behind it, and every line out-produces demand, so the other dish starves and its items spoil on the belt. With the default pantry interval (20 ticks, `--no-throttle`) only 16 of 30 seeds finish: a 5th dish sold 0 for whole days and served fell to 74-85% with 9-24 customers giving up a day, so building the sandwich line BEFORE goal 6 can lock goal 6 out. The scripted player fixes it by slowing the pantries of the lines that share the east side to 80 ticks (a real pantry setting): then 100% served and $300-440 a day. A player has to discover that.
+  2. **Goal 5 is trivial.** It checks only `menu.length >= 5` (`content/goals.ts`): unlocking 3 recipes ($40 + $60 + $80) and listing them completes it with no production line. Goals are never un-done and the win is checked at day end, so the cheapest route is goal 6 on 4 dishes, then list a 5th dish for one day. In the runs goal 6 came first in 18 of 29 finishing seeds (same day in 8), because the 5th line is bought after the upgrade and the 12x9 grid.
+  3. Nothing is unreachable, and no day-1 problem: the one-dish day 1 serves only about 50% (taste splits demand, 19-28 no match), and day 1 to 2 already gives $53 to $79.
+- **(e) Surprises:** the cash piles up after the upgrade (median end money $533, expansions 14x11 and 16x12, fast belts, burger and a 6th menu slot are never needed), so the restaurant tier has no money sink. No negative days with the default player except the broken seeds (0 loss days with `--fryer never`, 5 of 314 with auto). No stuck state without the shared-belt problem. One seed (26) collapsed only through the second fryer; everything else ended on day 9-11.
+
+Proposed changes (NOT applied; design doc first, then code, and re-run `--journey`): (1) a second pass or a pass with more input tiles (or a 2-tile pass) so 5-6 dishes do not share a side, or make a full shelf not block (the pass refuses only the shelf-full dish at the head; alternatives: oldest unsold dish of that kind is discarded as waste when a new one arrives). (2) Goal 5: "5 dishes each sold at least 10 in one day", so it needs real lines. (3) If 1 to 2 hours at 1x service is wanted: raise goal 6 to about $450 a day (needs the 14x11 grid and more throughput, not simulated), or add a later goal; today's numbers give about 40 min. (4) Give the restaurant money a sink (expansions required by a goal, or a rush that needs the second fryer: e.g. raise restaurant arrivals from 1.5 to about 2.0 so one fryer is the real limit). None of these were simulated; the numbers are starting points.
+
+Limits of this measurement: one fixed kitchen layout and policy; a human may do better (a free pass side for a second fryer, price changes) or worse; build time between days is not counted; prices were not tuned; the 6th dish (burger) was not built.
+
 ## 6. Testing summary
 
 - Unit tests (Vitest, next to source): grid placement, belt ordering and throughput by direction, each station, logistics ratios, spoilage timing, day cycle, customers (seeded), ratings, summary hints, goals, save round-trip, perf.
@@ -604,4 +632,4 @@ Working folder for all commands: `D:\Coding\project\kitchen-line`.
 - Copy/paste of a rectangular selection with cost preview.
 - An offline catch-up using `runTicks` from `savedAt`. This is already possible because the sim is pure.
 - Per-station throughput statistics graph in the inspector.
-- Balance batch mode in the harness (many seeds, percentile report), like trading-sim Step 12.
+- Balance batch mode in the harness (many seeds, percentile report), like trading-sim Step 12. Done for the whole journey: `npm run sim -- --journey` (see the Journey simulation note after Step 18).
