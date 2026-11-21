@@ -488,6 +488,57 @@ kbd {
   white-space: nowrap;
 }
 
+.closing-slot {
+  flex-basis: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.closing-cue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 12px;
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.closing-cue .closing-note {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.btn-closing {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-closing:hover {
+  background: var(--surface);
+}
+
+.btn-closing:active {
+  transform: translateY(1px);
+}
+
+.btn-closing:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   min-height: 44px;
   padding: 0 16px;

@@ -94,7 +94,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <TopBar store={store} snap={snap} onNewGame={newGame} />
+      <TopBar ctx={ctx} store={store} snap={snap} onNewGame={newGame} />
       {snap.state.phase === 'summary' && (
         <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })} />
       )}

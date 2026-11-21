@@ -4,12 +4,12 @@
 // resumes them when the next build phase starts. It uses the same commands as the UI.
 
 import { applyCommand } from '../sim/commands.ts'
-import { DAY_TICKS } from '../sim/constants.ts'
+import { CLOSING_SOON_TICKS, DAY_TICKS } from '../sim/constants.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Defs, GameState, SimEvent } from '../sim/types.ts'
 
-/** Ticks before closing at which the player pauses the pantries (40 s at 1x). Harness choice. */
-export const PAUSE_LEAD_TICKS = 400
+/** Ticks before closing at which the player pauses the pantries: the same lead as the UI closing warning. */
+export const PAUSE_LEAD_TICKS = CLOSING_SOON_TICKS
 
 function setPaused(state: GameState, defs: Defs, paused: boolean): GameState {
   const out = applyCommand(state, defs, { type: 'setPantriesPaused', paused })

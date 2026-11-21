@@ -3,6 +3,9 @@
 
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
+import { togglePantriesAction } from './actions.ts'
+import type { Ctx } from './actions.ts'
+import { closingSoonView } from './closingSoon.ts'
 import { clockText, PHASE_TEXT, phaseKey, reputationView } from './format.ts'
 import Money from './Money.tsx'
 import SettingsMenu from './SettingsMenu.tsx'
@@ -20,11 +23,12 @@ const RUSH_BANDS = DAY_PHASE_STARTS.flatMap((p, i) => {
   return []
 })
 
-export default function TopBar({ store, snap, onNewGame }: { store: GameStore; snap: Snapshot; onNewGame: () => void }) {
+export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; store: GameStore; snap: Snapshot; onNewGame: () => void }) {
   const s = snap.state
   const phase = PHASE_TEXT[phaseKey(s)]
   const pct = (Math.min(s.dayTick, DAY_TICKS) / DAY_TICKS) * 100
   const rep = reputationView(reputationOf(s), s.repAtDayStart)
+  const closing = closingSoonView(s)
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
@@ -75,6 +79,25 @@ export default function TopBar({ store, snap, onNewGame }: { store: GameStore; s
         ))}
       </div>
       <SettingsMenu onNewGame={onNewGame} />
+      <div className="closing-slot" role="status" aria-live="polite">
+        {closing.active && (
+          <div className="closing-cue">
+            <span className="closing-text">
+              <span aria-hidden="true">⚠</span> {closing.text} <span className="num">({closing.secondsLeft} s)</span>
+            </span>
+            {closing.showPauseButton && (
+              <button type="button" className="btn-closing" onClick={() => togglePantriesAction(ctx)}>
+                <span aria-hidden="true">⏸</span> Pause pantries
+              </button>
+            )}
+            {closing.pausedNote !== null && (
+              <span className="closing-note">
+                <span aria-hidden="true">✓</span> {closing.pausedNote}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
       <div
         className="daybar"
         role="progressbar"
