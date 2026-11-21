@@ -5,7 +5,34 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { formatJourneyTable, stat } from './journey.ts'
+import { applyCommand } from '../sim/commands.ts'
+import { DAY_TICKS } from '../sim/constants.ts'
+import { PAUSE_LEAD_TICKS, resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import { runJourney } from './player.ts'
+import { buildLayoutState } from './run.ts'
+
+describe('pantry pause policy', () => {
+  it('pauses the pantries near closing, resumes them next day, and changes the run', () => {
+    const on = runJourney(DEFS, 'journey-1', { maxDays: 3 })
+    const off = runJourney(DEFS, 'journey-1', { maxDays: 3, pausePantries: false })
+    expect(on.failures).toEqual([])
+    expect(on.hash).not.toBe(off.hash)
+    // Resumed in the build phase after dismissing the summary: no pantry is left paused.
+    expect(Object.values(on.state.buildings).some((b) => b.kind === 'pantry' && b.paused === true)).toBe(false)
+  })
+
+  it('runServiceDay pauses for the last PAUSE_LEAD_TICKS ticks only', () => {
+    const start = buildLayoutState(DEFS, 'friesLine', 'demo')
+    const open = applyCommand(start, DEFS, { type: 'openService' })
+    if (!open.result.ok) throw new Error('open rejected')
+    const end = runServiceDay(open.state, DEFS, true)
+    const pantries = Object.values(end.buildings).filter((b) => b.kind === 'pantry')
+    expect(pantries.length).toBeGreaterThan(0)
+    expect(pantries.every((b) => b.paused === true)).toBe(true)
+    expect(Object.values(resumeAfterDay(end, DEFS).buildings).some((b) => b.kind === 'pantry' && b.paused === true)).toBe(false)
+    expect(PAUSE_LEAD_TICKS).toBeLessThan(DAY_TICKS)
+  })
+})
 
 describe('runJourney', () => {
   it('reaches the first goals in a few days without a rejected command', () => {

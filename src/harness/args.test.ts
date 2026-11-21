@@ -29,13 +29,14 @@ describe('parseArgs', () => {
           { dish: 'salad', price: 450 },
         ],
         speedtest: true,
+        pause: true,
       },
     })
   })
 
   it('menu and speedtest are optional', () => {
     const r = parse('--layout', 'friesLine', '--seed', 'a', '--days', '1')
-    expect(r).toEqual({ ok: true, options: { mode: 'run', layout: 'friesLine', seed: 'a', days: 1, menu: undefined, speedtest: false } })
+    expect(r).toEqual({ ok: true, options: { mode: 'run', layout: 'friesLine', seed: 'a', days: 1, menu: undefined, speedtest: false, pause: true } })
   })
 
   it('--list needs nothing else', () => {
@@ -73,13 +74,13 @@ describe('parseArgs', () => {
   it('parses journey mode with defaults and flags', () => {
     expect(parse('--journey')).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, fryer: 'auto', maxDays: 40, example: 1 },
+      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, fryer: 'auto', maxDays: 40, example: 1, pause: true },
     })
     expect(
       parse('--journey', '--seeds', '5', '--cautious', '--no-throttle', '--fryer', 'never', '--max-days', '15', '--example', '3'),
     ).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, fryer: 'never', maxDays: 15, example: 3 },
+      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, fryer: 'never', maxDays: 15, example: 3, pause: true },
     })
   })
 
@@ -90,5 +91,12 @@ describe('parseArgs', () => {
     expect(errorOf('--journey', '--fryer', 'two')).toContain('--fryer')
     expect(errorOf('--journey', '--seeds', '2', '--example', '3')).toContain('beyond')
     expect(errorOf('--journey', '--seeds')).toContain('requires a value')
+  })
+
+  it('--no-pause turns the pantry pause off in both modes', () => {
+    const run = parse('--layout', 'friesLine', '--seed', 'a', '--days', '1', '--no-pause')
+    expect(run.ok && run.options.mode === 'run' && run.options.pause).toBe(false)
+    const j = parse('--journey', '--no-pause')
+    expect(j.ok && j.options.mode === 'journey' && j.options.pause).toBe(false)
   })
 })

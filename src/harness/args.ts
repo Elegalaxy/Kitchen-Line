@@ -5,10 +5,11 @@ import type { Defs } from '../sim/types.ts'
 import type { MenuEntry } from './run.ts'
 
 export const USAGE = [
-  'usage: npm run sim -- --layout <name> --seed <text> --days <1-100> [--menu dish:cents,dish:cents] [--speedtest]',
-  '       npm run sim -- --journey [--seeds <1-200>] [--cautious] [--no-throttle] [--fryer auto|always|never] [--max-days <1-100>] [--example <n>]',
+  'usage: npm run sim -- --layout <name> --seed <text> --days <1-100> [--menu dish:cents,dish:cents] [--speedtest] [--no-pause]',
+  '       npm run sim -- --journey [--seeds <1-200>] [--cautious] [--no-throttle] [--fryer auto|always|never] [--max-days <1-100>] [--example <n>] [--no-pause]',
   '       npm run sim -- --list',
   '  --menu       dishes on the menu with prices in cents (fries:300,salad:450); default: the layout menu',
+  '  --no-pause   pause all pantries for the last 400 ticks of each day and resume them next morning by default; this turns it off',
   '  --speedtest  also print ticks per second (wall-clock time, harness only)',
   '  --list       print layouts and dishes',
   '  --journey    scripted player from the empty start to the end screen over many seeds (stall, upgrade, restaurant goals)',
@@ -27,8 +28,8 @@ export type FryerMode = 'auto' | 'always' | 'never'
 
 export type CliOptions =
   | { mode: 'list' }
-  | { mode: 'journey'; seeds: number; cautious: boolean; throttle: boolean; fryer: FryerMode; maxDays: number; example: number }
-  | { mode: 'run'; layout: string; seed: string; days: number; menu: MenuEntry[] | undefined; speedtest: boolean }
+  | { mode: 'journey'; seeds: number; cautious: boolean; throttle: boolean; fryer: FryerMode; maxDays: number; example: number; pause: boolean }
+  | { mode: 'run'; layout: string; seed: string; days: number; menu: MenuEntry[] | undefined; speedtest: boolean; pause: boolean }
 
 export type ParseResult = { ok: true; options: CliOptions } | { ok: false; error: string }
 
@@ -62,6 +63,7 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
   let journey = false
   let cautious = false
   let throttle = true
+  let pause = true
   let fryer: FryerMode = 'auto'
   let seeds = 20
   let maxDays = 40
@@ -73,6 +75,7 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
     else if (arg === '--journey') journey = true
     else if (arg === '--cautious') cautious = true
     else if (arg === '--no-throttle') throttle = false
+    else if (arg === '--no-pause') pause = false
     else if (arg === '--fryer') {
       const value = argv[i + 1]
       if (value !== 'auto' && value !== 'always' && value !== 'never') return bad(`--fryer must be auto, always or never, received ${JSON.stringify(value)}`)
@@ -116,10 +119,10 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
   if (list) return { ok: true, options: { mode: 'list' } }
   if (journey) {
     if (example > seeds) return bad(`--example ${example} is beyond --seeds ${seeds}`)
-    return { ok: true, options: { mode: 'journey', seeds, cautious, throttle, fryer, maxDays, example } }
+    return { ok: true, options: { mode: 'journey', seeds, cautious, throttle, fryer, maxDays, example, pause } }
   }
   if (layout === undefined) return bad('--layout is required')
   if (seed === undefined) return bad('--seed is required')
   if (days === undefined) return bad('--days is required')
-  return { ok: true, options: { mode: 'run', layout, seed, days, menu, speedtest } }
+  return { ok: true, options: { mode: 'run', layout, seed, days, menu, speedtest, pause } }
 }

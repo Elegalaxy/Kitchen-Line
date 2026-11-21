@@ -9,14 +9,13 @@
 // the harness outputs and hashes, so the dev helper was left as it is.
 
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
-import { DAY_TICKS } from '../sim/constants.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
 import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { applyLayout } from '../sim/layout.ts'
-import { runTicks } from '../sim/tick.ts'
+import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import type { Defs, GameState } from '../sim/types.ts'
 
 export type MenuEntry = { dish: string; price: number }
@@ -27,6 +26,8 @@ export type RunOptions = {
   days: number
   /** Dishes and prices in cents; undefined keeps the layout's own menu. */
   menu?: MenuEntry[] | undefined
+  /** Pause all pantries for the last PAUSE_LEAD_TICKS of each day (default false here; the CLI turns it on). */
+  pause?: boolean | undefined
 }
 
 export type DaySummary = {
@@ -81,12 +82,12 @@ function step(state: GameState, defs: Defs, type: 'openService' | 'dismissSummar
 }
 
 /** Run `days` full days from `start` (build phase). The input state is not mutated. */
-export function runDaysFrom(start: GameState, defs: Defs, days: number): RunResult {
+export function runDaysFrom(start: GameState, defs: Defs, days: number, pause = false): RunResult {
   let state = start
   const summaries: DaySummary[] = []
   for (let i = 0; i < days; i += 1) {
     state = step(state, defs, 'openService')
-    state = runTicks(state, defs, DAY_TICKS)
+    state = runServiceDay(state, defs, pause)
     const d = state.lastDay
     if (state.phase !== 'summary' || d === null) throw new Error(`day ${state.day} did not finish`)
     summaries.push({
@@ -103,6 +104,7 @@ export function runDaysFrom(start: GameState, defs: Defs, days: number): RunResu
       avgWaitTicks: d.served === 0 ? 0 : d.waitTicksTotal / d.served,
     })
     state = step(state, defs, 'dismissSummary')
+    state = resumeAfterDay(state, defs)
   }
   return { days: summaries, hash: stateHash(state), state }
 }
@@ -110,7 +112,7 @@ export function runDaysFrom(start: GameState, defs: Defs, days: number): RunResu
 export function runDays(defs: Defs, opts: RunOptions): RunResult {
   let state = buildLayoutState(defs, opts.layout, opts.seed)
   if (opts.menu !== undefined) state = withMenu(state, opts.menu)
-  return runDaysFrom(state, defs, opts.days)
+  return runDaysFrom(state, defs, opts.days, opts.pause === true)
 }
 
 export function formatMoney(cents: number): string {

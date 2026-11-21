@@ -13,6 +13,8 @@
 //     goal 5 needs 10+ sold of each of 5 dishes in one day). When last day's fries customers gave
 //     up (patience) a second fryer line is built (column x = 9, joining the merger at (8,3)).
 //  5. Prices stay at the reference prices. Nothing is bought during service.
+//  6. Pantries are paused for the last PAUSE_LEAD_TICKS of each day (overnight cleanup would bin
+//     what is left on the line) and resumed at the next build phase (pausePolicy.ts; `pausePantries: false` turns it off).
 //
 // Pass sides (8x6 start): W fries, N salad, S soup. The 4th side E (8,2) needs the 10x8 grid:
 // rice bowl uses it; the sandwich and the second fryer JOIN the same east column through mergers (round-robin), so three lines share one pass side (head-of-line is possible and is the thing to watch).
@@ -32,7 +34,7 @@
 // The "cautious" variant buys one project a day and keeps a bigger cash reserve.
 // Same seed gives the same run (it only uses applyCommand and runTicks).
 
-import { DAY_TICKS, PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
+import { PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
@@ -40,7 +42,7 @@ import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
 import { placeCost } from '../sim/grid.ts'
-import { runTicks } from '../sim/tick.ts'
+import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import type { Command, Defs, Dir, GameState, SimEvent } from '../sim/types.ts'
 
 export type PlayerOptions = {
@@ -52,6 +54,8 @@ export type PlayerOptions = {
   sharedInterval?: number
   /** Second fryer line: 'auto' (when fries customers gave up), 'always' (right after the upgrade) or 'never'. Default 'auto'. */
   secondFryer?: 'auto' | 'always' | 'never'
+  /** Pause all pantries for the last PAUSE_LEAD_TICKS of each day and resume them next morning. Default true. */
+  pausePantries?: boolean
 }
 
 export type DayLog = {
@@ -357,7 +361,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     if (!send(run, { type: 'openService' }, 'open')) break
     friesPatience = 0
     friesMade = 0
-    run.state = runTicks(run.state, defs, DAY_TICKS, (events: SimEvent[]) => {
+    run.state = runServiceDay(run.state, defs, opts.pausePantries !== false, (events: SimEvent[]) => {
       for (const e of events) {
         if (e.type === 'customerLeft' && e.reason === 'patience' && e.dish === 'fries') friesPatience += 1
         if (e.type === 'stationDone' && e.output === 'fries') friesMade += 1
@@ -397,6 +401,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       if (opts.continueAfterWin !== true) break
     }
     if (!send(run, { type: 'dismissSummary' }, 'dismiss')) break
+    run.state = resumeAfterDay(run.state, defs)
   }
   return {
     seed,
