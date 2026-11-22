@@ -509,6 +509,13 @@ kbd {
   font-weight: 600;
 }
 
+/* On phones the cue wraps to three lines; reserve that height so the grid does not jump. */
+@media (max-width: 600px) {
+  .closing-slot {
+    min-height: 104px;
+  }
+}
+
 .closing-cue .closing-note {
   color: var(--text);
   font-weight: 400;

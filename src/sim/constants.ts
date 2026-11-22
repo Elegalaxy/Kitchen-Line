@@ -41,10 +41,10 @@ export const ASSEMBLER_INPUT_CAP = 2
 /** Plan 2.5 / GAME_DESIGN 4: a day is 2400 ticks of service (4 min at 1x). Clock shows 11:00 to 22:00. */
 export const DAY_TICKS = 2400
 /**
- * UI only (no sim rule uses it): the closing-time warning shows in the last 400 ticks (40 s at 1x) of service,
+ * UI only (no sim rule uses it): the closing-time warning shows in the last 600 ticks (60 s at 1x) of service,
  * and the harness player pauses its pantries at the same point. GAME_DESIGN 4 (overnight cleanup).
  */
-export const CLOSING_SOON_TICKS = 400
+export const CLOSING_SOON_TICKS = 600
 /** Plan 2.5: phase start ticks within a day (GAME_DESIGN 4). Each phase runs until the next start. */
 export const DAY_PHASE_STARTS = [
   { phase: 'open', from: 0 },
