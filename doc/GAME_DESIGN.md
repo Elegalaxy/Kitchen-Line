@@ -160,7 +160,7 @@ No open questions remain for the first playable.
 
 ## 14. Changelog
 
-- 2026-11-22: Closing-time warning (UI only, no rule or number change). `CLOSING_SOON_TICKS` = 400 in `constants.ts`: in the last 400 ticks of service the top bar warns that items left on the line are thrown away and offers a one-click pantry pause; the scripted harness player pauses at the same point.
+- 2026-11-22: Closing-time warning (UI only, no rule or number change). `CLOSING_SOON_TICKS` = 600 in `constants.ts`: in the last 600 ticks (was 400; a 5-day sweep of 200, 400, 600 showed profit rises with the lead and served customers do not change) of service the top bar warns that items left on the line are thrown away and offers a one-click pantry pause; the scripted harness player pauses at the same point.
 
 - 2026-11-22: Upgrades tab (presentation, section 10, no new rule or number). Restaurant tier, kitchen expansions and recipe unlocks move off Goals and Menu onto an Upgrades tab. The fast belt stays a Build-tab tile; the new tab only shows that it unlocks with the restaurant tier.
 
