@@ -136,3 +136,8 @@ export const TICKS_PER_SECOND = 10
 
 /** Plan 2.5: "Upgrade to restaurant" costs $250 once every stall goal is done. */
 export const UPGRADE_COST = 25000
+
+/** GAME_DESIGN 9 (provisional, 2026-11-24): taste weight multiplier for the day's trending dish (restaurant tier only). */
+export const TREND_WEIGHT_FACTOR = 2
+/** GAME_DESIGN 9: a trend needs at least this many unlocked dishes to choose from. */
+export const TREND_MIN_CANDIDATES = 2

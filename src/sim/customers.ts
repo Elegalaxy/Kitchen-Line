@@ -12,6 +12,7 @@
 //      none -> lostNoMatch; waiting full -> lostFull; otherwise they join `waiting`.
 //   3. Matching: each dish on the pass shelf (oldest first) goes to the oldest waiting
 //      customer who ordered exactly that dish (a sale, economy.ts). Unmatched dishes stay.
+// At the restaurant tier the day's trending dish (trend.ts) has double taste weight; the draw count is unchanged.
 // Restaurant upgrades (upgrades.ts) scale the arrival chance, budget and patience and add waiting places.
 // Within a tick this runs after the buildings update (so a dish pushed onto the shelf this
 // tick can be sold this tick) and before `tick` and `dayTick` advance. At day end,
@@ -31,12 +32,14 @@ import {
   PREFS_MIN,
   REPUTATION_FACTOR_BASE,
   REPUTATION_FACTOR_PER_STAR,
+  TREND_WEIGHT_FACTOR,
   TIER_ARRIVAL_FACTOR,
 } from './constants.ts'
 import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
 import { rateLost, rateServed, submitRating } from './reviews.ts'
 import { nextFloat, nextInt, pickWeighted } from './rng.ts'
+import { currentTrend } from './trend.ts'
 import type { Customer, Defs, DishId, GameState, Weighted } from './types.ts'
 import { scalePercent, upgradeEffects, waitingCap } from './upgrades.ts'
 
@@ -66,7 +69,12 @@ function drawCustomer(state: GameState, defs: Defs): Customer | null {
   const dishes = Object.values(defs.dishes)
   if (dishes.length === 0) return null
   const count = Math.min(nextInt(stream, PREFS_MIN, PREFS_MAX), dishes.length)
-  const pool: Weighted<DishId>[] = dishes.map((d) => ({ value: d.id, weight: d.popularity }))
+  // Restaurant trend (trend.ts): the dish in demand has a bigger taste weight. Same number of draws.
+  const trend = currentTrend(state, defs)
+  const pool: Weighted<DishId>[] = dishes.map((d) => ({
+    value: d.id,
+    weight: d.id === trend ? d.popularity * TREND_WEIGHT_FACTOR : d.popularity,
+  }))
   const prefs: DishId[] = []
   for (let i = 0; i < count; i += 1) {
     const pick = pickWeighted(stream, pool)
