@@ -31,7 +31,7 @@ const DEFS: Defs = {
     merger: bd('merger', 800),
     filter: bd('filter', 1200),
     chopper: bd('chopper', 2500),
-    fryer: bd('fryer', 4000),
+    fryer: bd('fryer', 4000, { pro: { cost: 8000, requiresTier: 'restaurant' } }),
     stove: bd('stove', 6000),
     assembler: bd('assembler', 5000, { tiles: 2 }),
     pass: bd('pass', 0, { placeable: false }),
@@ -367,5 +367,48 @@ describe('overnight waste stats', () => {
     }
     expectRejected(damaged(s, (e) => ((e.state.today as Record<string, unknown>).wasteOvernight = 'many')), 'wasteOvernight')
     expectRejected(damaged(s, (e) => ((e.state.today as Record<string, unknown>).overnightByItem = { potato: 1.5 })), 'overnightByItem')
+  })
+})
+
+describe('pro stations', () => {
+  const fryerOf = (s: GameState) => Object.values(s.buildings).find((b) => b.kind === 'fryer')
+  const buildingsOf = (e: { state: Record<string, unknown> }): Record<string, Record<string, unknown>> =>
+    e.state.buildings as Record<string, Record<string, unknown>>
+
+  function proService(): GameState {
+    let s: GameState = { ...createGame(DEFS, 'save-pro'), tier: 'restaurant' }
+    for (const c of [east('belt', 1), east('chopper', 2), east('belt', 3), east('belt', 5), east('belt', 6)]) s = must(s, c)
+    s = must(s, { type: 'place', kind: 'fryer', x: 4, y: 2, dir: 1, config: { pro: true } })
+    s = must(s, { type: 'setMenu', dishes: ['fries', 'soup'] })
+    return runTicks(must(s, { type: 'openService' }), DEFS, 300)
+  }
+
+  it('keeps a pro fryer through a save and load', () => {
+    const s = proService()
+    const loaded = roundTrip(s)
+    expect(stateHash(loaded)).toBe(stateHash(s))
+    const f = fryerOf(loaded)
+    expect(f?.kind === 'fryer' && f.pro).toBe(true)
+    expect(stateHash(runTicks(loaded, DEFS, 200))).toBe(stateHash(runTicks(s, DEFS, 200)))
+  })
+
+  it('loads an old save whose stations have no pro field (they are base stations)', () => {
+    const s = midService()
+    const id = String(fryerOf(s)?.id)
+    const text = damaged(s, (e) => expect(buildingsOf(e)[id]).not.toHaveProperty('pro'))
+    const r = loadSave(text)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(stateHash(r.state)).toBe(stateHash(s))
+  })
+
+  it('rejects a pro value that is not true or false, and a pro chopper', () => {
+    const s = proService()
+    const id = String(fryerOf(s)?.id)
+    const set = (v: unknown) => damaged(s, (e) => (buildingsOf(e)[id].pro = v))
+    expectRejected(set('yes'), 'pro')
+    expectRejected(set(1), 'pro')
+    expect(loadSave(set(false)).ok).toBe(true)
+    const chopper = String(Object.values(s.buildings).find((b) => b.kind === 'chopper')?.id)
+    expectRejected(damaged(s, (e) => (buildingsOf(e)[chopper].pro = true)), 'pro')
   })
 })

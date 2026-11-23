@@ -21,7 +21,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\pro-stations`.
 
 ### Step 2: Sim, content, tests
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: optional `pro` flag (fryer, stove, assembler; absent unless set), `BuildingDef.pro`, `PlaceConfig` type, `stationTicks` (2/3 rounded up, `PRO_TICKS_NUM/DEN`), place cost / tier gate / refund, save validation; tests in `sim/pro.test.ts`, `save.test.ts`, `content.test.ts`. All existing hashes and fixtures unchanged.
 - Files: `src/sim/types.ts`, `constants.ts`, `grid.ts`, `commands.ts`, `stations.ts`, `src/content/buildings.ts`, `src/persist/save.ts`, tests
 - Acceptance: speed, cost, tier gating, 100% refund, save round-trip, old saves load, hashes unchanged without pro.
 

@@ -12,7 +12,7 @@
 
 import { applyCommand } from '../sim/commands.ts'
 import { buildingAt } from '../sim/grid.ts'
-import type { Building, Command, ConfigFields, Defs, GameState, RejectReason, SimEvent } from '../sim/types.ts'
+import type { Building, Command, ConfigFields, Defs, GameState, PlaceConfig, RejectReason, SimEvent } from '../sim/types.ts'
 
 export const UNDO_LIMIT = 50
 
@@ -33,7 +33,7 @@ export function isUndoable(cmd: Command): boolean {
   )
 }
 
-function configOf(b: Building): (ConfigFields & { fast?: boolean }) | undefined {
+function configOf(b: Building): PlaceConfig | undefined {
   switch (b.kind) {
     case 'belt':
       return b.fast ? { fast: true } : undefined
@@ -42,7 +42,10 @@ function configOf(b: Building): (ConfigFields & { fast?: boolean }) | undefined 
     case 'filter':
       return { filterItem: b.filterItem }
     case 'assembler':
-      return { recipe: b.recipe }
+      return { recipe: b.recipe, ...(b.pro === true ? { pro: true } : {}) }
+    case 'fryer':
+    case 'stove':
+      return b.pro === true ? { pro: true } : undefined
     default:
       return undefined
   }

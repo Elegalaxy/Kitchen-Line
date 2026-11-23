@@ -208,11 +208,17 @@ function building(v: unknown, path: string, key: string, width: number, height: 
     case 'chopper':
     case 'fryer':
     case 'stove':
+      // `pro` is only present on a pro fryer or stove (the chopper has none).
+      if (o.pro !== undefined) {
+        if (kind === 'chopper') bad(`${path}.pro`, 'a chopper has no pro variant')
+        bool(o.pro, `${path}.pro`)
+      }
       itemList(o.input, `${path}.input`)
       maybeItem(o.output, `${path}.output`)
       int(o.progress, `${path}.progress`)
       break
     case 'assembler':
+      if (o.pro !== undefined) bool(o.pro, `${path}.pro`)
       if (o.recipe !== null) str(o.recipe, `${path}.recipe`)
       for (const [id2, list] of Object.entries(obj(o.inputs, `${path}.inputs`))) itemList(list, `${path}.inputs.${id2}`)
       maybeItem(o.output, `${path}.output`)

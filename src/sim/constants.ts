@@ -33,6 +33,12 @@ export const WARMUP_TICKS = 30
 /** Plan Step 3 / 2.5: a belt moves a half-tile step every 3 ticks (fast belt: 2). */
 export const BELT_STEP_TICKS = 3
 export const FAST_BELT_STEP_TICKS = 2
+/**
+ * GAME_DESIGN 5.3 (pro stations, provisional): a pro fryer, stove or assembler needs PRO_TICKS_NUM / PRO_TICKS_DEN
+ * of the base ticks, rounded up (fryer 60 to 40, stove 60 to 40, assembler 30 to 20).
+ */
+export const PRO_TICKS_NUM = 2
+export const PRO_TICKS_DEN = 3
 /** Plan 2.5: processors hold at most 2 input items (output 1); the pass shelf holds 4 dishes. */
 export const STATION_INPUT_CAP = 2
 export const PASS_SHELF_CAP = 4

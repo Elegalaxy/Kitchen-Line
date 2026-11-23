@@ -14,7 +14,7 @@
 // Acceptance of inputs lives in transfer.ts. The tick loop skips warming stations.
 
 import { buildingAt, neighbor } from './grid.ts'
-import { ASSEMBLER_TICKS } from './constants.ts'
+import { ASSEMBLER_TICKS, PRO_TICKS_DEN, PRO_TICKS_NUM } from './constants.ts'
 import { findStationRecipe, opposite, tryInsert } from './transfer.ts'
 import type { Building, Defs, GameState } from './types.ts'
 
@@ -33,6 +33,11 @@ function pushOutput(state: GameState, defs: Defs, b: StationBuilding, moved: Set
   }
 }
 
+/** Ticks a station needs per item: the base ticks, or 2/3 of them (rounded up) for the pro variant. */
+export function stationTicks(base: number, pro: boolean | undefined): number {
+  return pro === true ? Math.ceil((base * PRO_TICKS_NUM) / PRO_TICKS_DEN) : base
+}
+
 export function stepStation(state: GameState, defs: Defs, b: StationBuilding, moved: Set<number>): void {
   pushOutput(state, defs, b, moved)
   const first = b.input[0]
@@ -44,7 +49,7 @@ export function stepStation(state: GameState, defs: Defs, b: StationBuilding, mo
       b.progress = 0
     } else {
       b.progress += 1
-      if (b.progress >= recipe.ticks) {
+      if (b.progress >= stationTicks(recipe.ticks, b.kind === 'chopper' ? undefined : b.pro)) {
         b.input.shift()
         b.progress = 0
         b.output = { id: state.nextItemId, type: recipe.output, bornTick: state.tick }
@@ -89,7 +94,7 @@ export function stepAssembler(state: GameState, defs: Defs, b: AssemblerBuilding
   const ready = needs.every((type) => (b.inputs[type]?.length ?? 0) >= 1)
   if (b.output === null && ready) {
     b.progress += 1
-    if (b.progress >= ASSEMBLER_TICKS) {
+    if (b.progress >= stationTicks(ASSEMBLER_TICKS, b.pro)) {
       for (const type of needs) b.inputs[type]?.shift()
       b.progress = 0
       b.output = { id: state.nextItemId, type: dish.id, bornTick: state.tick }

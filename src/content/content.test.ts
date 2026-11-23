@@ -53,6 +53,7 @@ describe('content', () => {
     for (const b of Object.values(DEFS.buildings)) {
       if (b.placeable) expect(isCents(b.cost), `${b.kind} cost`).toBe(true)
       if (b.fast !== undefined) expect(isCents(b.fast.cost)).toBe(true)
+      if (b.pro !== undefined) expect(isCents(b.pro.cost), `${b.kind} pro cost`).toBe(true)
     }
     for (const d of Object.values(DEFS.dishes)) {
       expect(isCents(d.refPrice), `${d.id} price`).toBe(true)
@@ -64,6 +65,13 @@ describe('content', () => {
     expect(DEFS.buildings.chopper.cost).toBe(2500)
     expect(DEFS.buildings.assembler.tiles).toBe(2)
     expect(DEFS.buildings.belt.fast).toEqual({ cost: 300, requiresTier: 'restaurant' })
+    // Pro stations (GAME_DESIGN 5.3): restaurant tier, about twice the base price; no pro chopper, belt or pantry.
+    expect(DEFS.buildings.fryer.pro).toEqual({ cost: 8000, requiresTier: 'restaurant' })
+    expect(DEFS.buildings.stove.pro).toEqual({ cost: 12000, requiresTier: 'restaurant' })
+    expect(DEFS.buildings.assembler.pro).toEqual({ cost: 10000, requiresTier: 'restaurant' })
+    for (const b of Object.values(DEFS.buildings)) {
+      if (!['fryer', 'stove', 'assembler'].includes(b.kind)) expect(b.pro, `${b.kind} has no pro`).toBeUndefined()
+    }
     expect(Object.values(DEFS.dishes).filter((d) => d.startsUnlocked).map((d) => d.id)).toEqual(['fries', 'salad'])
     expect(Object.keys(DEFS.dishes)).toHaveLength(6)
   })

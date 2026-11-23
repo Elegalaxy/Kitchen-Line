@@ -47,9 +47,12 @@ export type Building = Base &
     | { kind: 'splitter'; buf: Item | null; rr: number }
     | { kind: 'merger'; buf: Item | null; rr: number }
     | { kind: 'filter'; filterItem: ItemId | null; buf: Item | null }
-    | { kind: 'chopper' | 'fryer' | 'stove'; input: Item[]; output: Item | null; progress: number }
+    | { kind: 'chopper'; input: Item[]; output: Item | null; progress: number }
+    /** `pro` is only present (true) on the pro variant: it needs less time per item (GAME_DESIGN 5.3). */
+    | { kind: 'fryer' | 'stove'; pro?: boolean; input: Item[]; output: Item | null; progress: number }
     | {
         kind: 'assembler'
+        pro?: boolean
         recipe: DishId | null
         inputs: Record<ItemId, Item[]>
         output: Item | null
@@ -239,6 +242,8 @@ export type BuildingDef = {
   placeable: boolean
   /** Belt only: the fast variant's cost and tier. */
   fast?: { cost: number; requiresTier: Tier }
+  /** Fryer, stove and assembler only: the pro variant's cost and tier. */
+  pro?: { cost: number; requiresTier: Tier }
 }
 
 /** Station recipe: a chopper, fryer or stove turns one input into one output. */
@@ -332,6 +337,9 @@ export type ConfigFields = {
   paused?: boolean
 }
 
+/** Config of a place command: the fast belt and the pro stations are variants chosen at placement. */
+export type PlaceConfig = ConfigFields & { fast?: boolean; pro?: boolean }
+
 export type Command =
   | {
       type: 'place'
@@ -339,7 +347,7 @@ export type Command =
       x: number
       y: number
       dir: Dir
-      config?: ConfigFields & { fast?: boolean }
+      config?: PlaceConfig
     }
   | { type: 'remove'; x: number; y: number }
   | { type: 'rotate'; x: number; y: number }

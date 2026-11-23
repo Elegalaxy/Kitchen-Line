@@ -8,7 +8,7 @@ import { PANTRY_INTERVALS, PASS_MAX } from './constants.ts'
 import type {
   BuildingKind,
   Command,
-  ConfigFields,
+  PlaceConfig,
   Defs,
   Dir,
   GameState,
@@ -63,14 +63,15 @@ export function buildingAt(state: GameState, x: number, y: number): number | nul
  */
 export function configReason(
   kind: BuildingKind,
-  config: (ConfigFields & { fast?: boolean }) | undefined,
+  config: PlaceConfig | undefined,
   state: GameState,
   defs: Defs,
 ): RejectReason | null {
   if (config === undefined) return null
   if (typeof config !== 'object' || config === null) return 'invalid config'
-  const { ingredient, interval, filterItem, recipe, fast, paused } = config
+  const { ingredient, interval, filterItem, recipe, fast, paused, pro } = config
   if (fast !== undefined && (typeof fast !== 'boolean' || kind !== 'belt')) return 'invalid config'
+  if (pro !== undefined && (typeof pro !== 'boolean' || !PRO_KINDS.includes(kind))) return 'invalid config'
   if (ingredient !== undefined) {
     if (kind !== 'pantry') return 'invalid config'
     const def = typeof ingredient === 'string' ? defs.items[ingredient] : undefined
@@ -97,10 +98,14 @@ export function configReason(
   return null
 }
 
-/** Cost in cents of placing this command (fast belts cost more). */
+/** Building kinds that have a pro variant (GAME_DESIGN 5.3). */
+export const PRO_KINDS: readonly BuildingKind[] = ['fryer', 'stove', 'assembler']
+
+/** Cost in cents of placing this command (fast belts and pro stations cost more). */
 export function placeCost(defs: Defs, cmd: PlaceCommand): number {
   const def = defs.buildings[cmd.kind]
   if (cmd.kind === 'belt' && cmd.config?.fast === true && def.fast !== undefined) return def.fast.cost
+  if (cmd.config?.pro === true && def.pro !== undefined) return def.pro.cost
   return def.cost
 }
 
@@ -115,7 +120,10 @@ export function canPlace(state: GameState, defs: Defs, cmd: PlaceCommand): Rejec
   if (cfg !== null) return cfg
   const fast = cmd.kind === 'belt' && cmd.config?.fast === true
   if (fast && def.fast === undefined) return 'invalid config'
-  const tier = fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
+  const pro = cmd.config?.pro === true
+  if (pro && def.pro === undefined) return 'invalid config'
+  const tier =
+    fast && def.fast !== undefined ? def.fast.requiresTier : pro && def.pro !== undefined ? def.pro.requiresTier : def.requiresTier
   if (tier === 'restaurant' && state.tier !== 'restaurant') return 'locked by tier'
   if (cmd.kind === 'pass' && countKind(state, 'pass') >= PASS_MAX) return 'pass limit'
   const tiles = footprint(cmd.kind, cmd.x, cmd.y, cmd.dir)

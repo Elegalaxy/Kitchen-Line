@@ -33,6 +33,7 @@ import type {
   Command,
   CommandResult,
   ConfigFields,
+  PlaceConfig,
   Defs,
   Dir,
   GameState,
@@ -78,6 +79,7 @@ export function countItems(b: Building): number {
 function refundOf(defs: Defs, b: Building): number {
   const def = defs.buildings[b.kind]
   if (b.kind === 'belt' && b.fast && def.fast !== undefined) return def.fast.cost
+  if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true && def.pro !== undefined) return def.pro.cost
   return def.cost
 }
 
@@ -128,10 +130,11 @@ function setPaused(b: Building, paused: boolean): void {
 }
 
 /** Apply already-validated config fields to a (cloned) building. Returns destroyed item count. */
-function applyConfig(b: Building, config: (ConfigFields & { fast?: boolean }) | undefined): number {
+function applyConfig(b: Building, config: PlaceConfig | undefined): number {
   if (config === undefined) return 0
   let destroyed = 0
   if (b.kind === 'belt' && config.fast === true) b.fast = true
+  if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && config.pro === true) b.pro = true
   if (b.kind === 'pantry') {
     if (config.ingredient !== undefined) b.ingredient = config.ingredient
     if (config.interval !== undefined) b.interval = config.interval

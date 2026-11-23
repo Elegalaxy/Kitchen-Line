@@ -1,6 +1,6 @@
 // Building defs. Costs in cents are provisional (GAME_DESIGN 5.3 and 7, plan 2.5).
 // The first pass is pre-placed; a second one can be bought at the restaurant tier. The fast belt is a belt variant that needs
-// the restaurant tier.
+// the restaurant tier; the pro fryer, stove and assembler are the same kind of variant at about twice the price (GAME_DESIGN 5.3).
 
 import type { BuildingDef, BuildingKind } from '../sim/types.ts'
 
@@ -20,8 +20,26 @@ const list: BuildingDef[] = [
   { kind: 'merger', name: 'Merger', emoji: '🔁', cost: 800, requiresTier: 'stall', tiles: 1, placeable: true },
   { kind: 'filter', name: 'Filter', emoji: '🔍', cost: 1200, requiresTier: 'stall', tiles: 1, placeable: true },
   { kind: 'chopper', name: 'Chopper', emoji: '🔪', cost: 2500, requiresTier: 'stall', tiles: 1, placeable: true },
-  { kind: 'fryer', name: 'Fryer', emoji: '🍳', cost: 4000, requiresTier: 'stall', tiles: 1, placeable: true },
-  { kind: 'stove', name: 'Stove', emoji: '🔥', cost: 6000, requiresTier: 'stall', tiles: 1, placeable: true },
+  {
+    kind: 'fryer',
+    name: 'Fryer',
+    emoji: '🍳',
+    cost: 4000,
+    requiresTier: 'stall',
+    tiles: 1,
+    placeable: true,
+    pro: { cost: 8000, requiresTier: 'restaurant' },
+  },
+  {
+    kind: 'stove',
+    name: 'Stove',
+    emoji: '🔥',
+    cost: 6000,
+    requiresTier: 'stall',
+    tiles: 1,
+    placeable: true,
+    pro: { cost: 12000, requiresTier: 'restaurant' },
+  },
   {
     kind: 'assembler',
     name: 'Assembler',
@@ -30,6 +48,7 @@ const list: BuildingDef[] = [
     requiresTier: 'stall',
     tiles: 2,
     placeable: true,
+    pro: { cost: 10000, requiresTier: 'restaurant' },
   },
   { kind: 'bin', name: 'Bin', emoji: '🗑️', cost: 500, requiresTier: 'stall', tiles: 1, placeable: true },
   // GAME_DESIGN 5.3: the first pass is pre-placed (createGame, free); one extra pass ($400) is for sale at the
