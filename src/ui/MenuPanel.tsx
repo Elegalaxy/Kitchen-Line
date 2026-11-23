@@ -22,6 +22,7 @@ import { centsToInput } from './money.ts'
 import { recipeSteps } from './recipeView.ts'
 import type { RecipeStep } from './recipeView.ts'
 import type { Snapshot } from './store.ts'
+import { trendView } from './trendView.ts'
 
 function PriceInput({ ctx, row, disabled }: { ctx: Ctx; row: MenuRow; disabled: boolean }) {
   const [draft, setDraft] = useState<string | null>(null)
@@ -118,9 +119,11 @@ function Row({
   readOnly,
   recipeOpen,
   onToggleRecipe,
+  trending,
 }: {
   ctx: Ctx
   row: MenuRow
+  trending: boolean
   readOnly: boolean
   recipeOpen: boolean
   onToggleRecipe: (id: string) => void
@@ -150,6 +153,11 @@ function Row({
       <td className="cell-dish" role="cell">
         <span className="dish-name">
           <span aria-hidden="true">{row.emoji}</span> {row.name}
+          {trending && (
+            <span className="trend-tag" title="In demand today: 2x taste weight">
+              <span aria-hidden="true">🔥</span> Trend
+            </span>
+          )}
         </span>
         <button
           type="button"
@@ -213,6 +221,7 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
     setOpenRecipe(next)
   }
 
+  const trend = trendView(snap.state, ctx.store.defs)
   const full = view.count >= view.cap
   const lockedLeft = view.rows.some((row) => row.locked)
   return (
@@ -227,6 +236,14 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
         {view.note === null ? 'Edit the menu and prices, then open for service.' : `🔒 ${view.note}`}
         {lockedLeft ? ' Locked dishes are on the Upgrades tab.' : ''}
       </p>
+      {trend !== null && (
+        <div className="trend-banner" role="status">
+          <p className="trend-text">
+            <span aria-hidden="true">🔥</span> {trend.text}
+          </p>
+          <p className="trend-hint">{trend.hint ?? (trend.onMenu ? 'On your menu.' : ' ')}</p>
+        </div>
+      )}
       <table className="menu-table" role="table" aria-label="Dishes" ref={tableRef}>
         <thead className="sr-only" role="rowgroup">
           <tr role="row">
@@ -248,6 +265,7 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
               readOnly={view.readOnly}
               recipeOpen={openRecipe === row.id}
               onToggleRecipe={toggleRecipe}
+              trending={trend?.dish === row.id}
             />
           ))}
         </tbody>

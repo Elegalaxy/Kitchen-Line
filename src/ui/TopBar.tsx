@@ -11,6 +11,7 @@ import Money from './Money.tsx'
 import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
+import { trendView } from './trendView.ts'
 
 const SPEED_LABEL: Record<Speed, string> = { 0: 'Pause', 1: '1×', 2: '2×', 4: '4×' }
 
@@ -29,6 +30,7 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
   const pct = (Math.min(s.dayTick, DAY_TICKS) / DAY_TICKS) * 100
   const rep = reputationView(reputationOf(s), s.repAtDayStart)
   const closing = closingSoonView(s)
+  const trend = trendView(s, ctx.store.defs)
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
@@ -56,6 +58,15 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
         <dt>Time</dt>
         <dd className="num clock">{clockText(s.dayTick)}</dd>
       </dl>
+      {trend !== null && (
+        <dl className="stat stat-trend" title={`${trend.text}. Add it to the menu to catch the demand.`}>
+          <dt>Trend</dt>
+          <dd>
+            <span aria-hidden="true">🔥</span> {trend.short}
+            <span className="sr-only">: {trend.text}</span>
+          </dd>
+        </dl>
+      )}
       <span className="phase-badge" role="status" aria-label={`Phase: ${phase.word}`}>
         <span aria-hidden="true">{phase.icon}</span> {phase.word}
       </span>
