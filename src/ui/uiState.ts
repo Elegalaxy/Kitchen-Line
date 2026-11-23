@@ -8,8 +8,8 @@ import type { BuildingKind, Dir } from '../sim/types.ts'
 import type { Point } from '../sim/grid.ts'
 import type { SideTab } from './sideTabs.ts'
 
-/** A building kind to place, 'remove' (sell mode) or null (select mode). */
-export type Tool = BuildingKind | 'remove' | null
+/** A building kind to place, 'remove' (sell mode), 'pause' (click pantries) or null (select mode). */
+export type Tool = BuildingKind | 'remove' | 'pause' | null
 export type Toast = { id: number; text: string; tone: 'bad' | 'info' }
 
 export type UiState = {

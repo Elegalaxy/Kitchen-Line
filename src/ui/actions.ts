@@ -36,7 +36,7 @@ export function selectTool(ctx: Ctx, tool: Tool, fast = false): void {
     ui.set({ tool: null, drag: null })
     return
   }
-  if (tool !== null && tool !== 'remove') {
+  if (tool !== null && tool !== 'remove' && tool !== 'pause') {
     const why = paletteReason(store.getState(), store.defs, tool, useFast)
     if (why !== null) {
       const name = useFast ? 'Fast belt' : store.defs.buildings[tool].name
@@ -50,7 +50,7 @@ export function selectTool(ctx: Ctx, tool: Tool, fast = false): void {
 export function placeAt(ctx: Ctx, at: Point): boolean {
   const { ui, store } = ctx
   const tool = ui.get().tool
-  if (tool === null || tool === 'remove') return false
+  if (tool === null || tool === 'remove' || tool === 'pause') return false
   const hint = tutorialHints(store.getState()).find((h) => h.kind === tool && h.x === at.x && h.y === at.y)
   const dir = hint?.dir ?? ui.get().dir
   const config: ConfigFields & { fast?: boolean } = {}
@@ -81,11 +81,26 @@ export function selectAt(ctx: Ctx, at: Point): void {
   ctx.ui.set({ selectedId: id === ctx.ui.get().selectedId ? null : id })
 }
 
-/** Click on a tile (not a belt drag): select, sell or place depending on the tool. */
+/** Toggle the pantry covering `at`. Stays in pause mode so the next click can hit another pantry. */
+export function pauseAt(ctx: Ctx, at: Point): boolean {
+  const state = ctx.store.getState()
+  const id = buildingAt(state, at.x, at.y)
+  const b = id === null ? undefined : state.buildings[id]
+  if (b === undefined || b.kind !== 'pantry') {
+    ctx.ui.showToast('Click a pantry')
+    return false
+  }
+  const paused = b.paused !== true
+  debugLog('[ui]', 'pantry pause click', b.x, b.y, paused ? 'pause' : 'resume')
+  return report(ctx, ctx.store.dispatch({ type: 'configure', x: b.x, y: b.y, paused }))
+}
+
+/** Click on a tile (not a belt drag): select, sell, pause or place depending on the tool. */
 export function primaryAt(ctx: Ctx, at: Point): void {
   const tool = ctx.ui.get().tool
   if (tool === null) selectAt(ctx, at)
   else if (tool === 'remove') removeAt(ctx, at)
+  else if (tool === 'pause') pauseAt(ctx, at)
   else placeAt(ctx, at)
 }
 
@@ -129,7 +144,7 @@ function targetBuilding(ctx: Ctx): { id: number; at: Point } | null {
 export function rotateAction(ctx: Ctx): void {
   const { ui, store } = ctx
   const tool = ui.get().tool
-  if (tool !== null && tool !== 'remove') {
+  if (tool !== null && tool !== 'remove' && tool !== 'pause') {
     ui.set({ dir: ((ui.get().dir + 1) % 4) as Dir })
     return
   }

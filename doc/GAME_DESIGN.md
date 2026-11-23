@@ -59,7 +59,7 @@ Building happens while service is paused or running. **[provisional: building is
 
 | Building | Function | Provisional notes |
 | --- | --- | --- |
-| Pantry (input) | Emits one ingredient type at a set rate; costs money per item | Stocked automatically; cost charged on emit. It can be paused and resumed by the player (one pantry in the Inspector, or all pantries at once); a paused pantry emits nothing, charges nothing and keeps its cooldown frozen, in any phase (2026-11-22) |
+| Pantry (input) | Emits one ingredient type at a set rate; costs money per item | Stocked automatically; cost charged on emit. It can be paused and resumed by the player (one pantry in the Inspector, all pantries at once, or Pause one by one then a click on each pantry); a paused pantry emits nothing, charges nothing and keeps its cooldown frozen, in any phase (2026-11-22, click mode 2026-11-23) |
 | Conveyor | Moves items one tile per N ticks | Base speed; faster belt is an upgrade |
 | Splitter / merger | Splits one lane into two, or merges two into one | Round-robin |
 | Filter | Sends one item type left, the rest straight | Needed once the line carries several ingredients |
@@ -171,6 +171,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-23: Pantry pause click mode (section 5.3, no new rule). Build has "Pause one by one": each click on a pantry toggles it, so several can be stopped without opening the Inspector. Hovering a build item no longer replaces the Inspector while a building is selected.
 
 - 2026-11-23: User approved the "Restaurant growth" slice (plan doc/plans/2026-11-23-restaurant-growth.md; no **[confirmed]** rule changed): a second pass at the restaurant tier ($400, 5.3), restaurant arrival factor 1.5 to 2.0 (6.2), four restaurant upgrades (new 6.4, brought forward from **[later]** decor), restaurant goal 7 and the end screen after it (8).
 

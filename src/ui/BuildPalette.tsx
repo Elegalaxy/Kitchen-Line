@@ -73,6 +73,17 @@ export default function BuildPalette({
         </span>
         <span className="btn-sub">{pantries.disabledReason ?? pantries.summary}</span>
       </button>
+      <button
+        type="button"
+        className="btn pause-all-btn"
+        aria-pressed={ui.tool === 'pause'}
+        onClick={() => selectTool(ctx, 'pause')}
+      >
+        <span className="btn-main">
+          <span aria-hidden="true">⏸</span> {ui.tool === 'pause' ? 'Clicking pantries' : 'Pause one by one'}
+        </span>
+        <span className="btn-sub">{ui.tool === 'pause' ? 'Click each pantry. Esc to stop.' : 'Then click pantries on the grid'}</span>
+      </button>
       <div
         className="palette"
         onMouseLeave={() => onHover(null)}

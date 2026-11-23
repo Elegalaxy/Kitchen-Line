@@ -56,7 +56,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
         {tab === 'build' && (
           <>
             <BuildPalette ctx={ctx} snap={snap} ui={ui} onHover={setHover} />
-            <Inspector ctx={ctx} snap={snap} selectedId={ui.selectedId} hover={hover} />
+            <Inspector ctx={ctx} snap={snap} selectedId={ui.selectedId} hover={ui.selectedId === null ? hover : null} />
           </>
         )}
         {tab === 'menu' && <MenuPanel ctx={ctx} snap={snap} />}

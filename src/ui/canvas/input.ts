@@ -152,6 +152,20 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
     }
     return o
   }
+  if (ui.tool === 'pause') {
+    if (underId !== null) {
+      const b = state.buildings[underId]
+      o.hover = footprintOf(state, underId)
+      o.clickable = b.kind === 'pantry'
+      if (b.kind === 'pantry') {
+        o.label = { text: b.paused === true ? 'Resume' : 'Pause', ok: true }
+      } else {
+        o.hoverBad = true
+        o.label = { text: '✕ Click a pantry', ok: false }
+      }
+    }
+    return o
+  }
 
   const kind = ui.tool
   if (kind === 'belt' && ui.drag !== null) {

@@ -35,6 +35,7 @@ function isGrid(target: EventTarget | null): boolean {
 /** One line under the grid saying what the current tool does and which keys apply. */
 function hintFor(defs: Defs, ui: UiState): string {
   if (ui.tool === 'remove') return 'Sell mode: click a building to sell it (100% refund). Esc to cancel.'
+  if (ui.tool === 'pause') return 'Pause mode: click each pantry to pause or resume it. Esc to cancel.'
   if (ui.tool === null) {
     return 'Select mode: click a building to inspect it, or pick a building from the build palette. Keyboard: focus the grid, arrow keys move, Enter acts.'
   }
