@@ -74,6 +74,10 @@ export function formatJourneyTable(results: JourneyResult[]): string[] {
   after('days from the upgrade to goal 6 ($300 day)', (r) => r.goalDay['great-day'] ?? null)
   after('days from the upgrade to goal 7 (restaurant profit)', (r) => r.goalDay['restaurant-profit'] ?? null)
   after('days from the upgrade to the end screen', (r) => r.wonDay)
+  const proDay = stat(results.map((r) => r.proFryerDay))
+  if (proDay !== null) {
+    lines.push(`pro fryer bought on day: median ${proDay.median}, min ${proDay.min}, max ${proDay.max} (${proDay.n} of ${results.length} seeds)`)
+  }
   const spent = stat(results.map((r) => (r.upgradeDay === null ? null : Math.round(r.restaurantSpent / 100))))
   if (spent !== null) {
     lines.push(`cash spent at the restaurant tier (grids, lines, passes, upgrades): median $${spent.median}, min $${spent.min}, max $${spent.max} (${spent.n} seeds)`)

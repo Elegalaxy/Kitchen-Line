@@ -34,7 +34,18 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\pro-stations`.
 
 ### Step 4: Harness and measurement
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `runJourney` option `pro` (default on), CLI `--no-pro`, `proFryerDay` in the result, journey line "pro fryer bought on day". Policy: at the restaurant tier, the day after 2+ fries customers gave up, the player sells the fries fryer (100% refund) and places a pro fryer in the same tile; the second fryer line (auto mode) only follows on a later day if fries customers still give up.
+
+Measured with `npm run sim -- --journey --seeds 20` on this branch (main at a9b923c, which already includes the daily trends slice; the baseline end screen is therefore day 19, not the day 18 of the restaurant-growth plan):
+
+| Variant | End screen median (min-max), mean | Reached | Loss days | Pro fryer day (median) | Fries customers gave up a day, restaurant tier, single fryer |
+| --- | --- | --- | --- | --- | --- |
+| `--no-pro` (identical output to before this slice) | 19 (17-21), 19.15 | 20/20 | 0 of 383 | n/a | 3.09 (42% of days with 2+) |
+| pro fryer on (default) | 19 (17-20), 18.7 | 20/20 | 0 of 374 | 8 (6-11) | 1.63 (30% of days with 2+) |
+
+Findings: the pro fryer saves about half a day on average (total days 383 to 374, max 21 to 20) and removes about half of the fries walk-outs; the median end-screen day stays 19. Median cash spent at the restaurant tier $2895 to $2935 (the swap costs $40 net). `--no-pro` journey output (from the second line on) is byte-identical to the run before the harness change, and the 7 layouts `npm run sim -- --layout <name> --seed demo --days 5` are byte-identical before and after (no pro building is placed in them).
+
 - What changes: the scripted player buys a pro fryer when the fryer is the bottleneck; `--no-pro` turns it off.
 - Acceptance: 20/20 journey seeds reach the end screen, 0 loss days, 7 layouts `--days 5` byte-identical to before.
 

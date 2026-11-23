@@ -37,6 +37,9 @@
 // the merger (8,3), so the fries stop sharing the east side. `pass2: false` keeps the old west join. Once every
 // dish line is built the player buys the restaurant upgrades in the order tables, sign, music, plates
 // whenever the cash reserve is kept (`upgrades: false` turns that off).
+// Pro stations (2026-11-24): at the restaurant tier, the first day after fries customers gave up (2 or more) the
+// player swaps the fries fryer for a pro fryer (sell the base one at 100%, place the pro one in the same tile); only
+// if fries customers still give up on a later day does the second fryer line follow. `pro: false` turns it off.
 // Same seed gives the same run (it only uses applyCommand and runTicks).
 
 import { PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
@@ -46,7 +49,7 @@ import { profitOf } from '../sim/economy.ts'
 import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
-import { placeCost } from '../sim/grid.ts'
+import { buildingAt, placeCost } from '../sim/grid.ts'
 import { currentTrend } from '../sim/trend.ts'
 import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import type { Command, Defs, Dir, GameState, SimEvent } from '../sim/types.ts'
@@ -66,6 +69,8 @@ export type PlayerOptions = {
   upgrades?: boolean
   /** Buy a second pass for the second fryer line. Default true. */
   pass2?: boolean
+  /** Swap the fries fryer for a pro fryer when fries customers gave up (restaurant tier). Default true. */
+  pro?: boolean
 }
 
 export type DayLog = {
@@ -105,6 +110,8 @@ export type JourneyResult = {
   /** Day (state.day when first seen done) per goal id; null when never done. */
   goalDay: Record<string, number | null>
   upgradeDay: number | null
+  /** Day the pro fryer was bought, or null. */
+  proFryerDay: number | null
   wonDay: number | null
   /** Cents spent on buildings, recipes, grids and restaurant upgrades while at the restaurant tier. */
   restaurantSpent: number
@@ -264,6 +271,9 @@ const UPGRADE_ORDER = ['tables', 'sign', 'music', 'plates']
 const priority = (interval: number): Project[] => [FRIES, SALAD, SOUP, rice(interval), sandwich(interval)]
 const MENU_ORDER = ['fries', 'salad', 'soup', 'riceBowl', 'sandwich']
 
+/** The fries fryer of the first line (FRIES project) and its facing. */
+const FRYER_POS = { x: 4, y: 2 } as const
+
 const BASE_RESERVE = 2000
 const CAUTIOUS_RESERVE = 8000
 
@@ -314,6 +324,16 @@ function buildProject(run: Run, p: Project, bought: string[]): boolean {
   return true
 }
 
+/** Sell the base fryer of the fries line and place a pro fryer in its tile (same facing, nothing else changes). */
+function swapToProFryer(run: Run): boolean {
+  const id = buildingAt(run.state, FRYER_POS.x, FRYER_POS.y)
+  const old = id === null ? undefined : run.state.buildings[id]
+  if (old === undefined || old.kind !== 'fryer' || old.pro === true) return false
+  const dir = old.dir
+  if (!send(run, { type: 'remove', x: FRYER_POS.x, y: FRYER_POS.y }, 'pro fryer')) return false
+  return send(run, { type: 'place', kind: 'fryer', x: FRYER_POS.x, y: FRYER_POS.y, dir, config: { pro: true } }, 'pro fryer')
+}
+
 function syncMenu(run: Run, built: Set<string>): void {
   const cap = run.state.tier === 'restaurant' ? 6 : 4
   const want = MENU_ORDER.filter((d) => built.has(d)).slice(0, cap)
@@ -327,6 +347,9 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   const maxDays = opts.maxDays ?? 40
   const PRIORITY = priority(opts.sharedInterval ?? 80)
   const usePass2 = opts.pass2 !== false
+  const usePro = opts.pro !== false
+  let proFryer = false
+  let proFryerDay: number | null = null
   const FRIES2 = fries2(opts.sharedInterval ?? 80, usePass2)
   const run: Run = { state: createGame(defs, seed), defs, failures: [] }
   const built = new Set<string>()
@@ -380,7 +403,20 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       }
     }
     // Second fryer when fries customers gave up yesterday (restaurant tier).
-    const wantFryer2 = secondFryer === 'always' || (secondFryer === 'auto' && lastFriesPatience >= 2)
+    // Pro fryer first (net cost: the pro price minus the 100% refund of the base fryer); the second line only
+    // follows when fries customers still gave up after the pro fryer was in place (an earlier day).
+    const proBeforeToday = proFryer
+    if (usePro && !proFryer && run.state.tier === 'restaurant' && lastFriesPatience >= 2 && !(cautious && spent)) {
+      const proCost = defs.buildings.fryer.pro?.cost ?? 0
+      if (run.state.money - (proCost - defs.buildings.fryer.cost) >= reserveNow() && swapToProFryer(run)) {
+        proFryer = true
+        spent = true
+        bought.push('pro:fryer')
+        proFryerDay ??= run.state.day
+      }
+    }
+    const wantFryer2 =
+      secondFryer === 'always' || (secondFryer === 'auto' && lastFriesPatience >= 2 && (!usePro || proBeforeToday))
     if (run.state.tier === 'restaurant' && wantFryer2 && !(cautious && spent)) {
       if (usePass2 && tryBuild(PASS2, bought) === 'built') spent = true
       if (tryBuild(FRIES2, bought) === 'built') spent = true
@@ -463,6 +499,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     days,
     goalDay,
     upgradeDay,
+    proFryerDay,
     wonDay,
     restaurantSpent,
     finalMoney: run.state.money,

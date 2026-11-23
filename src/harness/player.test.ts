@@ -89,6 +89,20 @@ describe('runJourney', () => {
   }, 30_000)
 })
 
+describe('pro fryer', () => {
+  it('swaps the fries fryer for a pro fryer after fries customers gave up, and --no-pro never does', () => {
+    const r = runJourney(DEFS, 'journey-1', { maxDays: 30 })
+    expect(r.proFryerDay).not.toBeNull()
+    expect(r.days.filter((d) => d.bought.includes('pro:fryer'))).toHaveLength(1)
+    const fryer = r.state.buildings[r.state.tiles[2 * r.state.width + 4] as number]
+    expect(fryer).toMatchObject({ kind: 'fryer', pro: true })
+    expect(r.failures).toEqual([])
+    const off = runJourney(DEFS, 'journey-1', { maxDays: 30, pro: false })
+    expect(off.proFryerDay).toBeNull()
+    expect(Object.values(off.state.buildings).some((b) => b.kind === 'fryer' && b.pro === true)).toBe(false)
+  }, 60_000)
+})
+
 describe('journey table', () => {
   it('stat takes the lower median and ignores nulls', () => {
     expect(stat([3, null, 1, 2, 10])).toEqual({ median: 2, min: 1, max: 10, n: 4 })
