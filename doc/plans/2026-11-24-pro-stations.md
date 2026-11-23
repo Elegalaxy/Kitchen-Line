@@ -1,0 +1,42 @@
+# Pro stations (roadmap R5)
+
+Status: approved roadmap item (2026-11-24). A second kitchen money sink at the restaurant tier: faster variants of the fryer, stove and assembler.
+
+Design (provisional numbers, GAME_DESIGN 5.3):
+- Pro variant = optional `pro: true` flag on the fryer, stove and assembler (same pattern as the fast belt's `fast`, and as the pantry's `paused`: the field is absent unless set, so no hash changes without a pro building). The chopper has no pro variant.
+- Speed: a pro station needs 2/3 of the base ticks, rounded up (fryer 60 to 40, stove 60 to 40, assembler 30 to 20). `PRO_TICKS_NUM` / `PRO_TICKS_DEN` in `sim/constants.ts`.
+- Cost: about 2x the base building, in `content/buildings.ts` (`pro: { cost, requiresTier: 'restaurant' }`): fryer $80, stove $120, assembler $100. Selling refunds 100% of the pro price.
+- Unlock: the fast belt has no purchase in the Upgrades tab (it is only tier-gated and placed from Build, the tab just says when it unlocks). The pro stations mirror that exactly: restaurant tier, placed from the Build tab as "Pro fryer" / "Pro stove" / "Pro assembler" entries after their base tile; the Upgrades tab shows a "Pro stations" status section.
+
+Rules for every step: one commit per step after `npm run typecheck`, `npm run lint` and `npx vitest run --exclude src/harness/perf.test.ts` pass. Stall-tier hashes and fixtures stay unchanged. New fields optional, validated in `src/persist/save.ts` when present, no save version bump. Status values: `todo`, `done`, `verified`.
+
+Working folder: `D:\Coding\project\Kitchen-Line-worktrees\pro-stations`.
+
+### Step 1: Design doc
+
+- Status: `done`
+- Progress: 2026-11-24: GAME_DESIGN 5.3 row, section 10 note and changelog written.
+- Files: `doc/GAME_DESIGN.md`
+- What changes: 5.3 (pro stations row), 10 (Upgrades tab note), changelog.
+
+### Step 2: Sim, content, tests
+
+- Status: `todo`
+- Files: `src/sim/types.ts`, `constants.ts`, `grid.ts`, `commands.ts`, `stations.ts`, `src/content/buildings.ts`, `src/persist/save.ts`, tests
+- Acceptance: speed, cost, tier gating, 100% refund, save round-trip, old saves load, hashes unchanged without pro.
+
+### Step 3: UI and canvas
+
+- Status: `todo`
+- Files: `src/ui/palette.ts`, `BuildPalette.tsx`, `actions.ts`, `canvas/input.ts`, `canvas/draw.ts`, `Inspector.tsx`, `UpgradesPanel.tsx`, `undo.ts`, tests
+
+### Step 4: Harness and measurement
+
+- Status: `todo`
+- What changes: the scripted player buys a pro fryer when the fryer is the bottleneck; `--no-pro` turns it off.
+- Acceptance: 20/20 journey seeds reach the end screen, 0 loss days, 7 layouts `--days 5` byte-identical to before.
+
+### Step 5: Inspector Sell for a pass
+
+- Status: `todo`
+- What changes: the Inspector refuses selling a pass only when it is the last one (the sim's rule).

@@ -69,6 +69,7 @@ Building happens while service is paused or running. **[provisional: building is
 | Assembler (2 × 1) | Combines up to 3 inputs into a dish per recipe | Recipe selected per station |
 | Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish. A 5th copy is refused (the belt backs up and the pantries stop buying) unless a different dish waits right behind it on the feeding belt, or the oldest copy is 45 s old; then the oldest is thrown away (counted as spoiled waste) and the new one takes its place. So a one-dish line stops buying when nothing sells, and an unsold dish cannot jam a mixed belt (2026-11-20, refined 2026-11-22). One extra pass can be bought at the restaurant tier ($400, at most 2 in total); it serves dishes like the first, and either pass can be sold while another remains (2026-11-23) |
 | Bin | Destroys items | Counts as waste |
+| Pro stations (restaurant tier) | A faster variant of the fryer, stove and assembler: it needs 2/3 of the base time per item or dish, rounded up (fryer 6 s to 4 s, stove 6 s to 4 s, assembler 3 s to 2 s) | **[provisional]** About twice the base price (fryer $80, stove $120, assembler $100), restaurant tier only, placed from Build as its own tile like the fast belt (no separate purchase). Selling refunds the full price. Everything else works like the base station; a second kitchen money sink (2026-11-24) |
 
 ### 5.4 Recipes
 
@@ -134,7 +135,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - Clean flat shapes and icons: colored tiles, simple machine shapes, emoji or icon ingredients. **[confirmed]**
 - The line must make problems visible: backed-up belts, idle stations, and spoiling items are marked (icon plus color, never color alone). **[provisional]**
-- The tycoon panels (menu, prices, upgrades, summary, goals) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt is placed from Build; Upgrades only shows when that tile is unlocked. The Menu tab lists dishes the player already owns.
+- The tycoon panels (menu, prices, upgrades, summary, goals) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt and the pro stations are placed from Build; Upgrades only shows when those tiles are unlocked. The Menu tab lists dishes the player already owns.
 
 ## 11. Tech
 
@@ -172,6 +173,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-24: Pro stations (5.3, 10; provisional numbers, no **[confirmed]** rule): pro fryer, stove and assembler at the restaurant tier, 2/3 of the base time, about 2x the price, placed from Build like the fast belt, 100% refund. Optional `pro` flag on the building, absent unless set, so stall hashes are unchanged.
 
 - 2026-11-23: Pantry pause click mode (section 5.3, no new rule). Build has "Pause one by one": each click on a pantry toggles it, so several can be stopped without opening the Inspector. Hovering a build item no longer replaces the Inspector while a building is selected.
 
