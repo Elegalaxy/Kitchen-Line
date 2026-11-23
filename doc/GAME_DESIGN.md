@@ -54,6 +54,7 @@ Building happens while service is paused or running. **[provisional: building is
 - Every ingredient and dish is a visible item that moves tile by tile on the tick. **[confirmed]**
 - A belt tile holds at most 2 items (one per half). **[provisional]**
 - Items have a freshness timer. Fresh ingredients that expire on the line become waste. **[provisional: in the first playable, only fresh produce and finished dishes spoil]**
+- Dish pack (2026-11-24): two more raw ingredients, fish (150 cents per item, fresh: spoils like tomato and lettuce) and cheese (60 cents, does not spoil). Fried fish is a processed item. **[provisional]**
 
 ### 5.3 Buildings (first playable)
 
@@ -76,6 +77,7 @@ Building happens while service is paused or running. **[provisional: building is
 - A dish is a recipe tree of ingredients and processing steps. **[confirmed concept]**
 - First playable target: one street-food set of about 6 dishes (for example fries, burger, rice bowl, salad, soup, sandwich), sharing ingredients so lines can overlap. **[provisional]**
 - New recipes are bought with money between days. **[provisional]**
+- Dish pack (2026-11-24), two restaurant-tier dishes on known buildings. **[provisional]** Fish and chips: fish goes through the fryer (60 ticks, like fries) into fried fish, then an assembler combines fried fish and fries, so it competes with fries for the fryer; reference price $9.00, unlock $120. Cheeseburger: an assembler variant of the burger (bun, cooked patty, cheese); reference price $10.00, unlock $150. A dish can name a tier it needs (`requiresTier`); it can only be unlocked, shown in the Menu and Upgrades tabs and wanted by customers from that tier on.
 
 ## 6. Front of house: the tycoon half
 
@@ -85,10 +87,12 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 - The player picks which unlocked dishes are on the menu (provisional cap: 4 at the stall, 6 at the restaurant).
 - Each dish has a player-set price. A reference price is shown. **[provisional]**
+- The restaurant cap stays 6 with the dish pack (user decision, 2026-11-24): 8 dishes compete for 6 slots.
 
 ### 6.2 Customers
 
 - Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]** Balance numbers (2026-11-20): mean gap 100 ticks when quiet and 30 in a rush at 3★ (about 51 customers a day at the stall). The restaurant tier multiplies the arrival rate by 2.0 (was 1.5, 2026-11-23).
+- Taste pool (2026-11-24): a customer draws their liked dishes from the dishes whose tier is at or below the current tier. A dish with a `requiresTier` (the dish pack) is in the pool only when it is also unlocked, so a restaurant that never buys fish and chips never loses customers to it. The older dishes stay in the pool even when locked, as before. **[provisional]**
 - Each has a taste profile (preferred dishes), a budget, and patience. They choose an affordable menu dish they like; if none, they leave. **[provisional]**
 - An order waits at the pass. If patience runs out before the dish arrives, the customer leaves unhappy and pays nothing. **[provisional]**
 - Seating is abstract in the first playable: a fixed capacity of waiting orders (provisional: 6 at the stall). **[provisional]**
@@ -174,6 +178,7 @@ No open questions remain for the first playable.
 
 ## 14. Changelog
 
+- 2026-11-24: Dish pack (provisional numbers, no **[confirmed]** rule changed): fish and chips and cheeseburger at the restaurant tier, new ingredients fish and cheese, `DishDef.requiresTier` and the taste-pool rule in 6.2. Menu cap stays 6 (user decision). Stall draws are identical; restaurant hashes change (more dishes in the pool once unlocked).
 - 2026-11-24: Pro stations (5.3, 10; provisional numbers, no **[confirmed]** rule): pro fryer, stove and assembler at the restaurant tier, 2/3 of the base time, about 2x the price, placed from Build like the fast belt, 100% refund. Optional `pro` flag on the building, absent unless set, so stall hashes are unchanged.
 
 - 2026-11-23: Pantry pause click mode (section 5.3, no new rule). Build has "Pause one by one": each click on a pantry toggles it, so several can be stopped without opening the Inspector. Hovering a build item no longer replaces the Inspector while a building is selected.
