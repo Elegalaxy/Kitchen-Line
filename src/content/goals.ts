@@ -4,7 +4,7 @@
 // (building and expansion spending is excluded). Totals only grow at day end, so the profit
 // of a day in progress is added while service is open.
 
-import { GOAL_DISH_SALES } from '../sim/constants.ts'
+import { BRANCH_MAX, GOAL_DISH_SALES } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
 import type { DayStats, GameState, GoalDef, GoalProgress } from '../sim/types.ts'
@@ -26,6 +26,11 @@ export const RESTAURANT_RATING_TARGET = 4.2
  * with the restaurant upgrades so the journey ends around day 17 to 20 (plan 2026-11-23-restaurant-growth).
  */
 export const RESTAURANT_TOTAL_PROFIT_TARGET = 500000
+
+/** Chain goals (GAME_DESIGN 8.1, provisional): branches earn this much net in total, in cents ($5,000). */
+export const CHAIN_TOTAL_PROFIT_TARGET = 500000
+/** Cents ($1,200 in one day: flagship profit plus the branch nets of that day). */
+export const CHAIN_DAY_TARGET = 120000
 
 function count(current: number, target: number): GoalProgress {
   return { done: current >= target, current: Math.min(current, target), target }
@@ -107,6 +112,36 @@ function restaurantProfit(state: GameState): GoalProgress {
   }
 }
 
+/** Chain goal 1: branches opened. Done at once (a command re-checks the goals). */
+function branchCount(state: GameState): GoalProgress {
+  return count(state.branches?.length ?? 0, BRANCH_MAX)
+}
+
+/**
+ * Chain goal 2: net earned by the branches in total (`chainProfit`). Like restaurant goal 7 it is only DONE at
+ * day end (phase `summary`), so the end screen never appears in the middle of a service day.
+ */
+function chainProfit(state: GameState): GoalProgress {
+  const target = CHAIN_TOTAL_PROFIT_TARGET
+  const profit = state.chainProfit ?? 0
+  return { done: state.phase === 'summary' && profit >= target, current: Math.max(0, Math.min(profit, target)), target }
+}
+
+/** Chain goal 3: the last finished day's profit at the flagship plus the branch nets of that day; judged at day end only. */
+function chainDay(state: GameState): GoalProgress {
+  const target = CHAIN_DAY_TARGET
+  const day = state.lastDay
+  if (day === null) return { done: false, current: 0, target, note: 'No day finished yet' }
+  const branchNet = (day.branches ?? []).reduce((sum, b) => sum + b.net, 0)
+  const total = profitOf(day) + branchNet
+  return {
+    done: state.phase === 'summary' && total >= target,
+    current: Math.max(0, Math.min(total, target)),
+    target,
+    note: `Last day: ${dollars(Math.max(0, profitOf(day)))} at the restaurant, ${dollars(Math.max(0, branchNet))} from the branches`,
+  }
+}
+
 const dollars = (cents: number): string => `$${(cents / 100).toLocaleString('en-US')}`
 
 export const GOALS: GoalDef[] = [
@@ -164,5 +199,26 @@ export const GOALS: GoalDef[] = [
     label: `Earn ${dollars(RESTAURANT_TOTAL_PROFIT_TARGET)} profit as a restaurant`,
     unit: 'cents',
     check: restaurantProfit,
+  },
+  {
+    id: 'branches-3',
+    tier: 'chain',
+    label: `Open ${BRANCH_MAX} branches`,
+    unit: 'count',
+    check: branchCount,
+  },
+  {
+    id: 'chain-profit',
+    tier: 'chain',
+    label: `Earn ${dollars(CHAIN_TOTAL_PROFIT_TARGET)} net from the branches`,
+    unit: 'cents',
+    check: chainProfit,
+  },
+  {
+    id: 'chain-day',
+    tier: 'chain',
+    label: `Earn ${dollars(CHAIN_DAY_TARGET)} in one day across the chain`,
+    unit: 'cents',
+    check: chainDay,
   },
 ]

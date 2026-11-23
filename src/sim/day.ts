@@ -10,7 +10,7 @@
 
 import { DAY_PHASE_STARTS, DAY_TICKS } from './constants.ts'
 import { dropLeftovers, profitOf } from './economy.ts'
-import { checkWin, updateGoals } from './goals.ts'
+import { checkChainWin, checkWin, updateGoals } from './goals.ts'
 import { runBranchNights } from './nights.ts'
 import { clearOvernight } from './spoil.ts'
 import type { DayPhase, Defs, GameState } from './types.ts'
@@ -36,6 +36,7 @@ export function endDay(state: GameState, defs: Defs): void {
   state.phase = 'summary'
   updateGoals(state, defs)
   checkWin(state, defs)
+  checkChainWin(state, defs)
 }
 
 /** Mutates `state`: advance the day clock by one tick and end the day when it is over. */

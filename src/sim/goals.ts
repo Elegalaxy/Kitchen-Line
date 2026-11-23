@@ -4,17 +4,18 @@
 // watched; restaurant goals only once the tier is restaurant. It runs at the end of every
 // service tick and at day end. `checkWin` runs at day end: when every restaurant goal is
 // done and the end screen has not shown yet, `won` is set and the phase becomes `won`
-// (once only: `won` stays true after "Keep playing").
+// (once only: `won` stays true after "Keep playing"). Chain goals (GAME_DESIGN 8.1) are watched once `won` is set;
+// `checkChainWin` triggers the "Chain built" end screen the same way (`chainWon`).
 
 import { UPGRADE_COST } from './constants.ts'
-import type { Defs, ExpansionDef, GameState, GoalDef, RejectReason, Tier } from './types.ts'
+import type { Defs, ExpansionDef, GameState, GoalDef, GoalTier, RejectReason } from './types.ts'
 
-export function goalsOfTier(defs: Defs, tier: Tier): GoalDef[] {
+export function goalsOfTier(defs: Defs, tier: GoalTier): GoalDef[] {
   return (defs.goals ?? []).filter((g) => g.tier === tier)
 }
 
 /** True when every goal of `tier` is in `goalsDone` (also true when the tier has no goals). */
-export function allGoalsDone(state: GameState, defs: Defs, tier: Tier): boolean {
+export function allGoalsDone(state: GameState, defs: Defs, tier: GoalTier): boolean {
   return goalsOfTier(defs, tier).every((g) => state.goalsDone.includes(g.id))
 }
 
@@ -25,6 +26,7 @@ export function updateGoals(state: GameState, defs: Defs): void {
   for (const g of goals) {
     if (state.goalsDone.includes(g.id)) continue
     if (g.tier === 'restaurant' && state.tier !== 'restaurant') continue
+    if (g.tier === 'chain' && !state.won) continue // the chain stage opens after the restaurant end screen
     if (g.check(state).done) {
       state.goalsDone.push(g.id)
       state.events.push({ type: 'goalDone', tick: state.tick, id: g.id })
@@ -39,6 +41,19 @@ export function checkWin(state: GameState, defs: Defs): void {
   state.won = true
   state.phase = 'won'
   state.events.push({ type: 'won', tick: state.tick })
+}
+
+/**
+ * Mutates `state`: at day end, trigger the "Chain built" end screen the first time all chain goals are done
+ * (GAME_DESIGN 8.1). Only after the restaurant end screen (`won`), never on the same day as it, and once only
+ * (`chainWon` stays true after "Keep playing").
+ */
+export function checkChainWin(state: GameState, defs: Defs): void {
+  if (!state.won || state.chainWon === true || state.phase !== 'summary') return
+  if (goalsOfTier(defs, 'chain').length === 0 || !allGoalsDone(state, defs, 'chain')) return
+  state.chainWon = true
+  state.phase = 'won'
+  state.events.push({ type: 'chainWon', tick: state.tick })
 }
 
 /** Why `upgradeTier` would be rejected right now, or null. The UI shows the same reason. */

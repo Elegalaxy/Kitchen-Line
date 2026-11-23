@@ -196,3 +196,67 @@ describe('branch nights', () => {
     expect(day.chainProfit).toBe(rows[0].net + rows[1].net)
   })
 })
+
+describe('chain goals and the chain end screen', () => {
+  const always = (done: boolean) => (): { done: boolean; current: number; target: number } => ({ done, current: 1, target: 1 })
+  const goalsDefs: Defs = {
+    ...DEFS,
+    goals: [
+      { id: 'r1', tier: 'restaurant', label: 'r1', unit: 'count', check: (s) => ({ done: s.phase === 'summary', current: 1, target: 1 }) },
+      { id: 'c1', tier: 'chain', label: 'c1', unit: 'count', check: (s) => ({ done: s.phase === 'summary', current: 1, target: 1 }) },
+      { id: 'c2', tier: 'chain', label: 'c2', unit: 'count', check: always(true) },
+    ],
+  }
+  const playDay = (s: GameState): GameState => runTicks(must(s, { type: 'openService' }, goalsDefs), goalsDefs, 2400)
+
+  it('the restaurant end screen is unaffected: chain goals are not watched and do not count', () => {
+    const s = chainReady()
+    s.won = false
+    const day = playDay(s)
+    expect(day.won).toBe(true)
+    expect(day.phase).toBe('won')
+    expect(day.goalsDone).toContain('r1')
+    expect(day.goalsDone).not.toContain('c1')
+    expect(day.goalsDone).not.toContain('c2')
+    expect(day.chainWon).toBeUndefined()
+  })
+
+  it('without chain goals the restaurant end screen is as before', () => {
+    const s = chainReady()
+    s.won = false
+    const day = runTicks(must(s, { type: 'openService' }), { ...goalsDefs, goals: [goalsDefs.goals?.[0] as NonNullable<Defs['goals']>[number]] }, 2400)
+    expect(day.phase).toBe('won')
+    expect(day.chainWon).toBeUndefined()
+  })
+
+  it('the chain end screen fires once, after the restaurant one', () => {
+    const s = chainReady() // won is already true
+    const events: string[] = []
+    let day = runTicks(must(s, { type: 'openService' }, goalsDefs), goalsDefs, 2400, (ev) => {
+      for (const e of ev) events.push(e.type)
+    })
+    expect(day.phase).toBe('won')
+    expect(day.chainWon).toBe(true)
+    expect(day.goalsDone).toEqual(expect.arrayContaining(['c1', 'c2']))
+    expect(events.filter((t) => t === 'chainWon')).toHaveLength(1)
+    expect(day.events.some((e) => e.type === 'won')).toBe(false)
+    day = must(day, { type: 'dismissSummary' }, goalsDefs)
+    expect(day.phase).toBe('build')
+    const again: string[] = []
+    const next = runTicks(must(day, { type: 'openService' }, goalsDefs), goalsDefs, 2400, (ev) => {
+      for (const e of ev) again.push(e.type)
+    })
+    expect(next.phase).toBe('summary')
+    expect(again).not.toContain('chainWon')
+  })
+
+  it('does not fire while a chain goal is open', () => {
+    const open: Defs = {
+      ...goalsDefs,
+      goals: [...(goalsDefs.goals ?? []), { id: 'c3', tier: 'chain', label: 'c3', unit: 'count', check: always(false) }],
+    }
+    const day = runTicks(must(chainReady(), { type: 'openService' }, open), open, 2400)
+    expect(day.phase).toBe('summary')
+    expect(day.chainWon).toBeUndefined()
+  })
+})

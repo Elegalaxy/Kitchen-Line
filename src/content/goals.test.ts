@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import type { GameState } from '../sim/types.ts'
-import { RESTAURANT_TOTAL_PROFIT_TARGET } from './goals.ts'
+import { CHAIN_DAY_TARGET, CHAIN_TOTAL_PROFIT_TARGET, RESTAURANT_TOTAL_PROFIT_TARGET } from './goals.ts'
 import { DEFS } from './index.ts'
 
 function goal(id: string) {
@@ -19,10 +19,11 @@ function fresh(): GameState {
 }
 
 describe('goal data', () => {
-  it('has four stall goals and three restaurant goals with unique ids', () => {
+  it('has four stall goals, three restaurant goals and three chain goals with unique ids', () => {
     const goals = DEFS.goals ?? []
     expect(goals.filter((g) => g.tier === 'stall')).toHaveLength(4)
     expect(goals.filter((g) => g.tier === 'restaurant')).toHaveLength(3)
+    expect(goals.filter((g) => g.tier === 'chain').map((g) => g.id)).toEqual(['branches-3', 'chain-profit', 'chain-day'])
     expect(new Set(goals.map((g) => g.id)).size).toBe(goals.length)
   })
 
@@ -211,5 +212,49 @@ describe('restaurant goal 7 (restaurant-profit)', () => {
     expect(up.result.ok).toBe(true)
     expect(up.state.tierProfitStart).toBe(31234)
     expect(goal('restaurant-profit').check(up.state)).toMatchObject({ done: false, current: 0 })
+  })
+})
+
+describe('chain goals', () => {
+  function atSummary(mut: (s: GameState) => void): GameState {
+    const s = fresh()
+    s.phase = 'summary'
+    mut(s)
+    return s
+  }
+
+  it('branches-3 counts the branches opened', () => {
+    const s = fresh()
+    expect(goal('branches-3').check(s)).toMatchObject({ done: false, current: 0, target: 3 })
+    s.branches = [{}, {}] as unknown as GameState['branches']
+    expect(goal('branches-3').check(s)).toMatchObject({ done: false, current: 2 })
+    s.branches = [{}, {}, {}] as unknown as GameState['branches']
+    expect(goal('branches-3').check(s).done).toBe(true)
+  })
+
+  it('chain-profit is done at day end once the branches earned the target', () => {
+    expect(goal('chain-profit').check(atSummary((s) => (s.chainProfit = CHAIN_TOTAL_PROFIT_TARGET - 1))).done).toBe(false)
+    expect(goal('chain-profit').check(atSummary((s) => (s.chainProfit = CHAIN_TOTAL_PROFIT_TARGET))).done).toBe(true)
+    for (const phase of ['build', 'service', 'won'] as const) {
+      const s = atSummary((x) => (x.chainProfit = CHAIN_TOTAL_PROFIT_TARGET * 2))
+      s.phase = phase
+      expect(goal('chain-profit').check(s).done, phase).toBe(false)
+    }
+  })
+
+  it('chain-day adds the flagship profit and the branch nets of the last day, at day end only', () => {
+    const day = (net: number, sales: number): GameState['lastDay'] => ({
+      ...createGame(DEFS, 'x').today,
+      sales,
+      ingredientCost: 0,
+      branches: [{ id: 1, net, rent: 0 }],
+    })
+    const below = atSummary((s) => (s.lastDay = day(CHAIN_DAY_TARGET - 1001, 1000)))
+    expect(goal('chain-day').check(below).done).toBe(false)
+    const exact = atSummary((s) => (s.lastDay = day(CHAIN_DAY_TARGET - 1000, 1000)))
+    expect(goal('chain-day').check(exact)).toMatchObject({ done: true, current: CHAIN_DAY_TARGET })
+    exact.phase = 'build'
+    expect(goal('chain-day').check(exact).done).toBe(false)
+    expect(goal('chain-day').check(fresh()).done).toBe(false)
   })
 })
