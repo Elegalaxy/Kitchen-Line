@@ -157,7 +157,7 @@ describe('arrivals', () => {
     expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 0.6, 10)
     s.ratings = [3]
     s.tier = 'restaurant'
-    expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.5, 10)
+    expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 2.0, 10)
     s.dayTick = 2280
     expect(arrivalChance(s, DEFS)).toBe(0)
 

@@ -33,7 +33,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 4: Arrival factor
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: `TIER_ARRIVAL_FACTOR.restaurant` 2.0. Two unit tests that hard-coded 1.5 were updated; no hash fixture changed (none covers a restaurant run). Stall hashes unchanged.
 - Files: `src/sim/constants.ts`, restaurant fixtures
 - What changes: `TIER_ARRIVAL_FACTOR.restaurant` 1.5 to 2.0 (deliberate hash change).
 

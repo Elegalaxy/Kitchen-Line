@@ -75,8 +75,11 @@ export const REPUTATION_FACTOR_BASE = 0.4
 export const REPUTATION_FACTOR_PER_STAR = 0.2
 /** Reputation used when there are no ratings at all (cannot happen from createGame; keeps the maths total). */
 export const DEFAULT_REPUTATION = 3
-/** Plan 2.5: arrival factor per tier. */
-export const TIER_ARRIVAL_FACTOR: Record<Tier, number> = { stall: 1.0, restaurant: 1.5 }
+/**
+ * Plan 2.5 / GAME_DESIGN 6.2: arrival factor per tier. Restaurant growth slice (2026-11-23): was 1.5,
+ * now 2.0, so restaurant cash has a bigger crowd to serve (and somewhere to go: GAME_DESIGN 6.4).
+ */
+export const TIER_ARRIVAL_FACTOR: Record<Tier, number> = { stall: 1.0, restaurant: 2.0 }
 /** Plan 2.5 / GAME_DESIGN 6.2: capacity of waiting orders per tier. */
 export const WAITING_CAP: Record<Tier, number> = { stall: 6, restaurant: 10 }
 /** Plan 2.5: patience is uniform 300 to 600 ticks from the order. */

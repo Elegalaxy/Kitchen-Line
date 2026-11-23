@@ -188,7 +188,7 @@ describe('upgradeTier', () => {
     const up = applyCommand(s, DEFS, { type: 'upgradeTier' }).state
     expect(MENU_CAP[up.tier]).toBe(6)
     expect(WAITING_CAP[up.tier]).toBe(10)
-    expect(arrivalChance({ ...up, dayTick: 300 }, DEFS)).toBeCloseTo(before * 1.5, 10)
+    expect(arrivalChance({ ...up, dayTick: 300 }, DEFS)).toBeCloseTo(before * 2.0, 10)
     const fast = applyCommand(up, DEFS, { type: 'place', kind: 'belt', x: 1, y: 1, dir: 1, config: { fast: true } })
     expect(fast.result.ok).toBe(true)
   })
