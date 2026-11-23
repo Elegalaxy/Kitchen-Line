@@ -6,8 +6,10 @@
 
 import { buildingAt } from '../sim/grid.ts'
 import { buildingItems } from '../sim/spoil.ts'
+import { isPro } from '../sim/stations.ts'
 import type { Defs, GameState, Item } from '../sim/types.ts'
 import { STATUS_TEXT } from './format.ts'
+import { variantName } from './palette.ts'
 
 export const TICKS_PER_SECOND = 10
 
@@ -48,6 +50,7 @@ export function tileSummary(state: GameState, defs: Defs, x: number, y: number):
   if (id === null) return null
   const b = state.buildings[id]
   const items = tileItems(state, defs, x, y)
-  const where = `${defs.buildings[b.kind].name} at ${b.x}, ${b.y} (${STATUS_TEXT[b.status].word})`
+  const name = isPro(b) ? variantName(defs, b.kind) : defs.buildings[b.kind].name
+  const where = `${name} at ${b.x}, ${b.y} (${STATUS_TEXT[b.status].word})`
   return items.length === 0 ? `${where}: no items.` : `${where}: ${items.map((i) => i.text).join('; ')}.`
 }

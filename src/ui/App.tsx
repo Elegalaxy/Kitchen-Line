@@ -9,6 +9,7 @@ import EndScreen from './EndScreen.tsx'
 import GoalTracker from './GoalTracker.tsx'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
+import { hasVariant, variantName } from './palette.ts'
 import { startLoop } from './loop.ts'
 import OrdersStrip from './OrdersStrip.tsx'
 import SidePanel from './SidePanel.tsx'
@@ -39,7 +40,7 @@ function hintFor(defs: Defs, ui: UiState): string {
   if (ui.tool === null) {
     return 'Select mode: click a building to inspect it, or pick a building from the build palette. Keyboard: focus the grid, arrow keys move, Enter acts.'
   }
-  const name = ui.tool === 'belt' && ui.fast ? 'Fast belt' : defs.buildings[ui.tool].name
+  const name = ui.fast && hasVariant(defs, ui.tool) ? variantName(defs, ui.tool) : defs.buildings[ui.tool].name
   const how = ui.tool === 'belt' ? 'drag to draw a line' : 'click to place'
   return `${name}, facing ${DIR_NAME[ui.dir]}: ${how}. R rotates, Esc cancels.`
 }

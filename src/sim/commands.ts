@@ -76,7 +76,8 @@ export function countItems(b: Building): number {
   }
 }
 
-function refundOf(defs: Defs, b: Building): number {
+/** Cents the player gets for selling `b`: the full price of the variant it was bought as. */
+export function refundOf(defs: Defs, b: Building): number {
   const def = defs.buildings[b.kind]
   if (b.kind === 'belt' && b.fast && def.fast !== undefined) return def.fast.cost
   if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true && def.pro !== undefined) return def.pro.cost

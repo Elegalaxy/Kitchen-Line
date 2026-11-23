@@ -22,7 +22,7 @@ export type UiState = {
   drag: { from: Point } | null
   selectedId: number | null
   toast: Toast | null
-  /** The belt tool places fast belts (the "Fast belt" palette entry); only read with tool 'belt'. */
+  /** The tool places its variant: fast belts, or a pro fryer, stove or assembler (the "Fast belt" / "Pro ..." palette entries). */
   fast: boolean
   /** The player hid the tutorial hint tiles on the grid (per session; not saved). */
   hintsHidden: boolean

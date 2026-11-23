@@ -28,7 +28,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\pro-stations`.
 
 ### Step 3: UI and canvas
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: palette entries "Pro fryer / Pro stove / Pro assembler" after their base tile (generalised the fast-belt variant: `hasVariant`, `variantConfig`, `variantName`, `speedText` in `palette.ts`; `ui.fast` now means "variant"), canvas PRO tag plus inner outline, Inspector Speed row and PRO tag, hover card, tile tooltip, Upgrades tab "Pro stations" section, undo keeps `pro`, Sell label and Inspector refund use `refundOf`. Browser-checked at 1024 and 375 px with an injected restaurant save; test in `ui/proStations.test.ts`.
 - Files: `src/ui/palette.ts`, `BuildPalette.tsx`, `actions.ts`, `canvas/input.ts`, `canvas/draw.ts`, `Inspector.tsx`, `UpgradesPanel.tsx`, `undo.ts`, tests
 
 ### Step 4: Harness and measurement

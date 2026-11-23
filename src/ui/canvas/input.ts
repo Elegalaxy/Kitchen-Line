@@ -3,10 +3,12 @@
 // Validity always comes from the sim (`canPlace`, `placeCost`), so the preview and the sim
 // agree. No DOM and no React in here.
 
+import { refundOf } from '../../sim/commands.ts'
 import { buildingAt, canPlace, countKind, footprint, inBounds, neighbor, placeCost, tileIndex } from '../../sim/grid.ts'
 import type { PlaceCommand, Point } from '../../sim/grid.ts'
 import type { BuildingKind, Defs, Dir, GameState, RejectReason } from '../../sim/types.ts'
 import { formatMoney, reasonText } from '../format.ts'
+import { hasVariant, variantConfig } from '../palette.ts'
 import { tileTooltip } from '../tileInfo.ts'
 import type { UiState } from '../uiState.ts'
 
@@ -145,8 +147,7 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
         o.label = { text: `✕ ${reasonText('pass cannot be removed')}`, ok: false }
       } else {
         o.hoverBad = false
-        const def = defs.buildings[b.kind]
-        const refund = b.kind === 'belt' && b.fast && def.fast !== undefined ? def.fast.cost : def.cost
+        const refund = refundOf(defs, b)
         o.label = { text: `Sell +${formatMoney(refund)}`, ok: true }
       }
     }
@@ -190,8 +191,8 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
   }
 
   const cmd: PlaceCommand =
-    kind === 'belt' && ui.fast
-      ? { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir, config: { fast: true } }
+    ui.fast && hasVariant(defs, kind)
+      ? { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir, config: variantConfig(kind) }
       : { type: 'place', kind, x: c.x, y: c.y, dir: ui.dir }
   const reason = canPlace(state, defs, cmd)
   o.ghosts.push({ kind, tiles: footprint(kind, c.x, c.y, ui.dir), dir: ui.dir, status: reason === null ? 'ok' : 'bad' })

@@ -1,14 +1,14 @@
 // Build palette (right panel): undo and sell-mode controls, then one button per placeable
 // building with glyph, name, hotkey and cost. A disabled button shows its reason as a
-// visible line ("Needs $40.00", "Restaurant tier"), never only a tooltip. The fast belt is a
-// second entry right after the belt (same drag tool, its own cost and tier); it has no number
-// hotkey, so 1-9 and 0 keep mapping to the buildings in DEFS order.
+// visible line ("Needs $40.00", "Restaurant tier"), never only a tooltip. The fast belt and the pro
+// fryer, stove and assembler are second entries right after their base building (same tool, own
+// cost and tier); they have no number hotkey, so 1-9 and 0 keep mapping to the buildings in DEFS order.
 
 import { selectTool, togglePantriesAction, undoAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { formatMoney } from './format.ts'
 import { labelForIndex } from './hotkeys.ts'
-import { hasFastVariant, paletteCost, paletteKinds, paletteReason } from './palette.ts'
+import { hasVariant, paletteCost, paletteKinds, paletteReason, variantName } from './palette.ts'
 import { pantryPauseView } from './pantryPause.ts'
 import type { BuildingKind } from '../sim/types.ts'
 import type { Snapshot } from './store.ts'
@@ -30,7 +30,9 @@ export default function BuildPalette({
   const { defs } = ctx.store
   const entries = paletteKinds(defs).flatMap((kind, i) => {
     const base = { key: kind, kind, fast: false, hotkey: labelForIndex(i), name: defs.buildings[kind].name }
-    return hasFastVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true, hotkey: '', name: 'Fast belt' }] : [base]
+    return hasVariant(defs, kind)
+      ? [base, { ...base, key: `${kind}-fast`, fast: true, hotkey: '', name: variantName(defs, kind) }]
+      : [base]
   })
   const undo = snap.undo
   const pantries = pantryPauseView(snap.state)
@@ -102,14 +104,14 @@ export default function BuildPalette({
               <button
                 type="button"
                 className="btn pal-btn"
-                aria-pressed={ui.tool === kind && (kind !== 'belt' || ui.fast === fast)}
+                aria-pressed={ui.tool === kind && ui.fast === fast}
                 disabled={reason !== null}
                 onClick={() => selectTool(ctx, kind, fast)}
                 onFocus={() => onHover({ kind, fast })}
               >
                 <span className="btn-main">
                   <span className="pal-glyph" aria-hidden="true">
-                    {fast ? '⏩' : def.emoji}
+                    {fast && kind === 'belt' ? '⏩' : def.emoji}
                   </span>
                   <span className="pal-name">{name}</span>
                 </span>

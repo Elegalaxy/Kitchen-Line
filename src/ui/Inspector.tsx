@@ -5,6 +5,8 @@
 
 import type { ReactNode } from 'react'
 import { ASSEMBLER_TICKS, PANTRY_INTERVALS } from '../sim/constants.ts'
+import { refundOf } from '../sim/commands.ts'
+import { isPro, stationTicks } from '../sim/stations.ts'
 import type { Building, BuildingKind, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
@@ -12,35 +14,48 @@ import { DIR_ARROW, dirName, formatMoney, STATUS_TEXT } from './format.ts'
 import { blockReason } from './blockReason.ts'
 import { BUILDING_INFO } from './buildingInfo.ts'
 import type { PaletteHover } from './BuildPalette.tsx'
-import { hasFastVariant, paletteKinds } from './palette.ts'
+import { hasVariant, paletteKinds, speedText, variantName, variantOf } from './palette.ts'
 import type { Snapshot } from './store.ts'
 
 const FAST_WHAT = 'A faster belt: items move through it quicker. Same rules as the belt.'
 
+function proWhat(name: string): string {
+  return `A faster ${name.toLowerCase()}: it works through each item in two thirds of the time. Same rules as the ${name.toLowerCase()}.`
+}
+
 function hoverEntries(defs: Defs): { key: string; kind: BuildingKind; fast: boolean }[] {
   return paletteKinds(defs).flatMap((kind) => {
     const base = { key: kind, kind, fast: false }
-    return hasFastVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true }] : [base]
+    return hasVariant(defs, kind) ? [base, { ...base, key: `${kind}-fast`, fast: true }] : [base]
   })
 }
 
 function HoverCopy({ defs, kind, fast }: { defs: Defs; kind: BuildingKind; fast: boolean }) {
   const def = defs.buildings[kind]
   const info = BUILDING_INFO[kind]
-  const name = fast ? 'Fast belt' : def.name
-  const cost = fast && def.fast !== undefined ? def.fast.cost : def.cost
-  const tier = fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
+  const variant = fast ? variantOf(def) : undefined
+  const name = fast ? variantName(defs, kind) : def.name
+  const cost = variant !== undefined ? variant.cost : def.cost
+  const tier = variant !== undefined ? variant.requiresTier : def.requiresTier
+  const speed = speedText(defs, kind, fast)
+  const baseSpeed = fast ? speedText(defs, kind, false) : null
   return (
     <>
       <p className="info-name">
-        <span aria-hidden="true">{fast ? '⏩' : def.emoji}</span> {name}
+        <span aria-hidden="true">{fast && kind === 'belt' ? '⏩' : def.emoji}</span> {name}
       </p>
-      <p className="info-what">{fast ? FAST_WHAT : info.what}</p>
+      <p className="info-what">{fast ? (kind === 'belt' ? FAST_WHAT : proWhat(def.name)) : info.what}</p>
       <dl className="kv">
         <Row k="Cost">
           <span className="num">{formatMoney(cost)}</span>
         </Row>
         <Row k="Tier">{tier === 'stall' ? 'Stall' : 'Restaurant'}</Row>
+        {speed !== null && (
+          <Row k="Speed">
+            <span className="num">{speed}</span>
+            {baseSpeed !== null && <span className="muted"> (base {baseSpeed.replace(' per item', '')})</span>}
+          </Row>
+        )}
         <Row k="Items">{info.inOut}</Row>
       </dl>
     </>
@@ -86,15 +101,10 @@ function progressPct(defs: Defs, b: Building): number | null {
     const first = b.input[0]
     const recipe =
       first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)
-    return recipe === undefined ? null : Math.min(100, Math.round((100 * b.progress) / recipe.ticks))
+    return recipe === undefined ? null : Math.min(100, Math.round((100 * b.progress) / stationTicks(recipe.ticks, isPro(b))))
   }
-  if (b.kind === 'assembler') return Math.min(100, Math.round((100 * b.progress) / ASSEMBLER_TICKS))
+  if (b.kind === 'assembler') return Math.min(100, Math.round((100 * b.progress) / stationTicks(ASSEMBLER_TICKS, isPro(b))))
   return null
-}
-
-function refund(defs: Defs, b: Building): number {
-  const def = defs.buildings[b.kind]
-  return b.kind === 'belt' && b.fast && def.fast !== undefined ? def.fast.cost : def.cost
 }
 
 function Row({ k, children }: { k: string; children: ReactNode }) {
@@ -157,6 +167,8 @@ export default function Inspector({
   const def = defs.buildings[b.kind]
   const status = STATUS_TEXT[b.status]
   const pct = progressPct(defs, b)
+  const speed = speedText(defs, b.kind, isPro(b))
+  const baseSpeed = speedText(defs, b.kind, false)
   const why = blockReason(snap.state, defs, b)
   const configure = (fields: ConfigFields): void => {
     report(ctx, ctx.store.dispatch({ type: 'configure', x: b.x, y: b.y, ...fields }))
@@ -170,7 +182,14 @@ export default function Inspector({
       <dl className="kv">
         <Row k="Building">
           <span aria-hidden="true">{def.emoji}</span> {def.name}
+          {isPro(b) && <span className="pro-tag">PRO</span>}
         </Row>
+        {speed !== null && (
+          <Row k="Speed">
+            <span className="num">{speed}</span>
+            {isPro(b) && baseSpeed !== null && <span className="muted"> (base {baseSpeed.replace(' per item', '')})</span>}
+          </Row>
+        )}
         <Row k="Position">
           <span className="num">
             {b.x}, {b.y}
@@ -279,7 +298,7 @@ export default function Inspector({
         </button>
         <button type="button" className="btn act-btn" disabled={isPass} onClick={() => removeAt(ctx, { x: b.x, y: b.y })}>
           <span className="btn-main">
-            <span aria-hidden="true">💰</span> Sell <span className="num">+{formatMoney(refund(defs, b))}</span>
+            <span aria-hidden="true">💰</span> Sell <span className="num">+{formatMoney(refundOf(defs, b))}</span>
           </span>
           {isPass && <span className="pal-reason">⚠ The pass cannot be removed</span>}
         </button>

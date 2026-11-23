@@ -6,6 +6,7 @@
 
 import { ASSEMBLER_TICKS } from '../../sim/constants.ts'
 import { buildingAt, footprint, neighbor } from '../../sim/grid.ts'
+import { isPro, stationTicks } from '../../sim/stations.ts'
 import { buildingItems } from '../../sim/spoil.ts'
 import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../../sim/types.ts'
 import type { HintTile } from '../tutorial.ts'
@@ -319,9 +320,10 @@ function drawProgress(ctx: CanvasRenderingContext2D, b: Building, defs: Defs, ti
   let ticks: number | undefined
   if (b.kind === 'chopper' || b.kind === 'fryer' || b.kind === 'stove') {
     const first = b.input[0]
-    ticks = first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)?.ticks
+    const base = first === undefined ? undefined : defs.stationRecipes.find((r) => r.station === b.kind && r.input === first.type)?.ticks
+    ticks = base === undefined ? undefined : stationTicks(base, isPro(b))
   } else if (b.kind === 'assembler') {
-    ticks = ASSEMBLER_TICKS
+    ticks = stationTicks(ASSEMBLER_TICKS, isPro(b))
   }
   if (ticks === undefined || b.kind === 'belt' || !('progress' in b) || b.progress <= 0) return
   const w = tile * 0.7
@@ -372,6 +374,29 @@ function drawAssemblerPips(ctx: CanvasRenderingContext2D, b: Building, defs: Def
   })
 }
 
+/** Pro stations: a second, inner outline plus a "PRO" tag in the top-left corner (a shape and a word, not only a colour). */
+function drawProMark(ctx: CanvasRenderingContext2D, x: number, y: number, tiles: { x: number; y: number }[], tile: number, p: Palette): void {
+  for (const t of tiles) {
+    roundRect(ctx, t.x * tile + tile * 0.14, t.y * tile + tile * 0.14, tile * 0.72, tile * 0.72, tile * 0.08)
+    ctx.strokeStyle = p.info
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+  }
+  const w = tile * 0.44
+  const h = tile * 0.2
+  roundRect(ctx, x * tile + tile * 0.08, y * tile + tile * 0.08, w, h, tile * 0.05)
+  ctx.fillStyle = p.surface
+  ctx.fill()
+  ctx.strokeStyle = p.info
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.fillStyle = p.info
+  ctx.font = `bold ${Math.round(tile * 0.15)}px system-ui, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('PRO', x * tile + tile * 0.08 + w / 2, y * tile + tile * 0.08 + h / 2 + 0.5)
+}
+
 function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs, id: number, tile: number, p: Palette, fx?: Fx): void {
   const b = state.buildings[id]
   const tint = tintOf(b.kind, p)
@@ -388,6 +413,7 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
     ctx.lineWidth = 2
     ctx.stroke()
   }
+  if (isPro(b)) drawProMark(ctx, b.x, b.y, tiles, tile, p)
   const cx = b.x * tile + tile / 2
   const cy = b.y * tile + tile / 2
   ctx.fillStyle = p.text

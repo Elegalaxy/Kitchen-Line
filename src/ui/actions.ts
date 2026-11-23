@@ -4,12 +4,12 @@
 
 import { buildingAt, inBounds } from '../sim/grid.ts'
 import type { Point } from '../sim/grid.ts'
-import type { CommandResult, ConfigFields, Dir } from '../sim/types.ts'
+import type { CommandResult, Dir, PlaceConfig } from '../sim/types.ts'
 import { planBeltDrag, stepTile } from './canvas/input.ts'
 import { debugLog } from './debug.ts'
 import { reasonText } from './format.ts'
 import type { HotkeyAction } from './hotkeys.ts'
-import { paletteKinds, paletteReason } from './palette.ts'
+import { hasVariant, paletteKinds, paletteReason, variantConfig, variantName } from './palette.ts'
 import { pantryPauseView } from './pantryPause.ts'
 import type { GameStore } from './store.ts'
 import { tutorialHints } from './tutorial.ts'
@@ -25,13 +25,13 @@ export function report(ctx: Ctx, result: CommandResult): boolean {
 }
 
 /**
- * Pick a tool; picking the active one again goes back to select mode. `fast` picks the fast
- * belt variant (the belt tool with fast belts); the belt and the fast belt are two entries,
- * so switching between them selects the other one instead of deselecting.
+ * Pick a tool; picking the active one again goes back to select mode. `fast` picks the variant
+ * entry (fast belts, or a pro fryer, stove or assembler); a building and its variant are two
+ * entries, so switching between them selects the other one instead of deselecting.
  */
 export function selectTool(ctx: Ctx, tool: Tool, fast = false): void {
   const { ui, store } = ctx
-  const useFast = tool === 'belt' && fast
+  const useFast = tool !== null && tool !== 'remove' && tool !== 'pause' && fast && hasVariant(store.defs, tool)
   if (tool === ui.get().tool && useFast === ui.get().fast) {
     ui.set({ tool: null, drag: null })
     return
@@ -39,7 +39,7 @@ export function selectTool(ctx: Ctx, tool: Tool, fast = false): void {
   if (tool !== null && tool !== 'remove' && tool !== 'pause') {
     const why = paletteReason(store.getState(), store.defs, tool, useFast)
     if (why !== null) {
-      const name = useFast ? 'Fast belt' : store.defs.buildings[tool].name
+      const name = useFast ? variantName(store.defs, tool) : store.defs.buildings[tool].name
       ui.showToast(`${name}: ${why}`)
       return
     }
@@ -53,8 +53,8 @@ export function placeAt(ctx: Ctx, at: Point): boolean {
   if (tool === null || tool === 'remove' || tool === 'pause') return false
   const hint = tutorialHints(store.getState()).find((h) => h.kind === tool && h.x === at.x && h.y === at.y)
   const dir = hint?.dir ?? ui.get().dir
-  const config: ConfigFields & { fast?: boolean } = {}
-  if (tool === 'belt' && ui.get().fast) config.fast = true
+  const config: PlaceConfig = {}
+  if (ui.get().fast && hasVariant(store.defs, tool)) Object.assign(config, variantConfig(tool))
   if (hint?.ingredient !== undefined) config.ingredient = hint.ingredient
   if (hint?.recipe !== undefined) config.recipe = hint.recipe
   if (hint !== undefined) debugLog('[ui]', 'tutorial hint place', hint.kind, hint.x, hint.y, hint.dir, hint.ingredient ?? hint.recipe ?? '')

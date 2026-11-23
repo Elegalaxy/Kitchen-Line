@@ -1,5 +1,5 @@
 // Upgrades tab: the shop. Restaurant tier, kitchen size and recipe unlocks are bought here.
-// The fast belt is not bought here: this tab only says when it unlocks. It is still placed
+// The fast belt and the pro stations are not bought here: this tab only says when they unlock. It is still placed
 // from the Build tab, one tile at a time. Buttons stay visible when they cannot be used,
 // with the reason under them. All of these purchases work between days only.
 
@@ -14,7 +14,7 @@ import { menuView } from './menuView.ts'
 import { upgradeRows } from './upgradesView.ts'
 import type { UpgradeRow } from './upgradesView.ts'
 import type { MenuRow } from './menuView.ts'
-import { paletteCost, paletteReason } from './palette.ts'
+import { hasVariant, paletteCost, paletteKinds, paletteReason, speedText, variantName } from './palette.ts'
 import type { Snapshot } from './store.ts'
 
 function RecipeRow({ ctx, row, readOnly, phaseNote }: { ctx: Ctx; row: MenuRow; readOnly: boolean; phaseNote: string | null }) {
@@ -80,6 +80,15 @@ export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
   const recipes = menu.rows.filter((row) => row.unlockCost > 0)
   const fastCost = paletteCost(defs, 'belt', true)
   const fastLocked = paletteReason(state, defs, 'belt', true) === 'Restaurant tier'
+  const proKinds = paletteKinds(defs).filter((kind) => hasVariant(defs, kind) && kind !== 'belt')
+  const proRows = proKinds.map((kind) => ({
+    kind,
+    emoji: defs.buildings[kind].emoji,
+    name: variantName(defs, kind),
+    cost: paletteCost(defs, kind, true),
+    speed: speedText(defs, kind, true)?.replace(' per item', '') ?? '',
+  }))
+  const proLocked = proKinds.some((kind) => paletteReason(state, defs, kind, true) === 'Restaurant tier')
   const isRestaurant = state.tier === 'restaurant'
   const shop = isRestaurant ? upgradeRows(state, defs) : []
 
@@ -187,6 +196,24 @@ export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
             <RecipeRow key={row.id} ctx={ctx} row={row} readOnly={menu.readOnly} phaseNote={menu.note} />
           ))}
         </ul>
+      </section>
+
+      <section className="panel" aria-label="Pro stations">
+        <h2 className="panel-title">Pro stations</h2>
+        <ul className="pro-list">
+          {proRows.map((row) => (
+            <li key={row.kind} className="pro-row">
+              <span>
+                <span aria-hidden="true">{row.emoji}</span> {row.name}
+              </span>
+              <span className="num">{formatMoney(row.cost)}</span>
+              <span className="num muted">{row.speed}</span>
+            </li>
+          ))}
+        </ul>
+        <p className={`goal-reason${proLocked ? '' : ' ready'}`}>
+          {proLocked ? '🔒 Unlocks with the restaurant tier. Place them from the Build tab.' : 'Place them from the Build tab.'}
+        </p>
       </section>
 
       <section className="panel" aria-label="Fast belt">

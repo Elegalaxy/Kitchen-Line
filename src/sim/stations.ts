@@ -38,6 +38,11 @@ export function stationTicks(base: number, pro: boolean | undefined): number {
   return pro === true ? Math.ceil((base * PRO_TICKS_NUM) / PRO_TICKS_DEN) : base
 }
 
+/** True for a pro fryer, stove or assembler. */
+export function isPro(b: Building): boolean {
+  return (b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true
+}
+
 export function stepStation(state: GameState, defs: Defs, b: StationBuilding, moved: Set<number>): void {
   pushOutput(state, defs, b, moved)
   const first = b.input[0]
