@@ -79,6 +79,8 @@ export type Customer = {
   patience: number
   dish: DishId
   price: number
+  /** True for the food critic (critic.ts): higher standards, rating weighted. Absent for everyone else. */
+  critic?: true
 }
 
 export type DayStats = {
@@ -103,6 +105,8 @@ export type DayStats = {
   wasteDestroyed: number
   byDish: Record<DishId, { served: number; lost: number; sales: number }>
   reviews: Review[]
+  /** The food critic's result today (critic.ts); absent on days without a critic or before the critic is resolved. */
+  critic?: { stars: number; served: boolean; dish: DishId | null }
 }
 
 /** The main reason behind a rating (plan Step 12); picks the review template. */
@@ -161,7 +165,7 @@ export type SimEvent =
   | { type: 'delivered'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'binned'; tick: number; x: number; y: number; item: ItemId }
   | { type: 'spoiled'; tick: number; x: number; y: number; item: ItemId }
-  | { type: 'customerArrived'; tick: number; id: number; prefs: DishId[]; dish: DishId | null; price: number }
+  | { type: 'customerArrived'; tick: number; id: number; prefs: DishId[]; dish: DishId | null; price: number; critic?: true }
   | { type: 'customerLeft'; tick: number; id: number; reason: LostReason | 'closing'; dish: DishId | null }
   | { type: 'served'; tick: number; id: number; dish: DishId; price: number; wait: number }
   | { type: 'goalDone'; tick: number; id: string }
@@ -211,6 +215,8 @@ export type GameState = {
    * profit from there. Absent in older restaurant saves: they count all their profit.
    */
   tierProfitStart?: number
+  /** The `day` of the upgrade to restaurant (critics start the day after). Absent in older restaurant saves. */
+  tierDay?: number
   /** True once the "Ready to expand" end screen has been triggered; it never triggers twice. */
   won: boolean
   events: SimEvent[]

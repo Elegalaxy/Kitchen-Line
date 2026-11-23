@@ -14,6 +14,8 @@
 //      customer who ordered exactly that dish (a sale, economy.ts). Unmatched dishes stay.
 // The taste pool leaves out dishes of a higher tier and tiered dishes not unlocked (no `requiresTier` = always in).
 // At the restaurant tier the day's trending dish (trend.ts) has double taste weight; the draw count is unchanged.
+// A food critic (critic.ts, restaurant tier, some days) joins `waiting` at a hash-chosen dinner-rush tick, after the
+// arrivals step, with no random draw; matching serves a critic before others who ordered the same dish.
 // Restaurant upgrades (upgrades.ts) scale the arrival chance, budget and patience and add waiting places.
 // Within a tick this runs after the buildings update (so a dish pushed onto the shelf this
 // tick can be sold this tick) and before `tick` and `dayTick` advance. At day end,
@@ -41,6 +43,7 @@ import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
 import { rateLost, rateServed, submitRating } from './reviews.ts'
 import { nextFloat, nextInt, pickWeighted } from './rng.ts'
+import { criticArrivalTick, criticDish, isCriticDay, makeCritic } from './critic.ts'
 import { currentTrend } from './trend.ts'
 import type { Customer, Defs, DishId, GameState, Weighted } from './types.ts'
 import { scalePercent, upgradeEffects, waitingCap } from './upgrades.ts'
@@ -138,6 +141,25 @@ export function stepArrivals(state: GameState, defs: Defs): void {
   state.events.push({ type: 'customerArrived', tick: state.tick, id: c.id, prefs: c.prefs, dish: c.dish, price: c.price })
 }
 
+/** Mutates `state`: on a critic day the critic arrives at their tick (no random draw; ignores the queue cap). */
+function stepCritic(state: GameState, defs: Defs): void {
+  if (state.tier !== 'restaurant' || state.dayTick !== criticArrivalTick(state.seed, state.day)) return
+  if (!isCriticDay(state)) return
+  const dish = criticDish(state, defs)
+  state.today.customers += 1
+  if (dish === null) {
+    // Empty menu: the critic leaves at once. No dish to book the loss to, so only the day counter moves.
+    const c = makeCritic(state, defs, '')
+    state.today.lostNoMatch += 1
+    submitRating(state, defs, c, rateLost('noMatch'))
+    state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'noMatch', dish: null })
+    return
+  }
+  const c = makeCritic(state, defs, dish)
+  state.waiting.push(c)
+  state.events.push({ type: 'customerArrived', tick: state.tick, id: c.id, prefs: c.prefs, dish: c.dish, price: c.price, critic: true })
+}
+
 /** Mutates `state`: customers whose patience has run out leave (lostPatience). */
 function expirePatience(state: GameState, defs: Defs): void {
   if (state.waiting.length === 0) return
@@ -165,7 +187,8 @@ function matchShelf(state: GameState, defs: Defs): void {
     if (b === undefined || b.kind !== 'pass') continue
     const kept: typeof b.shelf = []
     for (const item of b.shelf) {
-      const at = state.waiting.findIndex((c) => c.dish === item.type)
+      const critic = state.waiting.findIndex((c) => c.critic === true && c.dish === item.type)
+      const at = critic >= 0 ? critic : state.waiting.findIndex((c) => c.dish === item.type)
       if (at < 0) {
         kept.push(item)
         continue
@@ -182,5 +205,6 @@ function matchShelf(state: GameState, defs: Defs): void {
 export function stepCustomers(state: GameState, defs: Defs): void {
   expirePatience(state, defs)
   stepArrivals(state, defs)
+  stepCritic(state, defs)
   matchShelf(state, defs)
 }

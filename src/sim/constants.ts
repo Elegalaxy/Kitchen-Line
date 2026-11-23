@@ -150,3 +150,19 @@ export const UPGRADE_COST = 25000
 export const TREND_WEIGHT_FACTOR = 2
 /** GAME_DESIGN 9: a trend needs at least this many unlocked dishes to choose from. */
 export const TREND_MIN_CANDIDATES = 2
+
+/** GAME_DESIGN 9 (provisional, 2026-11-24): a restaurant day is a critic day when a hash of seed and day is 0 modulo this (and the day before was not): about 1 day in 6. */
+export const CRITIC_DAY_MODULUS = 5
+/** GAME_DESIGN 9: the critic arrives this many ticks after the dinner rush starts at most (hash picks 0 to span - 1). */
+export const CRITIC_ARRIVAL_SPAN = 300
+/** GAME_DESIGN 9: critic patience in ticks (normal customers 300 to 600): higher standards. */
+export const CRITIC_PATIENCE = 240
+/** GAME_DESIGN 9: critic budget as a percent of the dish's reference price (a price over 90 percent of it, so 108 percent of reference, costs a star). */
+export const CRITIC_BUDGET_PERCENT = 120
+/** GAME_DESIGN 6.3: a served critic's rating is stored this many times in the reputation window. */
+export const CRITIC_RATING_WEIGHT = 10
+/** GAME_DESIGN 6.3: a critic who leaves unserved rates this many stars, counted `CRITIC_LOST_WEIGHT` times. */
+export const CRITIC_LOST_STARS = 1
+export const CRITIC_LOST_WEIGHT = 3
+/** Critic customer ids start here so they never equal a normal customer id (those are the arrival tick). */
+export const CRITIC_ID_OFFSET = 1_000_000_000

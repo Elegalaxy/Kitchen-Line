@@ -3,6 +3,8 @@
 // not both), price over 90% of budget -1, not their first choice -1; minimum 1. A customer
 // who ran out of patience rates 1; nothing affordable they liked or a full queue rates 2.
 // Customers still waiting at day end are never rated (economy.ts `dropLeftovers`, Q6).
+// A food critic's rating (critic.ts) is stored CRITIC_RATING_WEIGHT times (CRITIC_LOST_STARS x CRITIC_LOST_WEIGHT when lost);
+// one review is still written and the result is kept in `today.critic`.
 // Every rating goes onto `state.ratings` (last RATINGS_KEPT kept; reputation is their mean,
 // customers.ts `reputationOf`) and writes a review into `today.reviews` (max REVIEWS_PER_DAY).
 // Reviews stream draws, always in this order per rating: (1) the template variant
@@ -12,6 +14,9 @@
 // unless that slot holds the lowest-rated review). Never touches the `arrivals` stream.
 
 import {
+  CRITIC_LOST_STARS,
+  CRITIC_LOST_WEIGHT,
+  CRITIC_RATING_WEIGHT,
   NOT_FIRST_CHOICE_PENALTY,
   OVERPRICED_FRACTION,
   OVERPRICED_PENALTY,
@@ -107,9 +112,18 @@ function keepReview(state: GameState, review: Review): void {
  * `rateServed` or `rateLost`. Returns the stars.
  */
 export function submitRating(state: GameState, defs: Defs, c: Customer, rating: Rating): number {
-  state.ratings.push(rating.stars)
+  let { stars } = rating
+  let weight = 1
+  if (c.critic === true) {
+    const lost = rating.reason === 'gaveUp' || rating.reason === 'noMatch' || rating.reason === 'queueFull'
+    if (lost) stars = CRITIC_LOST_STARS
+    weight = lost ? CRITIC_LOST_WEIGHT : CRITIC_RATING_WEIGHT
+    state.today.critic = { stars, served: !lost, dish: c.dish === '' ? null : c.dish }
+  }
+  // A weighted rating is stored as `weight` equal entries, so reputation (the mean) needs no other change.
+  for (let i = 0; i < weight; i += 1) state.ratings.push(stars)
   if (state.ratings.length > RATINGS_KEPT) state.ratings.splice(0, state.ratings.length - RATINGS_KEPT)
   const text = writeText(state, defs, c, rating.reason)
-  keepReview(state, { stars: rating.stars, text, dish: c.dish, reason: rating.reason })
-  return rating.stars
+  keepReview(state, { stars, text, dish: c.dish === '' ? null : c.dish, reason: rating.reason })
+  return stars
 }

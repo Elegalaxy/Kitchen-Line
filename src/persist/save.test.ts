@@ -412,3 +412,22 @@ describe('pro stations', () => {
     expectRejected(damaged(s, (e) => (buildingsOf(e)[chopper].pro = true)), 'pro')
   })
 })
+
+describe('food critics', () => {
+  it('round-trips a critic customer, the day result and tierDay; old saves without them load', () => {
+    const s = createGame(DEFS, 'demo')
+    s.tier = 'restaurant'
+    s.tierDay = 3
+    s.today.critic = { stars: 4, served: true, dish: 'fries' }
+    s.waiting = [{ id: 1_000_000_005, arriveTick: 5, prefs: ['fries'], budget: 360, patience: 240, dish: 'fries', price: 300, critic: true }]
+    const back = loadSave(serializeSave(s, 'x'))
+    expect(back.ok).toBe(true)
+    if (back.ok) expect(stateHash(back.state)).toBe(stateHash(s))
+    expect(loadSave(serializeSave(createGame(DEFS, 'demo'), 'x')).ok).toBe(true)
+  })
+  it('rejects a malformed critic result', () => {
+    const s = createGame(DEFS, 'demo')
+    ;(s.today as unknown as Record<string, unknown>).critic = { stars: 'x', served: true, dish: null }
+    expect(loadSave(serializeSave(s, 'x')).ok).toBe(false)
+  })
+})

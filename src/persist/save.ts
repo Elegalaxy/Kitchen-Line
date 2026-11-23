@@ -155,6 +155,12 @@ function dayStats(v: unknown, path: string): void {
     for (const k of ['served', 'lost', 'sales']) int(e[k], `${path}.byDish.${id}.${k}`)
   }
   arr(o.reviews, `${path}.reviews`).forEach((r, i) => review(r, `${path}.reviews[${i}]`))
+  if (o.critic !== undefined) {
+    const c = obj(o.critic, `${path}.critic`)
+    int(c.stars, `${path}.critic.stars`, 1)
+    if (typeof c.served !== 'boolean') bad(`${path}.critic.served`, 'expected a boolean')
+    if (c.dish !== null) str(c.dish, `${path}.critic.dish`)
+  }
 }
 
 function customer(v: unknown, path: string): void {
@@ -166,6 +172,7 @@ function customer(v: unknown, path: string): void {
   int(o.patience, `${path}.patience`)
   str(o.dish, `${path}.dish`)
   int(o.price, `${path}.price`)
+  if (o.critic !== undefined && o.critic !== true) bad(`${path}.critic`, 'expected true')
 }
 
 /** Validates one building; returns its footprint tiles (anchor first). */
@@ -305,6 +312,7 @@ function validateState(v: unknown): GameState {
   int(totals.days, 'state.totals.days')
   strList(s.goalsDone, 'state.goalsDone')
   if (s.upgrades !== undefined) strList(s.upgrades, 'state.upgrades')
+  if (s.tierDay !== undefined) int(s.tierDay, 'state.tierDay', 1)
   if (s.tierProfitStart !== undefined) int(s.tierProfitStart, 'state.tierProfitStart', Number.MIN_SAFE_INTEGER)
   bool(s.won, 'state.won')
   arr(s.events, 'state.events').forEach((e, i) => {

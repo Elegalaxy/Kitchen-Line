@@ -333,6 +333,7 @@ function upgradeTier(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
   next.money -= UPGRADE_COST
   next.tier = 'restaurant'
   next.tierProfitStart = next.totals.profit
+  next.tierDay = next.day
   next.events.push({ type: 'tierUpgraded', tick: next.tick, cost: UPGRADE_COST })
   return { state: next, result: { ok: true } }
 }
