@@ -2,9 +2,9 @@
 // shows, plus the pure helpers behind it (margin text, price text validation, why a toggle
 // or an unlock button is disabled). No React in here, so it is unit-tested directly.
 
-import { MENU_CAP } from '../sim/constants.ts'
+import { MENU_CAP, TIER_RANK } from '../sim/constants.ts'
 import { priceBounds, priceProblem } from '../sim/menu.ts'
-import type { Defs, DishId, GameState } from '../sim/types.ts'
+import type { Defs, DishDef, DishId, GameState } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 import { parseDollars } from './money.ts'
 
@@ -92,7 +92,9 @@ export function menuView(state: GameState, defs: Defs, costOf: (dish: DishId) =>
   const note = lockNote(state.phase)
   const count = state.menu.length
   const servedToday = state.today.day === state.day ? state.today.byDish : {}
-  const rows = Object.values(defs.dishes).map((d): MenuRow => {
+  // Dishes of a higher tier (dish pack) are not listed until the restaurant tier.
+  const inTier = (d: DishDef): boolean => d.requiresTier === undefined || TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier]
+  const rows = Object.values(defs.dishes).filter(inTier).map((d): MenuRow => {
     const locked = !state.unlocked.includes(d.id)
     const entry = state.menu.find((m) => m.dish === d.id)
     const cost = costOf(d.id)

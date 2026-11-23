@@ -26,12 +26,15 @@
 // friesSaladLine (Step 18 balance): the fries line on y = 2 plus a salad line on rows y = 0 and 1
 // (lettuce and tomato each -> chopper -> assembler at (4, 0)), whose dish comes down the
 // column x = 7 into the pass from the north. Menu: fries and salad. Costs $185 in all.
+// Dish pack lines (restaurant tier, GAME_DESIGN 5.4; the setup sets the tier and unlocks the dish):
+//   fishAndChipsLine: fish -> fryer -> anchor back; potato -> chopper -> fryer -> second tile back. Costs $198.
+//   cheeseburgerLine: bun -> anchor back; patty -> stove -> second tile back; cheese -> belt -> anchor north. Costs $172.
 
 import type { LayoutSetup } from '../sim/layout.ts'
 import type { Command } from '../sim/types.ts'
 
 const east = (kind: 'belt' | 'chopper' | 'fryer', x: number): Command => ({ type: 'place', kind, x, y: 2, dir: 1 })
-const at = (kind: 'belt' | 'chopper' | 'stove' | 'pantry' | 'assembler', x: number, y: number, dir: 0 | 1 | 2 | 3 = 1): Command => ({
+const at = (kind: 'belt' | 'chopper' | 'stove' | 'fryer' | 'pantry' | 'assembler', x: number, y: number, dir: 0 | 1 | 2 | 3 = 1): Command => ({
   type: 'place',
   kind,
   x,
@@ -151,6 +154,36 @@ export const LAYOUTS: Record<string, Command[]> = {
     recipe('riceBowl'),
     ...exit,
   ],
+  // fish -> fryer -> anchor back; potato -> chopper -> fryer -> second tile back (fryer at (3, 3) feeds (4, 3) directly).
+  fishAndChipsLine: [
+    first('fish'),
+    at('belt', 1, 2),
+    at('fryer', 2, 2),
+    at('belt', 3, 2),
+    pantry(0, 3, 'potato'),
+    at('belt', 1, 3),
+    at('chopper', 2, 3),
+    at('fryer', 3, 3),
+    at('assembler', 4, 2),
+    recipe('fishAndChips'),
+    ...exit,
+  ],
+  // bun -> anchor back; patty -> stove -> second tile back; cheese -> belt -> anchor north.
+  cheeseburgerLine: [
+    first('bun'),
+    at('belt', 1, 2),
+    at('belt', 2, 2),
+    at('belt', 3, 2),
+    pantry(0, 3, 'patty'),
+    at('belt', 1, 3),
+    at('stove', 2, 3),
+    at('belt', 3, 3),
+    pantry(4, 0, 'cheese', 2),
+    at('belt', 4, 1, 2),
+    at('assembler', 4, 2),
+    recipe('cheeseburger'),
+    ...exit,
+  ],
 }
 
 /** Dev-loader setup per layout: unlocks (and money) the commands alone cannot provide. */
@@ -161,4 +194,6 @@ export const LAYOUT_SETUP: Record<string, LayoutSetup> = {
   sandwichLine: { menu: ['sandwich'], unlock: ['sandwich'], money: 30000 },
   burgerLine: { menu: ['burger'], unlock: ['burger'], money: 30000 },
   riceBowlLine: { menu: ['riceBowl'], unlock: ['riceBowl'], money: 30000 },
+  fishAndChipsLine: { menu: ['fishAndChips'], unlock: ['fishAndChips'], money: 30000, tier: 'restaurant' },
+  cheeseburgerLine: { menu: ['cheeseburger'], unlock: ['cheeseburger'], money: 30000, tier: 'restaurant' },
 }

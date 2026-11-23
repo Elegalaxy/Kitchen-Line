@@ -18,6 +18,9 @@ const list: ItemDef[] = [
   { id: 'patty', name: 'Patty (raw)', emoji: '🥩', kind: 'raw', cost: 120 },
   { id: 'rice', name: 'Rice', emoji: '🌾', kind: 'raw', cost: 30 },
   { id: 'bread', name: 'Bread', emoji: '🥖', kind: 'raw', cost: 40 },
+  // Dish pack (GAME_DESIGN 5.2, 5.4): fish is fresh and spoils like produce; cheese does not spoil.
+  { id: 'fish', name: 'Fish', emoji: '🐟', kind: 'raw', cost: 150, spoilTicks: FRESH_SPOIL_TICKS },
+  { id: 'cheese', name: 'Cheese', emoji: '🧀', kind: 'raw', cost: 60 },
 
   { id: 'potatoStrips', name: 'Potato strips', emoji: '🥔', kind: 'processed' },
   {
@@ -36,6 +39,7 @@ const list: ItemDef[] = [
   },
   { id: 'cookedPatty', name: 'Cooked patty', emoji: '🥩', kind: 'processed' },
   { id: 'cookedRice', name: 'Cooked rice', emoji: '🍚', kind: 'processed' },
+  { id: 'friedFish', name: 'Fried fish', emoji: '🐟', kind: 'processed' },
 
   { id: 'fries', name: 'Fries', emoji: '🍟', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
   { id: 'salad', name: 'Salad', emoji: '🥗', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
@@ -43,6 +47,8 @@ const list: ItemDef[] = [
   { id: 'sandwich', name: 'Sandwich', emoji: '🥪', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
   { id: 'burger', name: 'Burger', emoji: '🍔', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
   { id: 'riceBowl', name: 'Rice bowl', emoji: '🍛', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  { id: 'fishAndChips', name: 'Fish and chips', emoji: '🐠', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  { id: 'cheeseburger', name: 'Cheeseburger', emoji: '🧀', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
 ]
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(list.map((i) => [i.id, i]))

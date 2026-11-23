@@ -15,6 +15,8 @@ export const STATION_RECIPES: StationRecipe[] = [
   { station: 'chopper', input: 'tomato', output: 'slicedTomato', ticks: CHOP_TICKS },
   { station: 'chopper', input: 'lettuce', output: 'choppedLettuce', ticks: CHOP_TICKS },
   { station: 'fryer', input: 'potatoStrips', output: 'fries', ticks: FRY_TICKS },
+  // Dish pack (GAME_DESIGN 5.4): fish shares the fryer with fries, same time.
+  { station: 'fryer', input: 'fish', output: 'friedFish', ticks: FRY_TICKS },
   { station: 'stove', input: 'patty', output: 'cookedPatty', ticks: COOK_TICKS },
   { station: 'stove', input: 'rice', output: 'cookedRice', ticks: COOK_TICKS },
   { station: 'stove', input: 'slicedTomato', output: 'soup', ticks: COOK_TICKS },

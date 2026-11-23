@@ -12,6 +12,7 @@
 //      none -> lostNoMatch; waiting full -> lostFull; otherwise they join `waiting`.
 //   3. Matching: each dish on the pass shelf (oldest first) goes to the oldest waiting
 //      customer who ordered exactly that dish (a sale, economy.ts). Unmatched dishes stay.
+// The taste pool leaves out dishes of a higher tier and tiered dishes not unlocked (no `requiresTier` = always in).
 // At the restaurant tier the day's trending dish (trend.ts) has double taste weight; the draw count is unchanged.
 // Restaurant upgrades (upgrades.ts) scale the arrival chance, budget and patience and add waiting places.
 // Within a tick this runs after the buildings update (so a dish pushed onto the shelf this
@@ -34,6 +35,7 @@ import {
   REPUTATION_FACTOR_PER_STAR,
   TREND_WEIGHT_FACTOR,
   TIER_ARRIVAL_FACTOR,
+  TIER_RANK,
 } from './constants.ts'
 import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
@@ -66,7 +68,10 @@ export function arrivalChance(state: Pick<GameState, 'dayTick' | 'ratings' | 'ti
 /** Draw taste, budget and patience for a new customer (the draw order is in the file header). */
 function drawCustomer(state: GameState, defs: Defs): Customer | null {
   const stream = state.rng.arrivals
-  const dishes = Object.values(defs.dishes)
+  // Taste pool (GAME_DESIGN 6.2): dishes of the current tier or lower; a dish that names a tier must also be unlocked.
+  const dishes = Object.values(defs.dishes).filter(
+    (d) => d.requiresTier === undefined || (TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier] && state.unlocked.includes(d.id)),
+  )
   if (dishes.length === 0) return null
   const count = Math.min(nextInt(stream, PREFS_MIN, PREFS_MAX), dishes.length)
   // Restaurant trend (trend.ts): the dish in demand has a bigger taste weight. Same number of draws.

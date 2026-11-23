@@ -73,7 +73,7 @@ describe('content', () => {
       if (!['fryer', 'stove', 'assembler'].includes(b.kind)) expect(b.pro, `${b.kind} has no pro`).toBeUndefined()
     }
     expect(Object.values(DEFS.dishes).filter((d) => d.startsUnlocked).map((d) => d.id)).toEqual(['fries', 'salad'])
-    expect(Object.keys(DEFS.dishes)).toHaveLength(6)
+    expect(Object.keys(DEFS.dishes)).toHaveLength(8)
   })
 
   it('the sim places and refunds with the real defs', () => {
@@ -94,6 +94,8 @@ describe('ingredientCostOf', () => {
     expect(cost('sandwich')).toBe(120) // bread + tomato + lettuce
     expect(cost('burger')).toBe(210) // bun + patty + tomato
     expect(cost('riceBowl')).toBe(150) // rice + patty
+    expect(cost('fishAndChips')).toBe(180) // fish + potato (the fries)
+    expect(cost('cheeseburger')).toBe(230) // bun + patty + cheese
   })
 
   it('matches the raw item costs in DEFS, never exceeds the reference price, and is 0 for unknown ids', () => {

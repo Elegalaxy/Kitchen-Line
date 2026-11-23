@@ -131,6 +131,9 @@ export const REVIEWS_PER_DAY = 20
 export const GOAL_DISH_SALES = 10
 
 /** Plan 2.5 / GAME_DESIGN 6.1: at most this many dishes on the menu (stall 4, restaurant 6). */
+/** Order of the tiers, for "this tier or higher" checks (a dish's `requiresTier`). */
+export const TIER_RANK: Record<Tier, number> = { stall: 0, restaurant: 1 }
+
 export const MENU_CAP: Record<Tier, number> = { stall: 4, restaurant: 6 }
 /** Plan 2.5: a price may be 50% to 300% of the dish's reference price, in 10-cent steps. */
 export const PRICE_MIN_PERCENT = 50

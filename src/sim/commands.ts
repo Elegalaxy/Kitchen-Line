@@ -11,7 +11,7 @@
 // (Step 16) and buyUpgrade (restaurant upgrades) are build phase only too; dismissSummary also leaves the `won` end screen
 // ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
-import { MENU_CAP, START_INGREDIENT, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
+import { MENU_CAP, START_INGREDIENT, TIER_RANK, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { emptyDayStats, newBuilding } from './game.ts'
 import { expansionProblem, nextExpansion, updateGoals, upgradeProblem } from './goals.ts'
@@ -297,6 +297,7 @@ function unlockRecipe(state: GameState, defs: Defs, cmd: Extract<Command, { type
   const def = typeof cmd.dish === 'string' ? defs.dishes[cmd.dish] : undefined
   if (def === undefined) return reject(state, cmd, 'invalid command')
   if (state.unlocked.includes(cmd.dish)) return reject(state, cmd, 'already unlocked')
+  if (def.requiresTier !== undefined && TIER_RANK[def.requiresTier] > TIER_RANK[state.tier]) return reject(state, cmd, 'locked by tier')
   if (state.money < def.unlockCost) return reject(state, cmd, 'cannot afford')
   const next = structuredClone(state)
   next.money -= def.unlockCost

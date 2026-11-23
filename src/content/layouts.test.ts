@@ -31,6 +31,8 @@ const DISH_LINES: [layout: string, dish: string][] = [
   ['soupLine', 'soup'],
   ['sandwichLine', 'sandwich'],
   ['riceBowlLine', 'riceBowl'],
+  ['fishAndChipsLine', 'fishAndChips'],
+  ['cheeseburgerLine', 'cheeseburger'],
 ]
 
 describe('dish lines', () => {

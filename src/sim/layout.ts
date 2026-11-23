@@ -6,9 +6,11 @@
 // skipped and reported. The input state is never mutated.
 
 import { applyCommand } from './commands.ts'
-import type { Command, Defs, DishId, GameState } from './types.ts'
+import type { Command, Defs, DishId, GameState, Tier } from './types.ts'
 
 export type LayoutSetup = {
+  /** Tier after the setup (the dish pack's restaurant-tier dishes need it to be wanted by customers). */
+  tier?: Tier
   /** Dishes unlocked before the commands run (so an assembler can be given the recipe). */
   unlock?: DishId[]
   /** Money in cents after the setup, replacing the current amount. */
@@ -24,6 +26,7 @@ export function applyLayout(state: GameState, defs: Defs, commands: Command[], s
   for (const dish of setup?.unlock ?? []) {
     if (defs.dishes[dish] !== undefined && !current.unlocked.includes(dish)) current.unlocked.push(dish)
   }
+  if (setup?.tier !== undefined) current.tier = setup.tier
   if (setup?.money !== undefined) current.money = setup.money
   if (setup?.menu !== undefined) {
     current.menu = setup.menu.flatMap((dish) => {

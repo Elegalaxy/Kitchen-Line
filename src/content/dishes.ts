@@ -50,6 +50,30 @@ const list: DishDef[] = [
     unlockCost: 10000,
     inputs: ['cookedRice', 'cookedPatty'],
   },
+  // Dish pack (GAME_DESIGN 5.4, 6.1): restaurant tier only. Ingredient cost: fish and chips 180 (fish 150 + potato 30),
+  // cheeseburger 230 (bun 50 + patty 120 + cheese 60).
+  {
+    id: 'fishAndChips',
+    name: 'Fish and chips',
+    emoji: '🐠',
+    refPrice: 900,
+    popularity: 2,
+    startsUnlocked: false,
+    unlockCost: 12000,
+    inputs: ['friedFish', 'fries'],
+    requiresTier: 'restaurant',
+  },
+  {
+    id: 'cheeseburger',
+    name: 'Cheeseburger',
+    emoji: '🧀',
+    refPrice: 1000,
+    popularity: 2,
+    startsUnlocked: false,
+    unlockCost: 15000,
+    inputs: ['bun', 'cookedPatty', 'cheese'],
+    requiresTier: 'restaurant',
+  },
 ]
 
 export const DISHES: Record<string, DishDef> = Object.fromEntries(list.map((d) => [d.id, d]))

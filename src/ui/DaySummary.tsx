@@ -6,9 +6,10 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { TIER_RANK } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { summarizeDay } from '../sim/summary.ts'
-import type { Defs, GameState } from '../sim/types.ts'
+import type { Defs, GameState, Tier } from '../sim/types.ts'
 import {
   countDelta,
   hintText,
@@ -97,7 +98,9 @@ export default function DaySummary({
   const d = sum.deltas
   const dishName = (id: string): string => defs.dishes[id]?.name ?? id
   const stats = new Map(sum.dishes.map((r) => [r.dish, r]))
-  const dishIds = [...Object.keys(defs.dishes), ...sum.dishes.map((r) => r.dish).filter((id) => defs.dishes[id] === undefined)]
+  // Dishes of a higher tier (dish pack) get no row until the restaurant tier.
+  const inTier = (d: { requiresTier?: Tier }): boolean => d.requiresTier === undefined || TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier]
+  const dishIds = [...Object.values(defs.dishes).filter(inTier).map((d) => d.id), ...sum.dishes.map((r) => r.dish).filter((id) => defs.dishes[id] === undefined)]
 
   return (
     <div className="modal-backdrop">

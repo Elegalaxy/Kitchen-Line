@@ -267,6 +267,8 @@ export type DishDef = {
   unlockCost: number
   /** Assembler inputs (up to 3). Absent for station-made dishes (fries, soup). */
   inputs?: ItemId[]
+  /** Lowest tier that can unlock, list and be wanted. Absent = any tier (GAME_DESIGN 6.2, dish pack). */
+  requiresTier?: Tier
 }
 
 export type Defs = {
