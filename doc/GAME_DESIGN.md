@@ -22,7 +22,7 @@ The player never cooks by hand. **[confirmed]**
 1. **The menu drives the factory.** Each dish is a recipe tree; tycoon choices become building problems.
 2. **Readable, cozy automation.** Small kitchens; the whole line fits on screen and bottlenecks are visible.
 3. **Demand moves.** A finished line does not stay optimal; redesign is part of the loop.
-4. **Grow from a stall to a chain.** First playable covers stall → small restaurant; chain and franchise come later.
+4. **Grow from a stall to a chain.** The first playable covers stall → small restaurant; the chain stage (8.1) follows the restaurant end screen; franchise comes later.
 
 ## 3. Core loop
 
@@ -118,7 +118,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 ## 7. Economy
 
 - Money comes from dish sales. Costs are ingredients (charged at the pantry), building purchases, and kitchen expansions. **[provisional]**
-- No rent, wages, or loans in the first playable. **[later: rent and staff]**
+- No wages or loans in the first playable. **[later: staff]** Branches pay rent every night (8.1, provisional); the flagship pays no rent. **[later: flagship rent]**
 - Bankruptcy: if money runs out, pantries stop emitting until there is cash, so the player can always recover by selling buildings. No game-over in the first playable. **[provisional]**
 
 ## 8. Progression and win state
@@ -126,9 +126,33 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Milestone goals move the player from **stall** to **small restaurant** (bigger grid, more menu slots, more customers). **[confirmed: milestone goals]** Provisional milestone examples: serve 100 dishes, reach 4★ reputation, earn a set total profit.
 - Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
 - Restaurant goal 7 (provisional, 2026-11-23): earn $5,000 profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
-- Later tiers: restaurant → chain of branches → franchise. **[later]**
+- Chain of branches: **[provisional]**, see 8.1 (user decision 2026-11-24). Franchise comes after it. **[later]**
 - Franchise prestige: sell the chain and restart with a better recipe book and blueprints. **[later; confirmed as the long-term structure]**
-- The first playable ends at the restaurant tier with a "you're ready to expand" end screen. **[provisional]**
+- The first playable ends at the restaurant tier with a "you're ready to expand" end screen, which is now the midpoint: after "Keep playing" the chain stage (8.1) opens. **[provisional]**
+
+### 8.1 Chain stage
+
+**[provisional]**, approved by the user on 2026-11-24. The numbers live in `sim/constants.ts` and `content/branchAreas.ts`.
+
+- The chain stage opens after the restaurant end screen (`state.won`). There is no new tier: the flagship stays a restaurant. The player can open up to `BRANCH_MAX` = 3 branches (Branches tab, build phase only).
+- A **blueprint** is a snapshot of the flagship kitchen: grid size, buildings and their settings (buffers emptied, status idle, pantries running), menu with prices and unlocked dishes. Its value is the sum of the selling prices of its buildings. A blueprint is a copy of the kitchen to another location. It is NOT grid copy/paste (the **[confirmed]** "Copy/paste is [later]" rule in section 13 stands).
+- A branch runs its blueprint automatically. The restaurant upgrades (sign, music, tables, plates) do NOT apply to branches: only the kitchen does.
+- **Sites.** Each branch gets one fixed next site: a hash of the seed, "area" and the number of branches already open picks it among the areas not yet used, and it is shown before buying. Areas (demand is a percent of the normal arrival rate):
+
+| Area | Demand | Rent per night |
+| --- | --- | --- |
+| Quiet suburb | 80% | $60 |
+| College town | 100% | $90 |
+| Riverside | 110% | $110 |
+| Old town | 120% | $140 |
+| Station square | 140% | $190 |
+
+- **Cost.** Opening costs the blueprint's value (about $1,550 for the first-playable kitchens) plus a fee: $1,000, $2,000, $3,000 for branch 1, 2, 3 (`BRANCH_OPEN_FEES`). A **refit** (copy the current flagship kitchen to the branch again) costs $250 (`BRANCH_REFIT_FEE`) plus any increase in blueprint value. A refit with an unchanged kitchen is refused. There is no close-branch command: an open that would not make money is refused instead.
+- **Test day.** Opening or refitting runs one full headless day of the blueprint (pantries paused for the last `CLOSING_SOON_TICKS`, like the harness player), at the site's demand, with the flagship's current reputation and day. The result (profit, sales, served, customers) is stored as the branch's `expected`. The open is refused ("branch would lose money") when expected profit minus the night's rent is zero or less. The test day uses its own random stream (seed + branch id), so the flagship's draws never change, and it has no critic.
+- **Every night** each branch adds `round(expected profit x noise / 100) - rent` to the money, where noise is 90 to 110 (`BRANCH_NOISE_PERCENT` = 10) from a hash of seed, night, branch and day (no random stream, nothing stored beyond the day summary). The day summary shows each branch's net and rent.
+- **Goals (chain).** 1) Open 3 branches. 2) Branches earn $5,000 net in total (`chainProfit`). 3) $1,200 in one day (flagship profit plus the branch nets of that day). Goals 2 and 3 are only done in the summary phase. When all three are done the "Chain built" end screen shows (around day 33 expected, to be measured).
+- Without branches nothing changes: a run that never opens a branch has identical hashes and results.
+- **[later]** A branch's own manager, selling a branch, branch-specific menus.
 
 ## 9. Demand that moves
 
@@ -141,7 +165,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - Clean flat shapes and icons: colored tiles, simple machine shapes, emoji or icon ingredients. **[confirmed]**
 - The line must make problems visible: backed-up belts, idle stations, and spoiling items are marked (icon plus color, never color alone). **[provisional]**
-- The tycoon panels (menu, prices, upgrades, summary, goals) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt and the pro stations are placed from Build; Upgrades only shows when those tiles are unlocked. The Menu tab lists dishes the player already owns.
+- The tycoon panels (menu, prices, upgrades, summary, goals, and after the restaurant end screen the Branches tab: next site, cost, expected nightly net, open and refit) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt and the pro stations are placed from Build; Upgrades only shows when those tiles are unlocked. The Menu tab lists dishes the player already owns.
 
 ## 11. Tech
 
@@ -153,14 +177,16 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 In:
 
-- One location growing from stall (8 × 6) to small restaurant, with a second pass and four restaurant upgrades (6.4) to spend cash on
+- One location (see the 2026-11-24 note below: the chain stage 8.1 opens more) growing from stall (8 × 6) to small restaurant, with a second pass and four restaurant upgrades (6.4) to spend cash on
 - The buildings in 5.3, about 6 dishes, menu and prices
 - Customers with taste, budget, patience; rush hours; reputation and reviews
 - End-of-day summary and milestone goals
 - Visible-item belts on a fixed tick, pause and speed controls
 - One local save
 
-Out (later): offline progress, seating layout, staff, décor, rent, branches, franchise prestige, blueprints/copy-paste across locations.
+Out (later): offline progress, seating layout, staff, décor, flagship rent, franchise prestige. In after the first playable (8.1, user decision 2026-11-24): branches and blueprints across locations. Grid copy/paste stays later.
+
+The **[confirmed]** "one location in the first playable" rule ended on 2026-11-24 by user decision: the chain stage may open up to 3 branches after the restaurant end screen. The first-playable path itself (stall to restaurant) is unchanged.
 
 Success criteria for the first playable: a new player can build a working line for one dish in under 5 minutes, and finding and fixing a bottleneck feels satisfying. **[provisional]**
 
@@ -179,6 +205,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-24: User decision (ends the **[confirmed]** "one location" rule; chain stage, provisional numbers): after the restaurant end screen the player can open up to 3 branches (8.1). Each runs a blueprint snapshot of the flagship kitchen, adds its nightly profit minus rent to the day summary, and has chain goals and a "Chain built" end screen. Blueprints are a copy across locations, not grid copy/paste: the **[confirmed]** "Copy/paste is [later]" rule (section 13) is not changed. Branch rent is the only rent; flagship rent stays **[later]**. Without branches all hashes and fixtures are unchanged.
 
 - 2026-11-24: Dish pack (provisional numbers, no **[confirmed]** rule changed): fish and chips and cheeseburger at the restaurant tier, new ingredients fish and cheese, `DishDef.requiresTier` and the taste-pool rule in 6.2. Menu cap stays 6 (user decision). Stall draws are identical; restaurant hashes change (more dishes in the pool once unlocked).
 - 2026-11-24: Pro stations (5.3, 10; provisional numbers, no **[confirmed]** rule): pro fryer, stove and assembler at the restaurant tier, 2/3 of the base time, about 2x the price, placed from Build like the fast belt, 100% refund. Optional `pro` flag on the building, absent unless set, so stall hashes are unchanged.
