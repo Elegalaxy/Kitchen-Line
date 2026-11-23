@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from '../sim/commands.ts'
+import { chainReady, DEFS as CHAIN_DEFS, must as chainMust } from '../sim/chainKit.ts'
 import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { runTicks } from '../sim/tick.ts'
@@ -429,5 +430,72 @@ describe('food critics', () => {
     const s = createGame(DEFS, 'demo')
     ;(s.today as unknown as Record<string, unknown>).critic = { stars: 'x', served: true, dish: null }
     expect(loadSave(serializeSave(s, 'x')).ok).toBe(false)
+  })
+})
+
+describe('chain stage (branches)', () => {
+  /** A chain-ready kitchen with one branch that has had a night: every optional chain field is present. */
+  function chainState(): GameState {
+    let s = chainReady()
+    s = chainMust(s, { type: 'openBranch' })
+    s = runTicks(chainMust(s, { type: 'openService' }), CHAIN_DEFS, 2400)
+    return s
+  }
+  const text = (s: GameState): string => serializeSave(s, 'x')
+  const edited = (s: GameState, f: (state: Record<string, any>) => void): string => {
+    const e = JSON.parse(text(s)) as { state: Record<string, any> }
+    f(e.state)
+    return JSON.stringify(e)
+  }
+  const reasonOf = (raw: string): string => {
+    const r = loadSave(raw)
+    return r.ok ? 'loaded' : r.reason
+  }
+
+  it('round-trips the branches, chainProfit, chainWon and the day rows with the same hash', () => {
+    const s = chainState()
+    s.chainWon = true
+    expect(s.branches).toHaveLength(1)
+    expect(s.chainProfit).toBeDefined()
+    expect(s.lastDay?.branches).toHaveLength(1)
+    const back = loadSave(text(s))
+    expect(back.ok).toBe(true)
+    if (back.ok) expect(stateHash(back.state)).toBe(stateHash(s))
+  })
+
+  it('loads an old save that has none of the chain fields', () => {
+    const s = chainState()
+    const raw = edited(s, (st) => {
+      delete st.branches
+      delete st.chainProfit
+      delete st.chainWon
+      for (const d of [st.today, st.lastDay, st.prevDay]) if (d !== null) delete d.branches
+    })
+    expect(loadSave(raw).ok).toBe(true)
+  })
+
+  it('rejects a corrupt blueprint and names where', () => {
+    const s = chainState()
+    expect(reasonOf(edited(s, (st) => (st.branches[0].blueprint.tiles = [])))).toContain('state.branches[0].blueprint.tiles')
+    const firstId = Object.keys(s.branches?.[0].blueprint.buildings ?? {})[0]
+    expect(reasonOf(edited(s, (st) => (st.branches[0].blueprint.buildings[firstId].kind = 'oven')))).toContain(
+      `state.branches[0].blueprint.buildings.${firstId}.kind`,
+    )
+    expect(reasonOf(edited(s, (st) => (st.branches[0].blueprint.tiles[0] = 999)))).toContain('state.branches[0].blueprint.tiles[0]')
+    expect(reasonOf(edited(s, (st) => delete st.branches[0].blueprint.menu))).toContain('state.branches[0].blueprint.menu')
+    expect(reasonOf(edited(s, (st) => (st.branches[0].blueprint.width = 500)))).toContain('state.branches[0].blueprint.width')
+  })
+
+  it('rejects a malformed branch, expectation, profit total, win flag or day row', () => {
+    const s = chainState()
+    expect(reasonOf(edited(s, (st) => (st.branches[0].id = 0)))).toContain('state.branches[0].id')
+    expect(reasonOf(edited(s, (st) => st.branches.push(structuredClone(st.branches[0]))))).toContain('duplicates branch')
+    expect(reasonOf(edited(s, (st) => (st.branches[0].areaId = '')))).toContain('state.branches[0].areaId')
+    expect(reasonOf(edited(s, (st) => (st.branches[0].expected.profit = 'a lot')))).toContain('state.branches[0].expected.profit')
+    expect(reasonOf(edited(s, (st) => delete st.branches[0].expected))).toContain('state.branches[0].expected')
+    expect(reasonOf(edited(s, (st) => (st.branches = {})))).toContain('state.branches')
+    expect(reasonOf(edited(s, (st) => (st.chainProfit = 1.5)))).toContain('state.chainProfit')
+    expect(reasonOf(edited(s, (st) => (st.chainWon = false)))).toContain('state.chainWon')
+    expect(reasonOf(edited(s, (st) => (st.lastDay.branches[0].net = 'x')))).toContain('state.lastDay.branches[0].net')
   })
 })

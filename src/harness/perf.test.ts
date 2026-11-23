@@ -11,6 +11,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
+import { blueprintOf } from '../sim/blueprint.ts'
+import { branchDayResult, branchSeed } from '../sim/branches.ts'
+import { endDay } from '../sim/day.ts'
 import { createGame, newBuilding } from '../sim/game.ts'
 import { tileIndex } from '../sim/grid.ts'
 import type { Dir, GameState } from '../sim/types.ts'
@@ -99,4 +102,52 @@ describe('performance: 7 days (16,800 ticks) under 1 s', () => {
       expect(ms).toBeLessThan(LIMIT_MS)
     }, TEST_TIMEOUT_MS)
   }
+})
+
+// Chain stage (GAME_DESIGN 8.1): opening or refitting a branch runs one full test day of a real kitchen; every
+// night with branches is O(branches) arithmetic inside endDay.
+describe('performance: chain stage', () => {
+  const NIGHT_LIMIT_MS = process.env.CI === undefined ? 5 : 40
+
+  it('a test day on a real layout kitchen', () => {
+    const state = buildLayoutState(DEFS, 'friesSaladLine', 'perf')
+    state.tier = 'restaurant'
+    const bp = blueprintOf(state, DEFS)
+    const area = DEFS.branchAreas?.[0]
+    if (area === undefined) throw new Error('no branch areas')
+    let best = Infinity
+    for (let i = 0; i < RUNS; i += 1) {
+      const t0 = performance.now()
+      const r = branchDayResult(bp, area, { seed: branchSeed(state.seed, 1), day: 20, ratings: state.ratings }, DEFS)
+      best = Math.min(best, performance.now() - t0)
+      expect(r.customers).toBeGreaterThan(0)
+    }
+    debug(`branch test day best of ${RUNS}: ${best.toFixed(1)} ms`)
+    expect(best).toBeLessThan(LIMIT_MS)
+  }, TEST_TIMEOUT_MS)
+
+  it('endDay with 3 branches', () => {
+    const base = buildLayoutState(DEFS, 'friesSaladLine', 'perf')
+    base.tier = 'restaurant'
+    const bp = blueprintOf(base, DEFS)
+    base.won = true
+    base.phase = 'service'
+    base.branches = [1, 2, 3].map((id) => ({
+      id,
+      areaId: DEFS.branchAreas?.[id - 1]?.id ?? 'x',
+      openedDay: 1,
+      blueprintDay: 1,
+      refits: 0,
+      blueprint: bp,
+      expected: { profit: 20000, sales: 30000, served: 80, customers: 100 },
+    }))
+    const N = 200
+    const states = Array.from({ length: N }, () => structuredClone(base))
+    const t0 = performance.now()
+    for (const s of states) endDay(s, DEFS)
+    const avg = (performance.now() - t0) / N
+    debug(`endDay with 3 branches: ${avg.toFixed(3)} ms average over ${N}`)
+    expect(states[0].today.branches ?? states[0].lastDay?.branches).toHaveLength(3)
+    expect(avg).toBeLessThan(NIGHT_LIMIT_MS)
+  }, TEST_TIMEOUT_MS)
 })

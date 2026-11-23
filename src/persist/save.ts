@@ -9,6 +9,8 @@
 // item, customer, rng stream and day stats. The parsed object is returned as is, so the key order
 // (and with it `stateHash`) survives a round trip. Ids of items, dishes and buildings can only be
 // checked for shape here (persist cannot see the content defs); the UI checks them against DEFS.
+// The chain stage fields (GAME_DESIGN 8.1: `branches`, `chainProfit`, `chainWon`, `DayStats.branches`) are
+// optional; each branch's blueprint goes through the same grid checks as the live state (`validateGrid`).
 
 import type { GameState } from '../sim/types.ts'
 
@@ -24,6 +26,8 @@ const MAX_SIDE = 64
 /** Generous caps on array sizes so a hostile file cannot make the loader do unbounded work. */
 const MAX_ITEMS_PER_BUILDING = 64
 const MAX_LIST = 100000
+/** Persist cannot import the game's branch limit (sim values); this only bounds a hostile file. */
+const MAX_BRANCHES = 16
 
 const KINDS = ['belt', 'pantry', 'splitter', 'merger', 'filter', 'chopper', 'fryer', 'stove', 'assembler', 'pass', 'bin']
 const STATUSES = ['ok', 'idle', 'blocked', 'warming', 'noCash', 'noRecipe', 'paused']
@@ -155,6 +159,15 @@ function dayStats(v: unknown, path: string): void {
     for (const k of ['served', 'lost', 'sales']) int(e[k], `${path}.byDish.${id}.${k}`)
   }
   arr(o.reviews, `${path}.reviews`).forEach((r, i) => review(r, `${path}.reviews[${i}]`))
+  // Only present once branches exist (the chain stage): each branch's night, net after rent.
+  if (o.branches !== undefined) {
+    arr(o.branches, `${path}.branches`, MAX_BRANCHES).forEach((b, i) => {
+      const e = obj(b, `${path}.branches[${i}]`)
+      int(e.id, `${path}.branches[${i}].id`, 1)
+      int(e.net, `${path}.branches[${i}].net`, Number.MIN_SAFE_INTEGER)
+      int(e.rent, `${path}.branches[${i}].rent`)
+    })
+  }
   if (o.critic !== undefined) {
     const c = obj(o.critic, `${path}.critic`)
     int(c.stars, `${path}.critic.stars`, 1)
@@ -249,6 +262,74 @@ function building(v: unknown, path: string, key: string, width: number, height: 
   return tiles
 }
 
+/**
+ * Validates the grid part of `o` (the live state or a blueprint): width, height, the tile index and every
+ * building with its footprint. Returns the highest building id (0 when there are none). `path` prefixes
+ * every message, e.g. `state` or `state.branches[0].blueprint`.
+ */
+function validateGrid(o: Obj, path: string): number {
+  const width = int(o.width, `${path}.width`, 1)
+  const height = int(o.height, `${path}.height`, 1)
+  if (width > MAX_SIDE || height > MAX_SIDE) bad(`${path}.width`, `grid is larger than ${MAX_SIDE} x ${MAX_SIDE}`)
+
+  const tiles = arr(o.tiles, `${path}.tiles`)
+  if (tiles.length !== width * height) {
+    bad(`${path}.tiles`, `length ${tiles.length} does not match width * height (${width * height})`)
+  }
+  const buildings = obj(o.buildings, `${path}.buildings`)
+  const expected = new Array<number | null>(width * height).fill(null)
+  let maxId = 0
+  for (const [key, b] of Object.entries(buildings)) {
+    const bpath = `${path}.buildings.${key}`
+    for (const t of building(b, bpath, key, width, height)) {
+      const at = t.y * width + t.x
+      if (expected[at] !== null) bad(bpath, `overlaps another building at (${t.x}, ${t.y})`)
+      expected[at] = Number(key)
+    }
+    maxId = Math.max(maxId, Number(key))
+  }
+  tiles.forEach((t, i) => {
+    if (t === null) {
+      if (expected[i] !== null) bad(`${path}.tiles[${i}]`, `is empty but building ${expected[i]} covers it`)
+      return
+    }
+    const id = int(t, `${path}.tiles[${i}]`, 1)
+    if (buildings[String(id)] === undefined) bad(`${path}.tiles[${i}]`, `references missing building ${id}`)
+    if (expected[i] !== id) bad(`${path}.tiles[${i}]`, `building ${id} does not cover this tile`)
+  })
+  return maxId
+}
+
+/** A branch's blueprint (GAME_DESIGN 8.1): the same grid checks as the live state, plus its menu and value. */
+function blueprint(v: unknown, path: string): void {
+  const o = obj(v, path)
+  validateGrid(o, path)
+  int(o.expansion, `${path}.expansion`)
+  strList(o.unlocked, `${path}.unlocked`)
+  arr(o.menu, `${path}.menu`).forEach((m, i) => {
+    const e = obj(m, `${path}.menu[${i}]`)
+    str(e.dish, `${path}.menu[${i}].dish`)
+    int(e.price, `${path}.menu[${i}].price`)
+  })
+  int(o.value, `${path}.value`)
+}
+
+/** One branch of the chain stage: ids are unique and counted up from 1. */
+function branch(v: unknown, path: string, seen: Set<number>): void {
+  const o = obj(v, path)
+  const id = int(o.id, `${path}.id`, 1)
+  if (seen.has(id)) bad(`${path}.id`, `duplicates branch ${id}`)
+  seen.add(id)
+  str(o.areaId, `${path}.areaId`)
+  int(o.openedDay, `${path}.openedDay`, 1)
+  int(o.blueprintDay, `${path}.blueprintDay`, 1)
+  int(o.refits, `${path}.refits`)
+  blueprint(o.blueprint, `${path}.blueprint`)
+  const e = obj(o.expected, `${path}.expected`)
+  int(e.profit, `${path}.expected.profit`, Number.MIN_SAFE_INTEGER)
+  for (const k of ['sales', 'served', 'customers']) int(e[k], `${path}.expected.${k}`)
+}
+
 function validateState(v: unknown): GameState {
   const s = obj(v, 'state')
   if (s.version !== SAVE_VERSION) bad('state.version', `expected ${SAVE_VERSION}`)
@@ -261,35 +342,7 @@ function validateState(v: unknown): GameState {
   oneOf(s.phase, 'state.phase', PHASES)
   oneOf(s.tier, 'state.tier', TIERS)
   int(s.expansion, 'state.expansion')
-  const width = int(s.width, 'state.width', 1)
-  const height = int(s.height, 'state.height', 1)
-  if (width > MAX_SIDE || height > MAX_SIDE) bad('state.width', `grid is larger than ${MAX_SIDE} x ${MAX_SIDE}`)
-
-  const tiles = arr(s.tiles, 'state.tiles')
-  if (tiles.length !== width * height) {
-    bad('state.tiles', `length ${tiles.length} does not match width * height (${width * height})`)
-  }
-  const buildings = obj(s.buildings, 'state.buildings')
-  const expected = new Array<number | null>(width * height).fill(null)
-  let maxId = 0
-  for (const [key, b] of Object.entries(buildings)) {
-    const path = `state.buildings.${key}`
-    for (const t of building(b, path, key, width, height)) {
-      const at = t.y * width + t.x
-      if (expected[at] !== null) bad(path, `overlaps another building at (${t.x}, ${t.y})`)
-      expected[at] = Number(key)
-    }
-    maxId = Math.max(maxId, Number(key))
-  }
-  tiles.forEach((t, i) => {
-    if (t === null) {
-      if (expected[i] !== null) bad(`state.tiles[${i}]`, `is empty but building ${expected[i]} covers it`)
-      return
-    }
-    const id = int(t, `state.tiles[${i}]`, 1)
-    if (buildings[String(id)] === undefined) bad(`state.tiles[${i}]`, `references missing building ${id}`)
-    if (expected[i] !== id) bad(`state.tiles[${i}]`, `building ${id} does not cover this tile`)
-  })
+  const maxId = validateGrid(s, 'state')
   const nextId = int(s.nextId, 'state.nextId', 1)
   if (nextId <= maxId) bad('state.nextId', 'is not above the highest building id')
   int(s.nextItemId, 'state.nextItemId', 1)
@@ -315,6 +368,13 @@ function validateState(v: unknown): GameState {
   if (s.tierDay !== undefined) int(s.tierDay, 'state.tierDay', 1)
   if (s.tierProfitStart !== undefined) int(s.tierProfitStart, 'state.tierProfitStart', Number.MIN_SAFE_INTEGER)
   bool(s.won, 'state.won')
+  // Chain stage (GAME_DESIGN 8.1): all three are absent in saves from before it, and in games with no branches.
+  if (s.branches !== undefined) {
+    const seen = new Set<number>()
+    arr(s.branches, 'state.branches', MAX_BRANCHES).forEach((b, i) => branch(b, `state.branches[${i}]`, seen))
+  }
+  if (s.chainProfit !== undefined) int(s.chainProfit, 'state.chainProfit', Number.MIN_SAFE_INTEGER)
+  if (s.chainWon !== undefined && s.chainWon !== true) bad('state.chainWon', 'expected true')
   arr(s.events, 'state.events').forEach((e, i) => {
     const o = obj(e, `state.events[${i}]`)
     str(o.type, `state.events[${i}].type`)
