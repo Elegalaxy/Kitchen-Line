@@ -1,6 +1,7 @@
 // All content defs, handed to the sim as `DEFS`.
 
 import type { Defs } from '../sim/types.ts'
+import { BRANCH_AREAS } from './branchAreas.ts'
 import { BUILDINGS } from './buildings.ts'
 import { DISHES } from './dishes.ts'
 import { EXPANSIONS } from './expansions.ts'
@@ -19,4 +20,5 @@ export const DEFS: Defs = {
   goals: GOALS,
   expansions: EXPANSIONS,
   upgrades: UPGRADES,
+  branchAreas: BRANCH_AREAS,
 }

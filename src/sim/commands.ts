@@ -8,7 +8,7 @@
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
 // do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
 // during service' during service, 'wrong phase' in summary / won). upgradeTier, buyExpansion
-// (Step 16) and buyUpgrade (restaurant upgrades) are build phase only too; dismissSummary also leaves the `won` end screen
+// (Step 16), buyUpgrade (restaurant upgrades), openBranch and refitBranch (chain stage, branches.ts) are build phase only too; dismissSummary also leaves the `won` end screen
 // ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
 import { MENU_CAP, START_INGREDIENT, TIER_RANK, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
@@ -26,6 +26,18 @@ import {
   tileIndex,
 } from './grid.ts'
 import type { PlaceCommand } from './grid.ts'
+import { blueprintOf } from './blueprint.ts'
+import {
+  branchById,
+  nextArea,
+  nextBranchId,
+  openBranchCost,
+  openBranchProblem,
+  profitable,
+  refitCost,
+  refitProblem,
+  testBranch,
+} from './branches.ts'
 import { refundOf } from './economy.ts'
 import { priceProblem } from './menu.ts'
 import { buyUpgradeProblem } from './upgrades.ts'
@@ -346,6 +358,48 @@ function buyUpgrade(state: GameState, defs: Defs, cmd: Extract<Command, { type: 
 }
 
 /**
+ * Open the next branch (GAME_DESIGN 8.1): pay the blueprint's value plus the fee, run the test day at the fixed
+ * next site and store it as the branch's expectation. Refused when the test day would not make money.
+ */
+function openBranch(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
+  const why = openBranchProblem(state, defs)
+  const area = nextArea(state, defs)
+  if (why !== null || area === null) return reject(state, cmd, why ?? 'branch limit')
+  const blueprint = blueprintOf(state, defs)
+  const id = nextBranchId(state)
+  const expected = testBranch(state, defs, blueprint, area, id)
+  if (!profitable(expected, area)) return reject(state, cmd, 'branch would lose money')
+  const cost = openBranchCost(state, defs)
+  const next = structuredClone(state)
+  next.money -= cost
+  next.branches = [...(next.branches ?? []), { id, areaId: area.id, openedDay: next.day, blueprintDay: next.day, refits: 0, blueprint, expected }]
+  next.events.push({ type: 'branchOpened', tick: next.tick, id, areaId: area.id, cost })
+  return { state: next, result: { ok: true } }
+}
+
+/** Copy the current flagship kitchen to branch `id` again: new blueprint, new test day, same site. */
+function refitBranch(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'refitBranch' }>): ApplyOutcome {
+  const why = refitProblem(state, defs, cmd.id)
+  const branch = branchById(state, cmd.id)
+  const area = branch === undefined ? undefined : defs.branchAreas?.find((a) => a.id === branch.areaId)
+  if (why !== null || branch === undefined || area === undefined) return reject(state, cmd, why ?? 'invalid command')
+  const blueprint = blueprintOf(state, defs)
+  const expected = testBranch(state, defs, blueprint, area, branch.id)
+  if (!profitable(expected, area)) return reject(state, cmd, 'branch would lose money')
+  const cost = refitCost(state, defs, branch)
+  const next = structuredClone(state)
+  next.money -= cost
+  const target = branchById(next, branch.id)
+  if (target === undefined) return reject(state, cmd, 'no such branch')
+  target.blueprint = blueprint
+  target.expected = expected
+  target.blueprintDay = next.day
+  target.refits += 1
+  next.events.push({ type: 'branchRefit', tick: next.tick, id: branch.id, cost })
+  return { state: next, result: { ok: true } }
+}
+
+/**
  * Buy the next grid size (`defs.expansions[state.expansion]`). Buildings and the items inside
  * them stay at their coordinates; only the tile index is rebuilt for the new width.
  */
@@ -423,6 +477,10 @@ function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutco
       return buyUpgrade(state, defs, cmd)
     case 'tutorialHelp':
       return tutorialHelp(state, cmd)
+    case 'openBranch':
+      return openBranch(state, defs, cmd)
+    case 'refitBranch':
+      return refitBranch(state, defs, cmd)
     default:
       return reject(state, cmd, 'invalid command')
   }

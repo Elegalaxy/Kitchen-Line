@@ -5,66 +5,11 @@ import { describe, expect, it } from 'vitest'
 import { blueprintOf, sameBlueprint } from './blueprint.ts'
 import { branchDayResult, branchSeed } from './branches.ts'
 import type { BranchContext } from './branches.ts'
-import { applyCommand } from './commands.ts'
+import { area, DEFS, friesKitchen, must } from './chainKit.ts'
 import { criticDay } from './critic.ts'
-import { createGame } from './game.ts'
 import { stateHash } from './hash.ts'
 import { runTicks } from './tick.ts'
-import type { BranchAreaDef, BuildingDef, BuildingKind, Command, Defs, GameState } from './types.ts'
-
-function bd(kind: BuildingKind, cost: number, extra: Partial<BuildingDef> = {}): BuildingDef {
-  return { kind, name: kind, emoji: '?', cost, requiresTier: 'stall', tiles: 1, placeable: true, ...extra }
-}
-
-// Sim tests may not import src/content, so the fixture is inline (a fries line like content's friesLine).
-export const DEFS: Defs = {
-  items: {
-    potato: { id: 'potato', name: 'Potato', emoji: '', kind: 'raw', cost: 30 },
-    potatoStrips: { id: 'potatoStrips', name: 'Strips', emoji: '', kind: 'processed' },
-    fries: { id: 'fries', name: 'Fries', emoji: '', kind: 'dish', spoilTicks: 600 },
-  },
-  buildings: {
-    belt: bd('belt', 100),
-    pantry: bd('pantry', 1000),
-    splitter: bd('splitter', 800),
-    merger: bd('merger', 800),
-    filter: bd('filter', 1200),
-    chopper: bd('chopper', 2500),
-    fryer: bd('fryer', 4000),
-    stove: bd('stove', 6000),
-    assembler: bd('assembler', 5000, { tiles: 2 }),
-    pass: bd('pass', 0, { placeable: false }),
-    bin: bd('bin', 500),
-  },
-  stationRecipes: [
-    { station: 'chopper', input: 'potato', output: 'potatoStrips', ticks: 20 },
-    { station: 'fryer', input: 'potatoStrips', output: 'fries', ticks: 60 },
-  ],
-  dishes: {
-    fries: { id: 'fries', name: 'Fries', emoji: '', refPrice: 300, popularity: 3, startsUnlocked: true, unlockCost: 0 },
-  },
-}
-
-export function area(demandPercent: number, rent = 0): BranchAreaDef {
-  return { id: `a${demandPercent}`, name: 'Area', emoji: '', demandPercent, rent }
-}
-
-function must(s: GameState, cmd: Command): GameState {
-  const out = applyCommand(s, DEFS, cmd)
-  if (!out.result.ok) throw new Error(`rejected ${JSON.stringify(cmd)}: ${out.result.reason}`)
-  return out.state
-}
-
-/** pantry -> belt -> chopper -> belt -> fryer -> 2 belts -> pass, like content's friesLine, in the restaurant tier, mid-service. */
-export function friesKitchen(): GameState {
-  let s = createGame(DEFS, 'demo')
-  s.money = 1_000_000
-  const east = (kind: BuildingKind, x: number): Command => ({ type: 'place', kind, x, y: 2, dir: 1 })
-  for (const [kind, x] of [['belt', 1], ['chopper', 2], ['belt', 3], ['fryer', 4], ['belt', 5], ['belt', 6]] as const) s = must(s, east(kind, x))
-  s.tier = 'restaurant'
-  s = must(s, { type: 'openService' })
-  return runTicks(s, DEFS, 700) // items on the belts, pantry cooldowns mid-way, a few ratings
-}
+import type { GameState } from './types.ts'
 
 function ctxOf(s: GameState, id = 1): BranchContext {
   return { seed: branchSeed(s.seed, id), day: s.day, ratings: s.ratings }
