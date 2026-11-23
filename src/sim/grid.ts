@@ -4,7 +4,7 @@
 // its anchor tile plus the tile to the anchor's right (dir + 1), so rotating moves the
 // second tile. canPlace returns the first reason a place command is invalid, or null.
 
-import { PANTRY_INTERVALS } from './constants.ts'
+import { PANTRY_INTERVALS, PASS_MAX } from './constants.ts'
 import type {
   BuildingKind,
   Command,
@@ -44,6 +44,11 @@ export function footprint(kind: BuildingKind, x: number, y: number, dir: Dir): P
     return [{ x, y }, neighbor(x, y, right)]
   }
   return [{ x, y }]
+}
+
+/** How many buildings of `kind` exist. */
+export function countKind(state: Pick<GameState, 'buildings'>, kind: BuildingKind): number {
+  return Object.values(state.buildings).filter((b) => b.kind === kind).length
 }
 
 /** Id of the building covering (x, y), or null (also null when out of bounds). */
@@ -112,6 +117,7 @@ export function canPlace(state: GameState, defs: Defs, cmd: PlaceCommand): Rejec
   if (fast && def.fast === undefined) return 'invalid config'
   const tier = fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
   if (tier === 'restaurant' && state.tier !== 'restaurant') return 'locked by tier'
+  if (cmd.kind === 'pass' && countKind(state, 'pass') >= PASS_MAX) return 'pass limit'
   const tiles = footprint(cmd.kind, cmd.x, cmd.y, cmd.dir)
   for (const t of tiles) {
     if (!inBounds(state, t.x, t.y)) return 'out of bounds'

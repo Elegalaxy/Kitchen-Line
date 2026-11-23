@@ -128,6 +128,7 @@ export type RejectReason =
   | 'nothing there'
   | 'pass cannot be removed'
   | 'pass cannot be placed'
+  | 'pass limit'
   | 'not implemented'
   | 'goals not done'
   | 'already restaurant'

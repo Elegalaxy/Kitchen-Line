@@ -2,12 +2,13 @@
 // order, with the reason a building is disabled right now (shown as visible text).
 // Position-dependent reasons (occupied, out of bounds) are shown by the ghost instead.
 
-import { placeCost } from '../sim/grid.ts'
+import { PASS_MAX } from '../sim/constants.ts'
+import { countKind, placeCost } from '../sim/grid.ts'
 import type { PlaceCommand } from '../sim/grid.ts'
 import type { BuildingDef, BuildingKind, Defs, GameState } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 
-/** Placeable buildings in DEFS order (the pass is pre-placed, not for sale). */
+/** Placeable buildings in DEFS order (the pass is last: one extra is for sale at the restaurant tier). */
 export function paletteKinds(defs: Defs): BuildingKind[] {
   return Object.values(defs.buildings)
     .filter((b: BuildingDef) => b.placeable)
@@ -41,6 +42,7 @@ export function paletteReason(state: GameState, defs: Defs, kind: BuildingKind, 
   if (fast && def.fast === undefined) return 'Not for sale'
   const tier = fast && def.fast !== undefined ? def.fast.requiresTier : def.requiresTier
   if (tier === 'restaurant' && state.tier !== 'restaurant') return 'Restaurant tier'
+  if (kind === 'pass' && countKind(state, 'pass') >= PASS_MAX) return 'Limit reached'
   const cost = paletteCost(defs, kind, fast)
   if (state.phase !== 'build' && state.phase !== 'service') return 'Not available now'
   if (state.money < cost) return `Needs ${formatMoney(cost)}`

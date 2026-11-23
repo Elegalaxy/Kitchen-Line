@@ -20,6 +20,8 @@ export const PASS_DIR: Dir = 3
 export const PANTRY_POS = { x: 0, y: 2 } as const
 export const PANTRY_DIR: Dir = 1
 export const START_INGREDIENT = 'potato'
+/** GAME_DESIGN 5.3: at most this many passes (the pre-placed one plus one bought at the restaurant tier). */
+export const PASS_MAX = 2
 /** GAME_DESIGN 5.3: pantry emit interval choices in ticks, default 20. */
 export const PANTRY_INTERVALS: readonly number[] = [10, 20, 40, 80]
 export const PANTRY_DEFAULT_INTERVAL = 20

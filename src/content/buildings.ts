@@ -1,5 +1,5 @@
 // Building defs. Costs in cents are provisional (GAME_DESIGN 5.3 and 7, plan 2.5).
-// The pass is pre-placed and not for sale. The fast belt is a belt variant that needs
+// The first pass is pre-placed; a second one can be bought at the restaurant tier. The fast belt is a belt variant that needs
 // the restaurant tier.
 
 import type { BuildingDef, BuildingKind } from '../sim/types.ts'
@@ -31,8 +31,10 @@ const list: BuildingDef[] = [
     tiles: 2,
     placeable: true,
   },
-  { kind: 'pass', name: 'Pass', emoji: '🛎️', cost: 0, requiresTier: 'stall', tiles: 1, placeable: false },
   { kind: 'bin', name: 'Bin', emoji: '🗑️', cost: 500, requiresTier: 'stall', tiles: 1, placeable: true },
+  // GAME_DESIGN 5.3: the first pass is pre-placed (createGame, free); one extra pass ($400) is for sale at the
+  // restaurant tier, PASS_MAX in total. It is listed last so the palette hotkeys 1 to 0 keep their buildings.
+  { kind: 'pass', name: 'Pass', emoji: '🛎️', cost: 40000, requiresTier: 'restaurant', tiles: 1, placeable: true },
 ]
 
 export const BUILDINGS = Object.fromEntries(list.map((b) => [b.kind, b])) as Record<BuildingKind, BuildingDef>

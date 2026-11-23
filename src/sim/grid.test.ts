@@ -99,6 +99,60 @@ function expectRejected(state: GameState, cmd: Command, reason: string): void {
   expect(stateHash(state)).toBe(before)
 }
 
+/** Same fixture but with the pass for sale at the restaurant tier, as in src/content/buildings.ts. */
+const PASS_DEFS: Defs = {
+  ...DEFS,
+  buildings: { ...DEFS.buildings, pass: b('pass', 40000, { requiresTier: 'restaurant' }) },
+}
+
+function restaurant(money = 100000): GameState {
+  return { ...structuredClone(createGame(PASS_DEFS, 'pass')), tier: 'restaurant', money }
+}
+
+function placePass(s: GameState, x: number, y: number): ReturnType<typeof applyCommand> {
+  return applyCommand(s, PASS_DEFS, { type: 'place', kind: 'pass', x, y, dir: 3 })
+}
+
+describe('second pass', () => {
+  it('is locked at the stall tier', () => {
+    const s = { ...structuredClone(createGame(PASS_DEFS, 'pass')), money: 100000 }
+    const out = placePass(s, 7, 3)
+    expect(out.result.ok).toBe(false)
+    if (!out.result.ok) expect(out.result.reason).toBe('locked by tier')
+  })
+
+  it('is placed at the restaurant tier for $400; a third is rejected with pass limit', () => {
+    const s = restaurant()
+    const out = placePass(s, 7, 3)
+    expect(out.result).toEqual({ ok: true })
+    expect(out.state.money).toBe(100000 - 40000)
+    expect(Object.values(out.state.buildings).filter((x) => x.kind === 'pass')).toHaveLength(2)
+    const third = placePass(out.state, 7, 4)
+    expect(third.result.ok).toBe(false)
+    if (!third.result.ok) expect(third.result.reason).toBe('pass limit')
+    expect(third.state).toBe(out.state)
+  })
+
+  it('needs the money', () => {
+    const out = placePass(restaurant(39999), 7, 3)
+    expect(out.result.ok).toBe(false)
+    if (!out.result.ok) expect(out.result.reason).toBe('cannot afford')
+  })
+
+  it('the extra pass can be sold with a full refund; the last pass cannot', () => {
+    const placed = placePass(restaurant(), 7, 3).state
+    const sold = applyCommand(placed, PASS_DEFS, { type: 'remove', x: 7, y: 3 })
+    expect(sold.result).toEqual({ ok: true })
+    expect(sold.state.money).toBe(100000)
+    // Either pass may be sold while another remains, including the pre-placed one.
+    const original = applyCommand(placed, PASS_DEFS, { type: 'remove', x: 7, y: 2 })
+    expect(original.result).toEqual({ ok: true })
+    const last = applyCommand(original.state, PASS_DEFS, { type: 'remove', x: 7, y: 3 })
+    expect(last.result.ok).toBe(false)
+    if (!last.result.ok) expect(last.result.reason).toBe('pass cannot be removed')
+  })
+})
+
 describe('createGame', () => {
   it('builds the starting kitchen', () => {
     const s = createGame(DEFS, 'seed')

@@ -17,7 +17,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 2: Second pass
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: pass entry is placeable at the restaurant tier ($400, listed last in `buildings.ts` so the palette hotkeys 1 to 0 keep their buildings); `PASS_MAX` = 2, `pass limit` reject reason, removing a pass is refused only for the last one. All existing hashes and fixtures unchanged. Not changed (another chat edits it): the Inspector still disables Sell for any pass; the Sell tool and the remove command work.
 - Files: `src/content/buildings.ts`, `src/sim/constants.ts` (`PASS_MAX`), `src/sim/grid.ts`, `src/sim/commands.ts`, `src/sim/types.ts`, `src/ui/format.ts`, `src/ui/canvas/input.ts`, tests
 - What changes: the pass becomes placeable at the restaurant tier for $400, at most 2. Placing a third is rejected with `pass limit`; a pass can be removed (100% refund) while another remains.
 - Acceptance: all existing hashes and fixtures unchanged.

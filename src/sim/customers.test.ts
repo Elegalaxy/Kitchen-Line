@@ -282,6 +282,26 @@ describe('the pass and sales', () => {
     expect(out.money).toBe(s.money)
   })
 
+  it('sells a dish waiting on a second pass', () => {
+    const s = bare(2280)
+    s.tick = 50
+    s.tier = 'restaurant'
+    quietPantry(s)
+    const forSale: Defs = { ...DEFS, buildings: { ...DEFS.buildings, pass: b('pass', 40000, { requiresTier: 'restaurant' }) } }
+    const second = applyCommand({ ...s, money: 100000 }, forSale, { type: 'place', kind: 'pass', x: 7, y: 3, dir: 3 })
+    expect(second.result.ok).toBe(true)
+    const t = second.state
+    const extra = Object.values(t.buildings).filter((x) => x.kind === 'pass')[1]
+    if (extra === undefined || extra.kind !== 'pass') throw new Error('no second pass')
+    extra.shelf = [item(1, 'salad')]
+    t.waiting = [customer(1, 'salad', 450, 500, 30)]
+    const before = t.money
+    const out = runTicks(t, DEFS, 1)
+    expect(out.today.served).toBe(1)
+    expect(out.money).toBe(before + 450)
+    expect(out.waiting).toEqual([])
+  })
+
   it('gives a dish to the oldest customer waiting for exactly that dish, and pays the price', () => {
     const s = bare(2280)
     s.tick = 50

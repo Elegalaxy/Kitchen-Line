@@ -19,6 +19,7 @@ import {
   buildingAt,
   canPlace,
   configReason,
+  countKind,
   footprint,
   inBounds,
   placeCost,
@@ -158,7 +159,7 @@ function remove(state: GameState, defs: Defs, x: number, y: number): ApplyOutcom
   const id = buildingAt(state, x, y)
   const found = id === null ? undefined : state.buildings[id]
   if (found === undefined) return reject(state, { type: 'remove' }, 'nothing there')
-  if (found.kind === 'pass') return reject(state, { type: 'remove' }, 'pass cannot be removed')
+  if (found.kind === 'pass' && countKind(state, 'pass') <= 1) return reject(state, { type: 'remove' }, 'pass cannot be removed')
   const next = structuredClone(state)
   const b = next.buildings[found.id]
   const refund = refundOf(defs, b)

@@ -3,7 +3,7 @@
 // Validity always comes from the sim (`canPlace`, `placeCost`), so the preview and the sim
 // agree. No DOM and no React in here.
 
-import { buildingAt, canPlace, footprint, inBounds, neighbor, placeCost, tileIndex } from '../../sim/grid.ts'
+import { buildingAt, canPlace, countKind, footprint, inBounds, neighbor, placeCost, tileIndex } from '../../sim/grid.ts'
 import type { PlaceCommand, Point } from '../../sim/grid.ts'
 import type { BuildingKind, Defs, Dir, GameState, RejectReason } from '../../sim/types.ts'
 import { formatMoney, reasonText } from '../format.ts'
@@ -140,7 +140,7 @@ export function computeOverlay(state: GameState, defs: Defs, ui: UiState): Overl
       const b = state.buildings[underId]
       o.hover = footprintOf(state, underId)
       o.clickable = true
-      if (b.kind === 'pass') {
+      if (b.kind === 'pass' && countKind(state, 'pass') <= 1) {
         o.hoverBad = true
         o.label = { text: `✕ ${reasonText('pass cannot be removed')}`, ok: false }
       } else {

@@ -49,18 +49,20 @@ describe('hotkey mapping', () => {
 describe('palette', () => {
   const state = createGame(DEFS, 'palette-test')
 
-  it('lists the placeable buildings in DEFS order (10, no pass)', () => {
+  it('lists the placeable buildings in DEFS order (10 with hotkeys, then the extra pass)', () => {
     const kinds = paletteKinds(DEFS)
-    expect(kinds).toHaveLength(10)
+    expect(kinds).toHaveLength(11)
     expect(kinds[0]).toBe('belt')
-    expect(kinds).not.toContain('pass')
+    expect(kinds[9]).toBe('bin')
+    expect(kinds[10]).toBe('pass')
   })
 
   it('shows why a building is disabled', () => {
     expect(paletteReason(state, DEFS, 'belt')).toBeNull()
     expect(paletteReason({ ...state, money: 3999 }, DEFS, 'fryer')).toBe('Needs $40.00')
     expect(paletteReason({ ...state, money: 4000 }, DEFS, 'fryer')).toBeNull()
-    expect(paletteReason(state, DEFS, 'pass')).toBe('Not for sale')
+    expect(paletteReason(state, DEFS, 'pass')).toBe('Restaurant tier')
+    expect(paletteReason({ ...state, tier: 'restaurant', money: 40000 }, DEFS, 'pass')).toBeNull()
   })
 })
 
@@ -144,6 +146,6 @@ describe('actions', () => {
     ctx.ui.set({ tool: 'remove' })
     ctx.ui.setCursor({ x: 7, y: 2 }, true)
     confirmAction(ctx)
-    expect(ctx.ui.get().toast?.text).toBe('The pass cannot be removed')
+    expect(ctx.ui.get().toast?.text).toBe('The last pass cannot be removed')
   })
 })
