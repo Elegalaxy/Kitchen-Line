@@ -69,6 +69,11 @@ const REASON_TEXT: Record<RejectReason, string> = {
   'already restaurant': 'Already a restaurant',
   'no more expansions': 'The kitchen is fully expanded',
   'Menu is locked during service': 'Menu is locked during service',
+  'chain locked': 'Finish the restaurant goals first',
+  'branch limit': 'You already have three branches',
+  'no such branch': 'No such branch',
+  'blueprint unchanged': 'The kitchen is the same as the branch already has',
+  'branch would lose money': 'This branch would lose money',
 }
 
 /** Player-facing text for a sim rejection reason. */

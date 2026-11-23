@@ -3,7 +3,15 @@
 // (commands.ts). Profit for goals is sales minus ingredient cost; building and expansion
 // spending is excluded (plan 2.5).
 
-import type { Customer, DayStats, DishId, GameState, LostReason } from './types.ts'
+import type { Building, Customer, DayStats, Defs, DishId, GameState, LostReason } from './types.ts'
+
+/** Cents the player gets for selling `b`: the full price of the variant it was bought as. */
+export function refundOf(defs: Defs, b: Building): number {
+  const def = defs.buildings[b.kind]
+  if (b.kind === 'belt' && b.fast && def.fast !== undefined) return def.fast.cost
+  if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true && def.pro !== undefined) return def.pro.cost
+  return def.cost
+}
 
 export function profitOf(stats: Pick<DayStats, 'sales' | 'ingredientCost'>): number {
   return stats.sales - stats.ingredientCost

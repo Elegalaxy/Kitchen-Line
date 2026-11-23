@@ -26,6 +26,7 @@ import {
   tileIndex,
 } from './grid.ts'
 import type { PlaceCommand } from './grid.ts'
+import { refundOf } from './economy.ts'
 import { priceProblem } from './menu.ts'
 import { buyUpgradeProblem } from './upgrades.ts'
 import type {
@@ -39,6 +40,8 @@ import type {
   GameState,
   RejectReason,
 } from './types.ts'
+
+export { refundOf } from './economy.ts'
 
 export type ApplyOutcome = { state: GameState; result: CommandResult }
 
@@ -79,14 +82,6 @@ export function countItems(b: Building): number {
 /** Why `b` cannot be sold right now (only the last pass), or null. The UI reuses this rule. */
 export function removeBlocked(state: GameState, b: Building): RejectReason | null {
   return b.kind === 'pass' && countKind(state, 'pass') <= 1 ? 'pass cannot be removed' : null
-}
-
-/** Cents the player gets for selling `b`: the full price of the variant it was bought as. */
-export function refundOf(defs: Defs, b: Building): number {
-  const def = defs.buildings[b.kind]
-  if (b.kind === 'belt' && b.fast && def.fast !== undefined) return def.fast.cost
-  if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true && def.pro !== undefined) return def.pro.cost
-  return def.cost
 }
 
 function clearTiles(state: GameState, b: Building): void {

@@ -13,6 +13,8 @@ export type Dir = 0 | 1 | 2 | 3
 export type ItemId = string
 export type DishId = string
 export type Tier = 'stall' | 'restaurant'
+/** Goal groups: the tiers plus the chain stage (GAME_DESIGN 8.1), which has no tier of its own (`state.won` opens it). */
+export type GoalTier = Tier | 'chain'
 export type Item = { id: number; type: ItemId; bornTick: number }
 
 export type BuildingKind =
@@ -107,6 +109,8 @@ export type DayStats = {
   reviews: Review[]
   /** The food critic's result today (critic.ts); absent on days without a critic or before the critic is resolved. */
   critic?: { stars: number; served: boolean; dish: DishId | null }
+  /** Each branch's night: `net` is after `rent` (both cents). Absent while there are no branches (GAME_DESIGN 8.1). */
+  branches?: { id: number; net: number; rent: number }[]
 }
 
 /** The main reason behind a rating (plan Step 12); picks the review template. */
@@ -142,6 +146,11 @@ export type RejectReason =
   | 'already restaurant'
   | 'no more expansions'
   | 'Menu is locked during service'
+  | 'chain locked'
+  | 'branch limit'
+  | 'no such branch'
+  | 'blueprint unchanged'
+  | 'branch would lose money'
 
 /**
  * Events are cleared at the start of each tick (Step 3). `applyCommand` does not
@@ -174,6 +183,9 @@ export type SimEvent =
   | { type: 'tutorialHelp'; tick: number; cents: number }
   | { type: 'expanded'; tick: number; width: number; height: number; cost: number }
   | { type: 'won'; tick: number }
+  | { type: 'branchOpened'; tick: number; id: number; areaId: string; cost: number }
+  | { type: 'branchRefit'; tick: number; id: number; cost: number }
+  | { type: 'chainWon'; tick: number }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
 export type GameState = {
@@ -219,8 +231,46 @@ export type GameState = {
   tierDay?: number
   /** True once the "Ready to expand" end screen has been triggered; it never triggers twice. */
   won: boolean
+  /** Branches of the chain stage (GAME_DESIGN 8.1). Absent until the first one opens. */
+  branches?: Branch[]
+  /** Net cents the branches have earned in total (after rent). Absent until the first branch night. */
+  chainProfit?: number
+  /** True once the "Chain built" end screen has been triggered; it never triggers twice. */
+  chainWon?: true
   events: SimEvent[]
 }
+
+// ---- Chain stage (GAME_DESIGN 8.1) ----------------------------------------
+
+/** A snapshot of the flagship kitchen that a branch runs: buffers empty, buildings idle, pantries running. */
+export type Blueprint = {
+  width: number
+  height: number
+  expansion: number
+  tiles: (number | null)[]
+  buildings: Record<number, Building>
+  menu: { dish: DishId; price: number }[]
+  unlocked: DishId[]
+  /** Cents: the sum of the selling prices of the buildings (what opening it costs on top of the fee). */
+  value: number
+}
+
+/** The result of one headless test day of a blueprint at a site (cents and counts). */
+export type BranchExpected = { profit: number; sales: number; served: number; customers: number }
+
+export type Branch = {
+  id: number
+  areaId: string
+  openedDay: number
+  /** The flagship `day` the blueprint was taken on (opening or the last refit). */
+  blueprintDay: number
+  refits: number
+  blueprint: Blueprint
+  expected: BranchExpected
+}
+
+/** One site on offer (content/branchAreas.ts). `demandPercent` scales arrivals, `rent` is charged per night (cents). */
+export type BranchAreaDef = { id: string; name: string; emoji: string; demandPercent: number; rent: number }
 
 // ---- Content defs handed to the sim -------------------------------------
 
@@ -293,6 +343,8 @@ export type Defs = {
   expansions?: ExpansionDef[]
   /** Restaurant upgrades (content/upgrades.ts). Without them none is on offer. */
   upgrades?: UpgradeDef[]
+  /** Branch sites (content/branchAreas.ts). Without them no branch can open. */
+  branchAreas?: BranchAreaDef[]
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */
@@ -302,7 +354,7 @@ export type GoalUnit = 'count' | 'cents' | 'stars'
 /** A milestone (content/goals.ts). `check` is pure and reads the state only. */
 export type GoalDef = {
   id: string
-  tier: Tier
+  tier: GoalTier
   label: string
   unit: GoalUnit
   check(state: GameState): GoalProgress
@@ -369,6 +421,10 @@ export type Command =
   | { type: 'upgradeTier' }
   /** Buy one restaurant upgrade (build phase, restaurant tier, once each). */
   | { type: 'buyUpgrade'; id: string }
+  /** Open the next branch at its fixed site (build phase, after the restaurant end screen). */
+  | { type: 'openBranch' }
+  /** Copy the current flagship kitchen to branch `id` again. */
+  | { type: 'refitBranch'; id: number }
   | { type: 'openService' }
   | { type: 'dismissSummary' }
   /** Add cents once so the suggested salad line can be bought (UI calls this; capped). */

@@ -164,5 +164,13 @@ export const CRITIC_RATING_WEIGHT = 10
 /** GAME_DESIGN 6.3: a critic who leaves unserved rates this many stars, counted `CRITIC_LOST_WEIGHT` times. */
 export const CRITIC_LOST_STARS = 1
 export const CRITIC_LOST_WEIGHT = 3
+/** GAME_DESIGN 8.1 (chain stage, provisional, 2026-11-24): at most this many branches. */
+export const BRANCH_MAX = 3
+/** GAME_DESIGN 8.1: opening fee in cents on top of the blueprint value, for branch 1, 2 and 3 ($1,000, $2,000, $3,000). */
+export const BRANCH_OPEN_FEES: readonly number[] = [100000, 200000, 300000]
+/** GAME_DESIGN 8.1: a refit costs this many cents ($250) plus any increase in blueprint value. */
+export const BRANCH_REFIT_FEE = 25000
+/** GAME_DESIGN 8.1: a branch's nightly profit is the stored expectation x 90 to 110 percent. */
+export const BRANCH_NOISE_PERCENT = 10
 /** Critic customer ids start here so they never equal a normal customer id (those are the arrival tick). */
 export const CRITIC_ID_OFFSET = 1_000_000_000
