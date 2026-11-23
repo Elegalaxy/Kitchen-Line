@@ -31,6 +31,7 @@ const GOAL_COLUMNS: { id: string; head: string }[] = [
   { id: 'profit-300', head: 'prof300' },
   { id: 'menu-5', head: 'menu5' },
   { id: 'great-day', head: 'goal6' },
+  { id: 'restaurant-profit', head: 'goal7' },
 ]
 
 export type Stat = { median: number; min: number; max: number; n: number }
@@ -71,7 +72,12 @@ export function formatJourneyTable(results: JourneyResult[]): string[] {
   }
   after('days from the upgrade to goal 5 (5 dishes)', (r) => r.goalDay['menu-5'] ?? null)
   after('days from the upgrade to goal 6 ($300 day)', (r) => r.goalDay['great-day'] ?? null)
+  after('days from the upgrade to goal 7 (restaurant profit)', (r) => r.goalDay['restaurant-profit'] ?? null)
   after('days from the upgrade to the end screen', (r) => r.wonDay)
+  const spent = stat(results.map((r) => (r.upgradeDay === null ? null : Math.round(r.restaurantSpent / 100))))
+  if (spent !== null) {
+    lines.push(`cash spent at the restaurant tier (grids, lines, passes, upgrades): median $${spent.median}, min $${spent.min}, max $${spent.max} (${spent.n} seeds)`)
+  }
   const allDays = results.flatMap((r) => r.days)
   const lossDays = allDays.filter((d) => d.profit < 0).length
   lines.push(`days with a loss: ${lossDays} of ${allDays.length}`)
@@ -117,7 +123,8 @@ export function formatFailures(results: JourneyResult[]): string[] {
 /**
  * Fryer load per tier: mean fries finished a day (one fryer makes at most DAY_TICKS / 60 = 40), mean
  * fries customers who gave up a day, and the share of days with 2 or more of them. Days from the day a
- * second fryer is built are left out, so the numbers describe the single fryer.
+ * second fryer is built are left out, so the numbers describe the single fryer. A last line covers the days
+ * from the second fryer on (restaurant tier), which should have almost no fries customers giving up.
  */
 export function formatFryerLoad(results: JourneyResult[]): string[] {
   const lines: string[] = []
@@ -140,6 +147,24 @@ export function formatFryerLoad(results: JourneyResult[]): string[] {
     lines.push(
       `single fryer, ${tier} tier (${days} days): ${(made / days).toFixed(1)} fries made a day (cap 40), ` +
         `${(gaveUp / days).toFixed(2)} fries customers gave up a day, ${Math.round((bad * 100) / days)}% of days with 2 or more`,
+    )
+  }
+  let after = 0
+  let afterGaveUp = 0
+  let afterBad = 0
+  for (const r of results) {
+    const second = r.days.findIndex((d) => d.bought.includes('fries2'))
+    if (second < 0) continue
+    for (const d of r.days.slice(second)) {
+      after += 1
+      afterGaveUp += d.friesPatience
+      if (d.friesPatience >= 2) afterBad += 1
+    }
+  }
+  if (after > 0) {
+    lines.push(
+      `second fryer, from the day it is built (${after} days): ${(afterGaveUp / after).toFixed(2)} fries customers gave up a day, ` +
+        `${Math.round((afterBad * 100) / after)}% of days with 2 or more`,
     )
   }
   return lines

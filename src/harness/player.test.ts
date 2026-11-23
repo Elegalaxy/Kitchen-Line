@@ -1,6 +1,6 @@
 // Tests for the scripted journey player (harness only): it drives the sim only through
 // applyCommand, is deterministic, and one seed gets from the empty start to the end screen.
-// Kept small: one full journey (about 10 days) plus a short run.
+// Kept small: two full journeys (about 18 days each) plus short runs.
 
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
@@ -60,10 +60,33 @@ describe('runJourney', () => {
     expect(r.state.phase).toBe('won')
     expect(r.state.tier).toBe('restaurant')
     expect(r.state.menu.length).toBeGreaterThanOrEqual(5)
-    for (const id of ['first-dish', 'serve-100', 'rating-4', 'profit-300', 'menu-5', 'great-day']) {
+    for (const id of ['first-dish', 'serve-100', 'rating-4', 'profit-300', 'menu-5', 'great-day', 'restaurant-profit']) {
       expect(r.goalDay[id], id).not.toBeNull()
     }
-  })
+    expect(r.goalDay['restaurant-profit'] as number).toBeGreaterThanOrEqual(r.goalDay['great-day'] as number)
+  }, 30_000)
+
+  it('buys the second pass, the second fryer line into it and all four restaurant upgrades', () => {
+    const r = runJourney(DEFS, 'journey-1', { maxDays: 30 })
+    const passes = Object.values(r.state.buildings).filter((b) => b.kind === 'pass')
+    expect(passes.map((p) => [p.x, p.y])).toEqual([[7, 2], [9, 2]])
+    const feed = r.state.buildings[r.state.tiles[3 * r.state.width + 9] as number]
+    expect(feed).toMatchObject({ kind: 'belt', dir: 0 }) // (9,3) faces north into the second pass
+    expect(r.state.upgrades).toEqual(['tables', 'sign', 'music', 'plates'])
+    expect(r.restaurantSpent).toBeGreaterThan(0)
+    expect(r.days.some((d) => d.bought.includes('pass2'))).toBe(true)
+    expect(r.failures).toEqual([])
+  }, 30_000)
+
+  it('--no-pass2 and --no-upgrades keep the old east join and buy no upgrade', () => {
+    const r = runJourney(DEFS, 'journey-1', { maxDays: 30, pass2: false, upgrades: false })
+    expect(Object.values(r.state.buildings).filter((b) => b.kind === 'pass')).toHaveLength(1)
+    const feed = r.state.buildings[r.state.tiles[3 * r.state.width + 9] as number]
+    expect(feed).toMatchObject({ kind: 'belt', dir: 3 })
+    expect('upgrades' in r.state).toBe(false)
+    expect(r.wonDay).not.toBeNull()
+    expect(r.failures).toEqual([])
+  }, 30_000)
 })
 
 describe('journey table', () => {
@@ -77,6 +100,7 @@ describe('journey table', () => {
     expect(lines[0]).toMatch(/^seed\s+dish1/)
     expect(lines[1]).toMatch(/^journey-1\s+1\s/)
     expect(lines.some((l) => l.startsWith('median'))).toBe(true)
+    expect(lines[0]).toContain('goal7')
     expect(lines.some((l) => l.startsWith('reached the end screen: 0/1'))).toBe(true)
   })
 })

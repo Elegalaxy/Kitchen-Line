@@ -74,13 +74,13 @@ describe('parseArgs', () => {
   it('parses journey mode with defaults and flags', () => {
     expect(parse('--journey')).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, fryer: 'auto', maxDays: 40, example: 1, pause: true },
+      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, upgrades: true, pass2: true, fryer: 'auto', maxDays: 40, example: 1, pause: true },
     })
     expect(
       parse('--journey', '--seeds', '5', '--cautious', '--no-throttle', '--fryer', 'never', '--max-days', '15', '--example', '3'),
     ).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, fryer: 'never', maxDays: 15, example: 3, pause: true },
+      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, upgrades: true, pass2: true, fryer: 'never', maxDays: 15, example: 3, pause: true },
     })
   })
 
@@ -98,5 +98,12 @@ describe('parseArgs', () => {
     expect(run.ok && run.options.mode === 'run' && run.options.pause).toBe(false)
     const j = parse('--journey', '--no-pause')
     expect(j.ok && j.options.mode === 'journey' && j.options.pause).toBe(false)
+  })
+
+  it('--no-upgrades and --no-pass2 turn the restaurant growth purchases off (journey only)', () => {
+    const j = parse('--journey', '--no-upgrades', '--no-pass2')
+    expect(j.ok && j.options.mode === 'journey' && [j.options.upgrades, j.options.pass2]).toEqual([false, false])
+    const one = parse('--journey', '--no-pass2')
+    expect(one.ok && one.options.mode === 'journey' && [one.options.upgrades, one.options.pass2]).toEqual([true, false])
   })
 })

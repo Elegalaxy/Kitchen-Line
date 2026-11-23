@@ -47,7 +47,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 6: Harness
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: PASS2 project (second pass at (9,2), bought together with the second fryer line; the line's belt (9,3) faces north into it, no collision found), restaurant upgrades bought in order tables, sign, music, plates once all dish lines are built and the reserve is kept, `--no-upgrades` and `--no-pass2`, goal7 column, "days from the upgrade to goal 7" line, median restaurant spending line, and a "second fryer, from the day it is built" line in the fryer load output.
 - Files: `src/harness/player.ts`, `args.ts`, `cli.ts`, `journey.ts`, tests
 - What changes: PASS2 project, upgrade purchases, `--no-upgrades` and `--no-pass2`, goal7 column and extra journey lines.
 

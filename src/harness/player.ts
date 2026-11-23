@@ -32,6 +32,11 @@
 // the pantries of the lines that share the east side to 80 ticks (an interval is a real pantry
 // setting); `sharedInterval: 20` shows the unthrottled result.
 // The "cautious" variant buys one project a day and keeps a bigger cash reserve.
+// Restaurant growth (2026-11-23): the second fryer line is preceded by PASS2, a second pass at (9,2) bought for
+// $400 (needs the 10x8 grid), and its last belt (9,3) then faces NORTH into that pass instead of west into
+// the merger (8,3), so the fries stop sharing the east side. `pass2: false` keeps the old west join. Once every
+// dish line is built the player buys the restaurant upgrades in the order tables, sign, music, plates
+// whenever the cash reserve is kept (`upgrades: false` turns that off).
 // Same seed gives the same run (it only uses applyCommand and runTicks).
 
 import { PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
@@ -56,6 +61,10 @@ export type PlayerOptions = {
   secondFryer?: 'auto' | 'always' | 'never'
   /** Pause all pantries for the last PAUSE_LEAD_TICKS of each day and resume them next morning. Default true. */
   pausePantries?: boolean
+  /** Buy the restaurant upgrades once every dish line is built. Default true. */
+  upgrades?: boolean
+  /** Buy a second pass for the second fryer line. Default true. */
+  pass2?: boolean
 }
 
 export type DayLog = {
@@ -81,6 +90,8 @@ export type DayLog = {
   friesServed: number
   /** What the player bought before the day. */
   bought: string[]
+  /** Cents spent in this build phase at the restaurant tier (the tier fee itself is not counted). */
+  spent: number
 }
 
 export type JourneyResult = {
@@ -90,6 +101,8 @@ export type JourneyResult = {
   goalDay: Record<string, number | null>
   upgradeDay: number | null
   wonDay: number | null
+  /** Cents spent on buildings, recipes, grids and restaurant upgrades while at the restaurant tier. */
+  restaurantSpent: number
   finalMoney: number
   failures: string[]
   hash: string
@@ -105,7 +118,7 @@ type Project = {
   cmds: Command[]
 }
 
-const place = (kind: 'belt' | 'merger' | 'chopper' | 'fryer' | 'stove' | 'assembler' | 'pantry', x: number, y: number, dir: Dir = 1, ingredient?: string): Command =>
+const place = (kind: 'belt' | 'merger' | 'pass' | 'chopper' | 'fryer' | 'stove' | 'assembler' | 'pantry', x: number, y: number, dir: Dir = 1, ingredient?: string): Command =>
   ingredient === undefined ? { type: 'place', kind, x, y, dir } : { type: 'place', kind, x, y, dir, config: { ingredient } }
 const belts = (xs: number[], y: number): Command[] => xs.map((x) => place('belt', x, y))
 const recipeAt = (x: number, y: number, recipe: string): Command => ({ type: 'configure', x, y, recipe })
@@ -212,21 +225,35 @@ const sandwich = (interval: number): Project => ({
     ...throttle(interval, [[0, 6], [0, 7], [0, 8]]),
   ],
 })
-const fries2 = (interval: number): Project => ({
-  id: 'fries2',
+/** Second pass beside the east column (restaurant tier, 10x8 grid): the second fryer line serves into it. */
+const PASS2_POS = { x: 9, y: 2 } as const
+const PASS2: Project = {
+  id: 'pass2',
   dish: null,
   minWidth: 10,
   minHeight: 8,
   needs: ['riceBowl'],
+  cmds: [place('pass', PASS2_POS.x, PASS2_POS.y, 3)],
+}
+/** With the second pass the last belt (9,3) faces north into it; without, west into the merger (8,3). */
+const fries2 = (interval: number, pass2: boolean): Project => ({
+  id: 'fries2',
+  dish: null,
+  minWidth: 10,
+  minHeight: 8,
+  needs: pass2 ? ['pass2'] : ['riceBowl'],
   cmds: [
     place('pantry', 9, 7, 0, 'potato'),
     place('chopper', 9, 6, 0),
     place('belt', 9, 5, 0),
     place('fryer', 9, 4, 0),
-    place('belt', 9, 3, 3),
+    place('belt', 9, 3, pass2 ? 0 : 3),
     ...throttle(interval, [[9, 7]]),
   ],
 })
+
+/** Restaurant upgrades in the order the player buys them. */
+const UPGRADE_ORDER = ['tables', 'sign', 'music', 'plates']
 
 /** Stall lines in strict priority order, then the restaurant line. */
 const priority = (interval: number): Project[] => [FRIES, SALAD, SOUP, rice(interval), sandwich(interval)]
@@ -294,7 +321,8 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   const cautious = opts.cautious === true
   const maxDays = opts.maxDays ?? 40
   const PRIORITY = priority(opts.sharedInterval ?? 80)
-  const FRIES2 = fries2(opts.sharedInterval ?? 80)
+  const usePass2 = opts.pass2 !== false
+  const FRIES2 = fries2(opts.sharedInterval ?? 80, usePass2)
   const run: Run = { state: createGame(defs, seed), defs, failures: [] }
   const built = new Set<string>()
   const failedProjects = new Set<string>()
@@ -302,6 +330,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   for (const g of defs.goals ?? []) goalDay[g.id] = null
   const days: DayLog[] = []
   let upgradeDay: number | null = null
+  let restaurantSpent = 0
   let wonDay: number | null = null
   let friesPatience = 0
   let friesMade = 0
@@ -333,6 +362,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   for (let i = 0; i < maxDays; i += 1) {
     const bought: string[] = []
     let spent = false
+    let moneyBefore = run.state.money
     // Upgrade first, as soon as it is allowed (cautious: with a margin).
     if (run.state.tier === 'stall' && upgradeProblem(run.state, defs) === null) {
       if (!cautious || run.state.money >= UPGRADE_COST + CAUTIOUS_RESERVE) {
@@ -340,12 +370,14 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
           bought.push('upgrade')
           upgradeDay = run.state.day
           spent = true
+          moneyBefore = run.state.money // the tier fee is not counted as restaurant spending
         }
       }
     }
     // Second fryer when fries customers gave up yesterday (restaurant tier).
     const wantFryer2 = secondFryer === 'always' || (secondFryer === 'auto' && lastFriesPatience >= 2)
     if (run.state.tier === 'restaurant' && wantFryer2 && !(cautious && spent)) {
+      if (usePass2 && tryBuild(PASS2, bought) === 'built') spent = true
       if (tryBuild(FRIES2, bought) === 'built') spent = true
     }
     for (const p of PRIORITY) {
@@ -354,8 +386,22 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       if (r === 'built') spent = true
       if (r === 'wait') break
     }
+    // Restaurant upgrades, once every dish line is built and the reserve is kept.
+    if (opts.upgrades !== false && run.state.tier === 'restaurant' && PRIORITY.every((p) => built.has(p.id) || failedProjects.has(p.id))) {
+      for (const id of UPGRADE_ORDER) {
+        if (run.state.upgrades?.includes(id) === true) continue
+        if (cautious && spent) break
+        const cost = defs.upgrades?.find((u) => u.id === id)?.cost
+        if (cost === undefined || run.state.money - cost < reserveNow()) break
+        if (!send(run, { type: 'buyUpgrade', id }, 'upgrade')) break
+        bought.push(`upgrade:${id}`)
+        spent = true
+      }
+    }
     syncMenu(run, built)
     noteGoals()
+    const spentToday = run.state.tier === 'restaurant' ? moneyBefore - run.state.money : 0
+    restaurantSpent += spentToday
 
     const moneyStart = run.state.money
     if (!send(run, { type: 'openService' }, 'open')) break
@@ -391,6 +437,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       friesMade,
       friesServed: d.byDish['fries']?.served ?? 0,
       bought,
+      spent: spentToday,
     })
     for (const m of run.state.menu) {
       const row = d.byDish[m.dish]
@@ -409,6 +456,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     goalDay,
     upgradeDay,
     wonDay,
+    restaurantSpent,
     finalMoney: run.state.money,
     failures: run.failures,
     hash: stateHash(run.state),
