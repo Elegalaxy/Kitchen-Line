@@ -51,5 +51,6 @@ Findings: the pro fryer saves about half a day on average (total days 383 to 374
 
 ### Step 5: Inspector Sell for a pass
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `removeBlocked` (sim/commands.ts) is the one rule (only the last pass); `remove` and the Inspector Sell button both use it, and the button shows the same text as the toast ("The last pass cannot be removed"). Test: `ui/inspectorSell.test.ts`.
 - What changes: the Inspector refuses selling a pass only when it is the last one (the sim's rule).

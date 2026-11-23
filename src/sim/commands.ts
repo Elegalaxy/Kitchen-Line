@@ -76,6 +76,11 @@ export function countItems(b: Building): number {
   }
 }
 
+/** Why `b` cannot be sold right now (only the last pass), or null. The UI reuses this rule. */
+export function removeBlocked(state: GameState, b: Building): RejectReason | null {
+  return b.kind === 'pass' && countKind(state, 'pass') <= 1 ? 'pass cannot be removed' : null
+}
+
 /** Cents the player gets for selling `b`: the full price of the variant it was bought as. */
 export function refundOf(defs: Defs, b: Building): number {
   const def = defs.buildings[b.kind]
@@ -164,7 +169,8 @@ function remove(state: GameState, defs: Defs, x: number, y: number): ApplyOutcom
   const id = buildingAt(state, x, y)
   const found = id === null ? undefined : state.buildings[id]
   if (found === undefined) return reject(state, { type: 'remove' }, 'nothing there')
-  if (found.kind === 'pass' && countKind(state, 'pass') <= 1) return reject(state, { type: 'remove' }, 'pass cannot be removed')
+  const blocked = removeBlocked(state, found)
+  if (blocked !== null) return reject(state, { type: 'remove' }, blocked)
   const next = structuredClone(state)
   const b = next.buildings[found.id]
   const refund = refundOf(defs, b)

@@ -5,12 +5,12 @@
 
 import type { ReactNode } from 'react'
 import { ASSEMBLER_TICKS, PANTRY_INTERVALS } from '../sim/constants.ts'
-import { refundOf } from '../sim/commands.ts'
+import { refundOf, removeBlocked } from '../sim/commands.ts'
 import { isPro, stationTicks } from '../sim/stations.ts'
 import type { Building, BuildingKind, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
-import { DIR_ARROW, dirName, formatMoney, STATUS_TEXT } from './format.ts'
+import { DIR_ARROW, dirName, formatMoney, reasonText, STATUS_TEXT } from './format.ts'
 import { blockReason } from './blockReason.ts'
 import { BUILDING_INFO } from './buildingInfo.ts'
 import type { PaletteHover } from './BuildPalette.tsx'
@@ -175,7 +175,7 @@ export default function Inspector({
   }
   const rawItems = Object.values(defs.items).filter((i) => i.kind === 'raw')
   const recipes = Object.values(defs.dishes).filter((d) => d.inputs !== undefined && snap.state.unlocked.includes(d.id))
-  const isPass = b.kind === 'pass'
+  const sellBlocked = removeBlocked(snap.state, b)
   return (
     <section className="panel" aria-label="Inspector">
       <h2 className="panel-title">Inspector</h2>
@@ -296,11 +296,11 @@ export default function Inspector({
             <span aria-hidden="true">🔄</span> Rotate <kbd>R</kbd>
           </span>
         </button>
-        <button type="button" className="btn act-btn" disabled={isPass} onClick={() => removeAt(ctx, { x: b.x, y: b.y })}>
+        <button type="button" className="btn act-btn" disabled={sellBlocked !== null} onClick={() => removeAt(ctx, { x: b.x, y: b.y })}>
           <span className="btn-main">
             <span aria-hidden="true">💰</span> Sell <span className="num">+{formatMoney(refundOf(defs, b))}</span>
           </span>
-          {isPass && <span className="pal-reason">⚠ The pass cannot be removed</span>}
+          {sellBlocked !== null && <span className="pal-reason">⚠ {reasonText(sellBlocked)}</span>}
         </button>
       </div>
     </section>
