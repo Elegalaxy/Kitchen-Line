@@ -8,7 +8,7 @@
 
 import { PANTRY_POS, PASS_POS } from '../sim/constants.ts'
 import { buildingAt, neighbor } from '../sim/grid.ts'
-import type { Building, BuildingKind, Dir, DishId, GameState } from '../sim/types.ts'
+import type { Building, BuildingKind, Defs, Dir, DishId, GameState } from '../sim/types.ts'
 
 export type TutorialStepId = 'chopper' | 'fryer' | 'connect' | 'open' | 'day' | 'summary' | 'menu' | 'salad'
 
@@ -105,6 +105,28 @@ export function lineReachesPass(state: GameState): boolean {
   return false
 }
 
+/**
+ * Cents still needed to buy the suggested salad line (missing pantries, choppers, assembler
+ * and belts). 0 unless that step is the current one, or when the player already has enough.
+ */
+export function saladShortfall(state: GameState, defs: Defs): number {
+  const view = tutorialView(state)
+  if (view.steps[view.current]?.id !== 'salad') return 0
+  const price = (kind: BuildingKind): number => defs.buildings[kind].cost
+  let need = 0
+  for (const p of SALAD_PANTRIES) {
+    if (at(state, p.x, p.y)?.kind !== 'pantry') need += price('pantry')
+  }
+  for (const c of SALAD_CHOPPERS) {
+    if (at(state, c.x, c.y)?.kind !== 'chopper') need += price('chopper')
+  }
+  if (at(state, SALAD_ASSEMBLER.x, SALAD_ASSEMBLER.y)?.kind !== 'assembler') need += price('assembler')
+  for (const belt of SALAD_BELTS) {
+    if (at(state, belt.x, belt.y)?.kind !== 'belt') need += price('belt')
+  }
+  return Math.max(0, need - state.money)
+}
+
 /** A dish sold today, yesterday, or the day before (those are the days the state still holds). */
 function dishServed(state: GameState, dish: DishId): boolean {
   return [state.today, state.lastDay, state.prevDay].some((d) => (d?.byDish[dish]?.served ?? 0) > 0)
@@ -122,7 +144,7 @@ function saladGuide(state: GameState): { hint: string; coach: TutorialCoach } {
     const b = at(state, p.x, p.y)
     if (b === null) {
       return {
-        hint: `Click the ${p.name} ghost. That pantry is set to ${p.name}. The other ghost is the second ingredient. If a piece costs more than you have, run another day of fries first.`,
+        hint: `Click the ${p.name} ghost. That pantry is set to ${p.name}. The other ghost is the second ingredient.`,
         coach: { kind: 'tool', tool: 'pantry' },
       }
     }

@@ -8,11 +8,12 @@ import { buildingAt } from '../sim/grid.ts'
 import { selectTool } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { debugLog } from './debug.ts'
+import { formatMoney } from './format.ts'
 import { paletteReason } from './palette.ts'
 import { getBrowserStorage } from './persistence.ts'
 import type { Snapshot } from './store.ts'
-import { tutorialView } from './tutorial.ts'
-import { writeTutorialDone } from './tutorialLatch.ts'
+import { saladShortfall, tutorialView } from './tutorial.ts'
+import { clearTutorialHelp, readTutorialHelp, writeTutorialDone, writeTutorialHelp } from './tutorialLatch.ts'
 import type { UiState } from './uiState.ts'
 
 export default function TutorialCard({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
@@ -24,6 +25,20 @@ export default function TutorialCard({ ctx, snap, ui }: { ctx: Ctx; snap: Snapsh
     ctx.ui.set({ guideDone: true })
     debugLog('[ui]', 'tutorial finished')
   }, [view.open, ui.guideDone, ctx.ui])
+  useEffect(() => {
+    if (ui.guideDone || view.steps[view.current]?.id !== 'salad') return
+    const cents = saladShortfall(snap.state, store.defs)
+    if (cents <= 0 || readTutorialHelp(getBrowserStorage())) return
+    writeTutorialHelp(getBrowserStorage())
+    const result = store.dispatch({ type: 'tutorialHelp', cents })
+    if (!result.ok) {
+      clearTutorialHelp(getBrowserStorage())
+      debugLog('[ui]', 'tutorial salad help rejected', result.reason)
+      return
+    }
+    ctx.ui.showToast(`Added ${formatMoney(cents)} so you can finish the salad line.`, 'info')
+    debugLog('[ui]', 'tutorial salad help', cents)
+  }, [ui.guideDone, view, snap.state, store, ctx])
   if (ui.guideDone || !view.open) return null
   const current = view.current === -1 ? null : view.steps[view.current]
   const coach = view.coach

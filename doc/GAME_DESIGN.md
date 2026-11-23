@@ -151,7 +151,7 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 - Building during service: allowed. New non-belt buildings take 30 ticks to come online. The menu and prices are locked during service. **[confirmed]**
 - Spoilage: only fresh produce and finished dishes spoil. **[confirmed]**
 - Undo (last 50 build actions) and drag-to-draw belts are in. Copy/paste is **[later]**. **[confirmed]**
-- Tutorial: partly pre-built start (pass, potato pantry, Fries on the menu). The checklist stays until a Salad is served: build the Fries line and open for service, finish the day and read the summary, add Salad to the menu (its price starts at the reference price), then build a second line into the north side of the pass. Ghost tiles suggest each layout and can be dismissed. **[confirmed]**
+- Tutorial: partly pre-built start (pass, potato pantry, Fries on the menu). The checklist stays until a Salad is served: build the Fries line and open for service, finish the day and read the summary, add Salad to the menu (its price starts at the reference price), then build a second line into the north side of the pass. Ghost tiles suggest each layout and can be dismissed. If that salad line costs more than the player has when the step starts, the game adds the difference once. **[confirmed]**
 - Numbers: the plan's section 2.5 table, tuned with the harness. **[provisional]**
 - Customers still waiting at closing leave without a rating. **[confirmed]**
 - Selling a building refunds 100% in the first playable. **[confirmed]**
@@ -159,6 +159,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-23: Tutorial salad step (confirmed rule in section 13). When that step is current and the suggested line costs more than the player has, the game adds the difference once (`tutorialHelp`, capped by `TUTORIAL_HELP_CAP`). A bad day can no longer leave the line unaffordable. New game clears the one-time flag.
 
 - 2026-11-22: Closing-time warning (UI only, no rule or number change). `CLOSING_SOON_TICKS` = 600 in `constants.ts`: in the last 600 ticks (was 400; a 5-day sweep of 200, 400, 600 showed profit rises with the lead and served customers do not change) of service the top bar warns that items left on the line are thrown away and offers a one-click pantry pause; the scripted harness player pauses at the same point.
 

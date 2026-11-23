@@ -3,7 +3,7 @@
 // structuredClone; a rejected command returns the ORIGINAL state object untouched and a
 // `commandRejected` event inside the result (not in state.events, so the state hash is
 // unchanged). Handled now: place, remove, rotate, configure (only `paused` works in any phase), setPantriesPaused (any phase), setMenu, setPrice, unlockRecipe,
-// openService, dismissSummary. Money is integer cents:
+// openService, dismissSummary, tutorialHelp. Money is integer cents:
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
 // do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
@@ -11,7 +11,7 @@
 // (Step 16) are build phase only too; dismissSummary also leaves the `won` end screen
 // ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
-import { MENU_CAP, START_INGREDIENT, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
+import { MENU_CAP, START_INGREDIENT, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { emptyDayStats, newBuilding } from './game.ts'
 import { expansionProblem, nextExpansion, updateGoals, upgradeProblem } from './goals.ts'
@@ -347,6 +347,19 @@ function buyExpansion(state: GameState, defs: Defs, cmd: Command): ApplyOutcome 
   return { state: next, result: { ok: true } }
 }
 
+/**
+ * Add `cents` so the player can afford the suggested salad line. Build or service only.
+ * The UI asks once, for the shortfall; anything above TUTORIAL_HELP_CAP is refused.
+ */
+function tutorialHelp(state: GameState, cmd: Extract<Command, { type: 'tutorialHelp' }>): ApplyOutcome {
+  if (state.phase !== 'build' && state.phase !== 'service') return reject(state, cmd, 'wrong phase')
+  if (!Number.isInteger(cmd.cents) || cmd.cents < 1 || cmd.cents > TUTORIAL_HELP_CAP) return reject(state, cmd, 'invalid command')
+  const next = structuredClone(state)
+  next.money += cmd.cents
+  next.events.push({ type: 'tutorialHelp', tick: next.tick, cents: cmd.cents })
+  return { state: next, result: { ok: true } }
+}
+
 /** summary or won -> build: the next day starts (day + 1, clock back to 0). */
 function dismissSummary(state: GameState, cmd: Command): ApplyOutcome {
   if (state.phase !== 'summary' && state.phase !== 'won') return reject(state, cmd, 'wrong phase')
@@ -384,6 +397,8 @@ function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutco
       return buyExpansion(state, defs, cmd)
     case 'upgradeTier':
       return upgradeTier(state, defs, cmd)
+    case 'tutorialHelp':
+      return tutorialHelp(state, cmd)
     default:
       return reject(state, cmd, 'invalid command')
   }

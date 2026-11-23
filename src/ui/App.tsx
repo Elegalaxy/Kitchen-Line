@@ -15,7 +15,7 @@ import SidePanel from './SidePanel.tsx'
 import { getBrowserStorage } from './persistence.ts'
 import SaveNotice from './SaveNotice.tsx'
 import { getGameSession } from './session.ts'
-import { clearTutorialDone, readTutorialDone } from './tutorialLatch.ts'
+import { clearTutorialDone, clearTutorialHelp, readTutorialDone } from './tutorialLatch.ts'
 import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TileInfo from './TileInfo.tsx'
@@ -55,6 +55,7 @@ export default function App() {
   const newGame = (): void => {
     session.newGame()
     clearTutorialDone(getBrowserStorage())
+    clearTutorialHelp(getBrowserStorage())
     uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: false, tab: 'build' })
     setNotice(null)
   }

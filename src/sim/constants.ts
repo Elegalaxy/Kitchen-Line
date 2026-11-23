@@ -8,6 +8,11 @@ export const START_WIDTH = 8
 export const START_HEIGHT = 6
 /** GAME_DESIGN 7 / plan 2.5: starting money, integer cents ($150). */
 export const START_MONEY = 15000
+/**
+ * GAME_DESIGN 13: one tutorial top-up so a bad day cannot leave the suggested salad line
+ * unaffordable. The UI asks for the shortfall only; the command refuses anything above this.
+ */
+export const TUTORIAL_HELP_CAP = 40000
 export const START_TIER: Tier = 'stall'
 /** Plan Step 2: pre-placed pass (facing W) and potato pantry (facing E). */
 export const PASS_POS = { x: 7, y: 2 } as const

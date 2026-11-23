@@ -161,6 +161,7 @@ export type SimEvent =
   | { type: 'served'; tick: number; id: number; dish: DishId; price: number; wait: number }
   | { type: 'goalDone'; tick: number; id: string }
   | { type: 'tierUpgraded'; tick: number; cost: number }
+  | { type: 'tutorialHelp'; tick: number; cents: number }
   | { type: 'expanded'; tick: number; width: number; height: number; cost: number }
   | { type: 'won'; tick: number }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
@@ -317,6 +318,8 @@ export type Command =
   | { type: 'upgradeTier' }
   | { type: 'openService' }
   | { type: 'dismissSummary' }
+  /** Add cents once so the suggested salad line can be bought (UI calls this; capped). */
+  | { type: 'tutorialHelp'; cents: number }
 
 export type CommandResult =
   | { ok: true }

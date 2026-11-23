@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { applyCommand } from '../sim/commands.ts'
+import { TUTORIAL_HELP_CAP } from '../sim/constants.ts'
 import { createGame, emptyDayStats } from '../sim/game.ts'
 import { runTicks } from '../sim/tick.ts'
 import type { Command, GameState } from '../sim/types.ts'
@@ -16,8 +17,8 @@ import { ordersNote } from './orders.ts'
 import { hasFastVariant, paletteCost, paletteReason } from './palette.ts'
 import { createStore } from './store.ts'
 import { freshnessSeconds, tileItems, tileSummary, tileTooltip } from './tileInfo.ts'
-import { lineReachesPass, tutorialHints, tutorialView } from './tutorial.ts'
-import { clearTutorialDone, readTutorialDone, writeTutorialDone } from './tutorialLatch.ts'
+import { lineReachesPass, saladShortfall, tutorialHints, tutorialView } from './tutorial.ts'
+import { clearTutorialDone, clearTutorialHelp, readTutorialDone, readTutorialHelp, writeTutorialDone, writeTutorialHelp } from './tutorialLatch.ts'
 import { createUiStore } from './uiState.ts'
 
 const fresh = (): GameState => createGame(DEFS, 'polish')
@@ -192,6 +193,40 @@ describe('tutorial checklist', () => {
     expect(readTutorialDone(null)).toBe(false)
     clearTutorialDone(box)
     expect(readTutorialDone(box)).toBe(false)
+  })
+
+  it('tops up exactly the missing salad-line cost, once, and refuses a blank or huge grant', () => {
+    let s = run(fresh(), place('chopper', 2))
+    s = run(s, place('fryer', 4))
+    for (const x of [1, 3, 5, 6]) s = run(s, place('belt', x))
+    s.tick = 1
+    s.lastDay = emptyDayStats(1)
+    s.totals.days = 1
+    s.money = 0
+    s = run(s, { type: 'setMenu', dishes: ['fries', 'salad'] })
+    const line = saladShortfall(s, DEFS)
+    expect(line).toBe(2 * 1000 + 2 * 2500 + 5000 + 8 * 100)
+    s.money = 5000
+    expect(saladShortfall(s, DEFS)).toBe(line - 5000)
+    const helped = run(s, { type: 'tutorialHelp', cents: line - 5000 })
+    expect(helped.money).toBe(line)
+    expect(saladShortfall(helped, DEFS)).toBe(0)
+    expect(() => run(s, { type: 'tutorialHelp', cents: 0 })).toThrow(/rejected/)
+    expect(() => run(s, { type: 'tutorialHelp', cents: TUTORIAL_HELP_CAP + 1 })).toThrow(/rejected/)
+    const closed = structuredClone(s)
+    closed.phase = 'summary'
+    expect(() => run(closed, { type: 'tutorialHelp', cents: 100 })).toThrow(/rejected/)
+    const storage = new Map<string, string>()
+    const box = {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => void storage.set(k, v),
+      removeItem: (k: string) => void storage.delete(k),
+    }
+    expect(readTutorialHelp(box)).toBe(false)
+    writeTutorialHelp(box)
+    expect(readTutorialHelp(box)).toBe(true)
+    clearTutorialHelp(box)
+    expect(readTutorialHelp(box)).toBe(false)
   })
 })
 
