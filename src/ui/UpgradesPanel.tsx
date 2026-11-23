@@ -11,6 +11,8 @@ import { debugLog } from './debug.ts'
 import { formatMoney } from './format.ts'
 import { expansionView, upgradeView } from './goalsView.ts'
 import { menuView } from './menuView.ts'
+import { upgradeRows } from './upgradesView.ts'
+import type { UpgradeRow } from './upgradesView.ts'
 import type { MenuRow } from './menuView.ts'
 import { paletteCost, paletteReason } from './palette.ts'
 import type { Snapshot } from './store.ts'
@@ -42,6 +44,32 @@ function RecipeRow({ ctx, row, readOnly, phaseNote }: { ctx: Ctx; row: MenuRow; 
   )
 }
 
+function RestaurantUpgradeRow({ ctx, row }: { ctx: Ctx; row: UpgradeRow }) {
+  const buy = (): void => {
+    debugLog('[ui]', 'buy upgrade', row.id)
+    if (report(ctx, ctx.store.dispatch({ type: 'buyUpgrade', id: row.id }))) {
+      ctx.ui.showToast(`${row.name} bought`, 'info')
+    }
+  }
+  return (
+    <li className="upgrade-row">
+      <span className="dish-name">
+        <span aria-hidden="true">{row.emoji}</span> {row.name}
+      </span>
+      {row.owned && <span className="upgrade-owned">✓ Bought</span>}
+      <span className="upgrade-effect">{row.effectText}</span>
+      {!row.owned && (
+        <button type="button" className="btn unlock-btn" disabled={row.reason !== null} onClick={buy}>
+          <span className="btn-main">
+            Buy <span className="num">{row.costText}</span>
+          </span>
+        </button>
+      )}
+      {row.reason !== null && <span className="pal-reason upgrade-reason">{`⚠ ${row.reason}`}</span>}
+    </li>
+  )
+}
+
 export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
   const { store } = ctx
   const state = snap.state
@@ -53,6 +81,7 @@ export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
   const fastCost = paletteCost(defs, 'belt', true)
   const fastLocked = paletteReason(state, defs, 'belt', true) === 'Restaurant tier'
   const isRestaurant = state.tier === 'restaurant'
+  const shop = isRestaurant ? upgradeRows(state, defs) : []
 
   const doUpgrade = (): void => {
     debugLog('[ui]', 'upgrade tier')
@@ -110,6 +139,17 @@ export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
           </div>
         )}
       </section>
+
+      {shop.length > 0 && (
+        <section className="panel" aria-label="Restaurant shop">
+          <h2 className="panel-title">Restaurant upgrades</h2>
+          <ul className="upgrade-list">
+            {shop.map((row) => (
+              <RestaurantUpgradeRow key={row.id} ctx={ctx} row={row} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="panel" aria-label="Kitchen size">
         <h2 className="panel-title">Kitchen size</h2>

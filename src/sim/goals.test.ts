@@ -182,13 +182,13 @@ describe('upgradeTier', () => {
 
   it('raises the menu cap, the waiting capacity and the arrival chance and allows fast belts', () => {
     const s = ready()
-    const before = arrivalChance({ ...s, dayTick: 300 })
+    const before = arrivalChance({ ...s, dayTick: 300 }, DEFS)
     expect(MENU_CAP[s.tier]).toBe(4)
     rejected(s, { type: 'place', kind: 'belt', x: 1, y: 1, dir: 1, config: { fast: true } }, 'locked by tier')
     const up = applyCommand(s, DEFS, { type: 'upgradeTier' }).state
     expect(MENU_CAP[up.tier]).toBe(6)
     expect(WAITING_CAP[up.tier]).toBe(10)
-    expect(arrivalChance({ ...up, dayTick: 300 })).toBeCloseTo(before * 1.5, 10)
+    expect(arrivalChance({ ...up, dayTick: 300 }, DEFS)).toBeCloseTo(before * 1.5, 10)
     const fast = applyCommand(up, DEFS, { type: 'place', kind: 'belt', x: 1, y: 1, dir: 1, config: { fast: true } })
     expect(fast.result.ok).toBe(true)
   })

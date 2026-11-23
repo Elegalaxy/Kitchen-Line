@@ -155,6 +155,16 @@ describe('round trip', () => {
     expect(roundTrip(s)).toMatchObject({ won: true, tier: 'restaurant', expansion: 1, width: 10, height: 8 })
   })
 
+  it('keeps the bought upgrades; a save without them (an older one) still loads', () => {
+    const s = createGame(DEFS, 'up')
+    expect('upgrades' in roundTrip(s)).toBe(false)
+    s.upgrades = ['tables', 'sign']
+    expect(roundTrip(s).upgrades).toEqual(['tables', 'sign'])
+    expect(stateHash(roundTrip(s))).toBe(stateHash(s))
+    delete s.upgrades
+    expect(loadSave(serializeSave(s, 'x')).ok).toBe(true)
+  })
+
   it('a saved and loaded run equals a never-saved run of the same total ticks', () => {
     const start = midService()
     const straight = runTicks(structuredClone(start), DEFS, 900)
@@ -213,6 +223,8 @@ describe('rejection', () => {
     expectRejected(damaged(s, (e) => (e.state.waiting = {})), 'state.waiting')
     expectRejected(damaged(s, (e) => (e.state.repAtDayStart = null)), 'repAtDayStart')
     expectRejected(damaged(s, (e) => (e.state.goalsDone = [1])), 'goalsDone')
+    expectRejected(damaged(s, (e) => (e.state.upgrades = 'tables')), 'state.upgrades')
+    expectRejected(damaged(s, (e) => (e.state.upgrades = [1])), 'state.upgrades')
     expectRejected(damaged(s, (e) => (e.state.totals = { served: 1 })), 'totals')
   })
 

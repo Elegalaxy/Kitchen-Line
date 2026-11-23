@@ -12,6 +12,7 @@
 //      none -> lostNoMatch; waiting full -> lostFull; otherwise they join `waiting`.
 //   3. Matching: each dish on the pass shelf (oldest first) goes to the oldest waiting
 //      customer who ordered exactly that dish (a sale, economy.ts). Unmatched dishes stay.
+// Restaurant upgrades (upgrades.ts) scale the arrival chance, budget and patience and add waiting places.
 // Within a tick this runs after the buildings update (so a dish pushed onto the shelf this
 // tick can be sold this tick) and before `tick` and `dayTick` advance. At day end,
 // leftover customers are dropped without a rating or a loss (`dropLeftovers`, economy.ts, Q6).
@@ -31,13 +32,13 @@ import {
   REPUTATION_FACTOR_BASE,
   REPUTATION_FACTOR_PER_STAR,
   TIER_ARRIVAL_FACTOR,
-  WAITING_CAP,
 } from './constants.ts'
 import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
 import { rateLost, rateServed, submitRating } from './reviews.ts'
 import { nextFloat, nextInt, pickWeighted } from './rng.ts'
 import type { Customer, Defs, DishId, GameState, Weighted } from './types.ts'
+import { scalePercent, upgradeEffects, waitingCap } from './upgrades.ts'
 
 /** Reputation: the mean of the stored ratings (seeded with 10 virtual 3s). */
 export function reputationOf(state: Pick<GameState, 'ratings'>): number {
@@ -49,12 +50,14 @@ export function reputationOf(state: Pick<GameState, 'ratings'>): number {
 }
 
 /** Per-tick arrival chance for the part of the day at `dayTick` (0 while closing). */
-export function arrivalChance(state: Pick<GameState, 'dayTick' | 'ratings' | 'tier'>): number {
+export function arrivalChance(state: Pick<GameState, 'dayTick' | 'ratings' | 'tier' | 'upgrades'>, defs: Defs): number {
   const phase = phaseAt(state.dayTick)
   if (phase === 'closing') return 0
   const gap = phase === 'lunchRush' || phase === 'dinnerRush' ? ARRIVAL_GAP_RUSH : ARRIVAL_GAP_QUIET
   const repFactor = Math.max(0, REPUTATION_FACTOR_BASE + REPUTATION_FACTOR_PER_STAR * reputationOf(state))
-  return (1 / gap) * repFactor * TIER_ARRIVAL_FACTOR[state.tier]
+  const base = (1 / gap) * repFactor * TIER_ARRIVAL_FACTOR[state.tier]
+  const percent = upgradeEffects(state, defs).arrivalPercent
+  return percent === 0 ? base : (base * (100 + percent)) / 100
 }
 
 /** Draw taste, budget and patience for a new customer (the draw order is in the file header). */
@@ -74,12 +77,14 @@ function drawCustomer(state: GameState, defs: Defs): Customer | null {
   const percent = nextInt(stream, BUDGET_PERCENT_MIN, BUDGET_PERCENT_MAX)
   const patience = nextInt(stream, PATIENCE_MIN, PATIENCE_MAX)
   const firstRef = defs.dishes[prefs[0]]?.refPrice ?? 0
+  // Upgrade effects scale the drawn values AFTER the draws, so the draw order is the same with and without them.
+  const effects = upgradeEffects(state, defs)
   return {
     id: state.tick,
     arriveTick: state.tick,
     prefs,
-    budget: Math.round((firstRef * percent) / 100),
-    patience,
+    budget: scalePercent(Math.round((firstRef * percent) / 100), effects.budgetPercent),
+    patience: scalePercent(patience, effects.patiencePercent),
     dish: prefs[0],
     price: 0,
   }
@@ -87,7 +92,7 @@ function drawCustomer(state: GameState, defs: Defs): Customer | null {
 
 /** Mutates `state`: maybe one customer arrives this tick and chooses (or is lost). */
 export function stepArrivals(state: GameState, defs: Defs): void {
-  const chance = arrivalChance(state)
+  const chance = arrivalChance(state, defs)
   if (chance <= 0) return
   if (!(nextFloat(state.rng.arrivals) < chance)) return
   const c = drawCustomer(state, defs)
@@ -108,7 +113,7 @@ export function stepArrivals(state: GameState, defs: Defs): void {
     state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'noMatch', dish: null })
     return
   }
-  if (state.waiting.length >= WAITING_CAP[state.tier]) {
+  if (state.waiting.length >= waitingCap(state, defs)) {
     recordLoss(state, 'full', first)
     submitRating(state, defs, c, rateLost('full'))
     state.events.push({ type: 'customerLeft', tick: state.tick, id: c.id, reason: 'full', dish: choice.dish })

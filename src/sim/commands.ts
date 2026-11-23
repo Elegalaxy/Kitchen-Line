@@ -7,8 +7,8 @@
 // placing charges the cost, removing refunds 100% and counts the items inside as
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
 // do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
-// during service' during service, 'wrong phase' in summary / won). upgradeTier and buyExpansion
-// (Step 16) are build phase only too; dismissSummary also leaves the `won` end screen
+// during service' during service, 'wrong phase' in summary / won). upgradeTier, buyExpansion
+// (Step 16) and buyUpgrade (restaurant upgrades) are build phase only too; dismissSummary also leaves the `won` end screen
 // ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
 import { MENU_CAP, START_INGREDIENT, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
@@ -27,6 +27,7 @@ import {
 } from './grid.ts'
 import type { PlaceCommand } from './grid.ts'
 import { priceProblem } from './menu.ts'
+import { buyUpgradeProblem } from './upgrades.ts'
 import type {
   Building,
   Command,
@@ -324,6 +325,18 @@ function upgradeTier(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
   return { state: next, result: { ok: true } }
 }
 
+/** Pay for one restaurant upgrade (GAME_DESIGN 6.4): build phase, restaurant tier, once each. */
+function buyUpgrade(state: GameState, defs: Defs, cmd: Extract<Command, { type: 'buyUpgrade' }>): ApplyOutcome {
+  const why = buyUpgradeProblem(state, defs, cmd.id)
+  const def = defs.upgrades?.find((u) => u.id === cmd.id)
+  if (why !== null || def === undefined) return reject(state, cmd, why ?? 'invalid command')
+  const next = structuredClone(state)
+  next.money -= def.cost
+  next.upgrades = [...(next.upgrades ?? []), def.id]
+  next.events.push({ type: 'upgradeBought', tick: next.tick, id: def.id, cost: def.cost })
+  return { state: next, result: { ok: true } }
+}
+
 /**
  * Buy the next grid size (`defs.expansions[state.expansion]`). Buildings and the items inside
  * them stay at their coordinates; only the tile index is rebuilt for the new width.
@@ -398,6 +411,8 @@ function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutco
       return buyExpansion(state, defs, cmd)
     case 'upgradeTier':
       return upgradeTier(state, defs, cmd)
+    case 'buyUpgrade':
+      return buyUpgrade(state, defs, cmd)
     case 'tutorialHelp':
       return tutorialHelp(state, cmd)
     default:

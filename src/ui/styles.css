@@ -1156,6 +1156,16 @@ kbd {
   font-weight: 600;
 }
 
+.upgrade-effect {
+  flex: 1 0 100%;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.upgrade-row .upgrade-reason {
+  flex: 1 0 100%;
+}
+
 .upgrade-belt {
   margin: 0 0 4px;
 }

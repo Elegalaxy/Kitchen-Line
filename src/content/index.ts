@@ -8,6 +8,7 @@ import { GOALS } from './goals.ts'
 import { ITEMS } from './items.ts'
 import { REVIEW_TEMPLATES } from './reviewText.ts'
 import { STATION_RECIPES } from './recipes.ts'
+import { UPGRADES } from './upgrades.ts'
 
 export const DEFS: Defs = {
   items: ITEMS,
@@ -17,4 +18,5 @@ export const DEFS: Defs = {
   reviewTemplates: REVIEW_TEMPLATES,
   goals: GOALS,
   expansions: EXPANSIONS,
+  upgrades: UPGRADES,
 }

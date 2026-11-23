@@ -150,16 +150,16 @@ describe('arrivals', () => {
 
   it('chance follows reputation and tier; it is zero while closing, and one draw is made per non-closing tick', () => {
     const s = bare(100)
-    expect(arrivalChance(s)).toBeCloseTo(1 / ARRIVAL_GAP_QUIET, 10) // 3 stars, stall
+    expect(arrivalChance(s, DEFS)).toBeCloseTo(1 / ARRIVAL_GAP_QUIET, 10) // 3 stars, stall
     s.ratings = [5, 5]
-    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.4, 10)
+    expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.4, 10)
     s.ratings = [1]
-    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 0.6, 10)
+    expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 0.6, 10)
     s.ratings = [3]
     s.tier = 'restaurant'
-    expect(arrivalChance(s)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.5, 10)
+    expect(arrivalChance(s, DEFS)).toBeCloseTo((1 / ARRIVAL_GAP_QUIET) * 1.5, 10)
     s.dayTick = 2280
-    expect(arrivalChance(s)).toBe(0)
+    expect(arrivalChance(s, DEFS)).toBe(0)
 
     const open = runTicks(bare(100), DEFS, 1)
     expect(open.rng.arrivals).not.toEqual(bare(100).rng.arrivals) // drew this tick

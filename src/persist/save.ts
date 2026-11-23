@@ -298,6 +298,7 @@ function validateState(v: unknown): GameState {
   int(totals.profit, 'state.totals.profit', Number.MIN_SAFE_INTEGER)
   int(totals.days, 'state.totals.days')
   strList(s.goalsDone, 'state.goalsDone')
+  if (s.upgrades !== undefined) strList(s.upgrades, 'state.upgrades')
   bool(s.won, 'state.won')
   arr(s.events, 'state.events').forEach((e, i) => {
     const o = obj(e, `state.events[${i}]`)

@@ -4,8 +4,8 @@
 // green from 50%, yellow from 25 to 50% and red below 25%, and under 25% the chip also
 // shows an alarm icon (colour is never the only cue). Read-only: nothing here is clickable.
 
-import { WAITING_CAP } from '../sim/constants.ts'
 import type { Customer, Defs, GameState } from '../sim/types.ts'
+import { waitingCap } from '../sim/upgrades.ts'
 import { formatMoney } from './format.ts'
 import { ordersNote, patienceLeft, patienceLevel } from './orders.ts'
 
@@ -39,7 +39,7 @@ function Chip({ c, tick, defs }: { c: Customer; tick: number; defs: Defs }) {
 }
 
 export default function OrdersStrip({ state, defs }: { state: GameState; defs: Defs }) {
-  const cap = WAITING_CAP[state.tier]
+  const cap = waitingCap(state, defs)
   const slots = Array.from({ length: cap }, (_, i) => state.waiting[i] ?? null)
   return (
     <section className="orders" aria-label="Waiting orders">

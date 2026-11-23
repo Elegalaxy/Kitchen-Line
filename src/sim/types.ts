@@ -129,6 +129,7 @@ export type RejectReason =
   | 'pass cannot be removed'
   | 'pass cannot be placed'
   | 'pass limit'
+  | 'already owned'
   | 'not implemented'
   | 'goals not done'
   | 'already restaurant'
@@ -162,6 +163,7 @@ export type SimEvent =
   | { type: 'served'; tick: number; id: number; dish: DishId; price: number; wait: number }
   | { type: 'goalDone'; tick: number; id: string }
   | { type: 'tierUpgraded'; tick: number; cost: number }
+  | { type: 'upgradeBought'; tick: number; id: string; cost: number }
   | { type: 'tutorialHelp'; tick: number; cents: number }
   | { type: 'expanded'; tick: number; width: number; height: number; cost: number }
   | { type: 'won'; tick: number }
@@ -199,6 +201,8 @@ export type GameState = {
   totals: { served: number; profit: number; days: number }
   /** Ids of goals that were reached; a goal stays done for good (plan Step 16). */
   goalsDone: string[]
+  /** Ids of the restaurant upgrades bought (GAME_DESIGN 6.4). Absent until the first purchase. */
+  upgrades?: string[]
   /** True once the "Ready to expand" end screen has been triggered; it never triggers twice. */
   won: boolean
   events: SimEvent[]
@@ -269,6 +273,8 @@ export type Defs = {
   goals?: GoalDef[]
   /** Grid expansion steps in order (content/expansions.ts). Without them no expansion is available. */
   expansions?: ExpansionDef[]
+  /** Restaurant upgrades (content/upgrades.ts). Without them none is on offer. */
+  upgrades?: UpgradeDef[]
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */
@@ -286,6 +292,29 @@ export type GoalDef = {
 
 /** One grid expansion step (content/expansions.ts); `state.expansion` counts the steps bought. */
 export type ExpansionDef = { width: number; height: number; cost: number; requiresTier: Tier }
+
+/** What a restaurant upgrade does (GAME_DESIGN 6.4). Percent effects of several upgrades add up. */
+export type UpgradeEffect = {
+  /** Extra arrival chance in percent (15 = x1.15). */
+  arrivalPercent?: number
+  /** Extra waiting places. */
+  waitingCapBonus?: number
+  /** Extra customer budget in percent. */
+  budgetPercent?: number
+  /** Extra customer patience in percent. */
+  patiencePercent?: number
+}
+
+/** One restaurant upgrade (content/upgrades.ts); `state.upgrades` lists the ids bought. */
+export type UpgradeDef = {
+  id: string
+  name: string
+  emoji: string
+  /** Cents. */
+  cost: number
+  requiresTier: Tier
+  effect: UpgradeEffect
+}
 
 // ---- Commands -----------------------------------------------------------
 
@@ -317,6 +346,8 @@ export type Command =
   | { type: 'unlockRecipe'; dish: DishId }
   | { type: 'buyExpansion' }
   | { type: 'upgradeTier' }
+  /** Buy one restaurant upgrade (build phase, restaurant tier, once each). */
+  | { type: 'buyUpgrade'; id: string }
   | { type: 'openService' }
   | { type: 'dismissSummary' }
   /** Add cents once so the suggested salad line can be bought (UI calls this; capped). */

@@ -25,7 +25,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 3: Restaurant upgrades
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: `buyUpgrade` command, `state.upgrades` (optional, validated in save.ts), `src/sim/upgrades.ts`, `src/content/upgrades.ts`, effects in `customers.ts` (budget and patience scaled after the draws), Upgrades tab section "Restaurant upgrades" (restaurant tier only), `OrdersStrip` uses `waitingCap`. New reject reason `already owned`. No hash changed. Not yet browser-checked.
 - Files: `src/sim/types.ts`, `src/sim/upgrades.ts`, `src/sim/customers.ts`, `src/sim/commands.ts`, `src/content/upgrades.ts`, `src/content/index.ts`, `src/persist/save.ts`, `src/ui/UpgradesPanel.tsx`, `src/ui/OrdersStrip.tsx`, tests
 - What changes: `buyUpgrade` command (build phase, restaurant tier, once each). Effects: waiting places, arrival percent, patience percent, budget percent. Budget and patience are scaled after the RNG draw so draw order is unchanged.
 - Acceptance: with no upgrades bought all hashes unchanged.
