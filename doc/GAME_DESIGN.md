@@ -100,7 +100,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 ### 6.4 Restaurant upgrades
 
-Bought once each in the build phase, restaurant tier only. **[provisional]** This brings decor-style upgrades forward from **[later]** in a small form; the user approved it on 2026-11-23. The menu cap stays 6; trends and critics come later, at the restaurant tier only.
+Bought once each in the build phase, restaurant tier only. **[provisional]** This brings decor-style upgrades forward from **[later]** in a small form; the user approved it on 2026-11-23. The menu cap stays 6; critics come later, at the restaurant tier only (daily trends: section 9).
 
 | Upgrade | Effect | Cost |
 | --- | --- | --- |
@@ -127,7 +127,8 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 ## 9. Demand that moves
 
 - Lunch and dinner rushes in every day. **[provisional: first playable]**
-- Daily trends (one dish or ingredient is in demand), food critics, and seasonal menus. **[later]**
+- Daily trends, restaurant tier only. **[provisional]** Each day one dish is "in demand": its taste weight is doubled (`TREND_WEIGHT_FACTOR` = 2) when a customer draws what they like, so more customers want it. The trend is picked from the dishes the player has unlocked (not only those on the menu, so adding the trend dish to the menu is the decision), by a hash of the seed and the day number: no random stream, no saved field, same seed and day give the same trend. At least 2 unlocked dishes are needed. It is announced in the build phase (Menu tab and top bar) and the day summary shows how many of that dish were served. The stall tier has no trends. If the player unlocks a dish before opening, the trend may change, because the pool changed. Approved by the user on 2026-11-24.
+- Food critics and seasonal menus. **[later]**
 
 ## 10. Presentation
 
@@ -152,7 +153,7 @@ In:
 - Visible-item belts on a fixed tick, pause and speed controls
 - One local save
 
-Out (later): offline progress, seating layout, staff, décor, rent, trends, critics, branches, franchise prestige, blueprints/copy-paste across locations.
+Out (later): offline progress, seating layout, staff, décor, rent, critics, branches, franchise prestige, blueprints/copy-paste across locations.
 
 Success criteria for the first playable: a new player can build a working line for one dish in under 5 minutes, and finding and fixing a bottleneck feels satisfying. **[provisional]**
 
@@ -177,6 +178,8 @@ No open questions remain for the first playable.
 - 2026-11-23: User approved the "Restaurant growth" slice (plan doc/plans/2026-11-23-restaurant-growth.md; no **[confirmed]** rule changed): a second pass at the restaurant tier ($400, 5.3), restaurant arrival factor 1.5 to 2.0 (6.2), four restaurant upgrades (new 6.4, brought forward from **[later]** decor), restaurant goal 7 and the end screen after it (8).
 
 - 2026-11-23: Tutorial salad step (confirmed rule in section 13). When that step is current and the suggested line costs more than the player has, the game adds the difference once (`tutorialHelp`, capped by `TUTORIAL_HELP_CAP`). A bad day can no longer leave the line unaffordable. New game clears the one-time flag.
+
+- 2026-11-24: User decision (restaurant tier only, no **[confirmed]** rule): daily trends move from **[later]** to **[provisional]** in section 9. One unlocked dish a day has double taste weight (`TREND_WEIGHT_FACTOR` = 2 in `sim/constants.ts`), chosen from a hash of seed and day. Stall runs are unchanged; restaurant hashes change on purpose.
 
 - 2026-11-22: Closing-time warning (UI only, no rule or number change). `CLOSING_SOON_TICKS` = 600 in `constants.ts`: in the last 600 ticks (was 400; a 5-day sweep of 200, 400, 600 showed profit rises with the lead and served customers do not change) of service the top bar warns that items left on the line are thrown away and offers a one-click pantry pause; the scripted harness player pauses at the same point.
 
