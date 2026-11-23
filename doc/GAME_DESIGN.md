@@ -67,7 +67,7 @@ Building happens while service is paused or running. **[provisional: building is
 | Stove | Cooks (raw patty → cooked patty, rice → cooked rice) | Slower; the usual bottleneck |
 | Fryer | Fries (potato strips → fries) | |
 | Assembler (2 × 1) | Combines up to 3 inputs into a dish per recipe | Recipe selected per station |
-| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish. A 5th copy is refused (the belt backs up and the pantries stop buying) unless a different dish waits right behind it on the feeding belt, or the oldest copy is 45 s old; then the oldest is thrown away (counted as spoiled waste) and the new one takes its place. So a one-dish line stops buying when nothing sells, and an unsold dish cannot jam a mixed belt (2026-11-20, refined 2026-11-22) |
+| Pass (output) | Takes finished dishes and serves them to waiting orders | Unmatched dishes wait on the pass and spoil. The shelf holds at most 4 of each dish. A 5th copy is refused (the belt backs up and the pantries stop buying) unless a different dish waits right behind it on the feeding belt, or the oldest copy is 45 s old; then the oldest is thrown away (counted as spoiled waste) and the new one takes its place. So a one-dish line stops buying when nothing sells, and an unsold dish cannot jam a mixed belt (2026-11-20, refined 2026-11-22). One extra pass can be bought at the restaurant tier ($400, at most 2 in total); it serves dishes like the first, and either pass can be sold while another remains (2026-11-23) |
 | Bin | Destroys items | Counts as waste |
 
 ### 5.4 Recipes
@@ -87,7 +87,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 ### 6.2 Customers
 
-- Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]** Balance numbers (2026-11-20): mean gap 100 ticks when quiet and 30 in a rush at 3★ (about 51 customers a day at the stall).
+- Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]** Balance numbers (2026-11-20): mean gap 100 ticks when quiet and 30 in a rush at 3★ (about 51 customers a day at the stall). The restaurant tier multiplies the arrival rate by 2.0 (was 1.5, 2026-11-23).
 - Each has a taste profile (preferred dishes), a budget, and patience. They choose an affordable menu dish they like; if none, they leave. **[provisional]**
 - An order waits at the pass. If patience runs out before the dish arrives, the customer leaves unhappy and pays nothing. **[provisional]**
 - Seating is abstract in the first playable: a fixed capacity of waiting orders (provisional: 6 at the stall). **[provisional]**
@@ -97,6 +97,17 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 - Each served or lost customer leaves a rating from wait time, price versus their budget, and whether they got a dish they wanted. **[provisional]**
 - Reputation is a rolling average of recent ratings and scales the arrival rate. **[provisional]**
 - The end-of-day summary shows sales, lost customers, waste (spoiled during the day and left at close, listed separately), average wait, and a few written reviews that name the problem ("waited forever for fries"). **[provisional]**
+
+### 6.4 Restaurant upgrades
+
+Bought once each in the build phase, restaurant tier only. **[provisional]** This brings decor-style upgrades forward from **[later]** in a small form; the user approved it on 2026-11-23. The menu cap stays 6; trends and critics come later, at the restaurant tier only.
+
+| Upgrade | Effect | Cost |
+| --- | --- | --- |
+| More tables | +3 waiting places | $300 |
+| Street sign | +15% arrivals | $400 |
+| Music | +25% customer patience | $300 |
+| Nice plates | +15% customer budget | $600 |
 
 ## 7. Economy
 
@@ -108,6 +119,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 - Milestone goals move the player from **stall** to **small restaurant** (bigger grid, more menu slots, more customers). **[confirmed: milestone goals]** Provisional milestone examples: serve 100 dishes, reach 4★ reputation, earn a set total profit.
 - Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
+- Restaurant goal 7 (provisional, 2026-11-23): earn a set profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
 - Later tiers: restaurant → chain of branches → franchise. **[later]**
 - Franchise prestige: sell the chain and restart with a better recipe book and blueprints. **[later; confirmed as the long-term structure]**
 - The first playable ends at the restaurant tier with a "you're ready to expand" end screen. **[provisional]**
@@ -133,7 +145,7 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 In:
 
-- One location growing from stall (8 × 6) to small restaurant
+- One location growing from stall (8 × 6) to small restaurant, with a second pass and four restaurant upgrades (6.4) to spend cash on
 - The buildings in 5.3, about 6 dishes, menu and prices
 - Customers with taste, budget, patience; rush hours; reputation and reviews
 - End-of-day summary and milestone goals
@@ -159,6 +171,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-23: User approved the "Restaurant growth" slice (plan doc/plans/2026-11-23-restaurant-growth.md; no **[confirmed]** rule changed): a second pass at the restaurant tier ($400, 5.3), restaurant arrival factor 1.5 to 2.0 (6.2), four restaurant upgrades (new 6.4, brought forward from **[later]** decor), restaurant goal 7 and the end screen after it (8).
 
 - 2026-11-23: Tutorial salad step (confirmed rule in section 13). When that step is current and the suggested line costs more than the player has, the game adds the difference once (`tutorialHelp`, capped by `TUTORIAL_HELP_CAP`). A bad day can no longer leave the line unaffordable. New game clears the one-time flag.
 
