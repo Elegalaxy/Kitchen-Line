@@ -22,10 +22,10 @@ export const RESTAURANT_DAY_PROFIT_TARGET = 30000
 export const RESTAURANT_SERVED_PERCENT = 90
 export const RESTAURANT_RATING_TARGET = 4.2
 /**
- * Restaurant goal 7 (GAME_DESIGN 8): profit made at the restaurant tier, in cents ($4,000). Provisional; tuned
+ * Restaurant goal 7 (GAME_DESIGN 8): profit made at the restaurant tier, in cents ($5,000). Provisional; tuned
  * with the restaurant upgrades so the journey ends around day 17 to 20 (plan 2026-11-23-restaurant-growth).
  */
-export const RESTAURANT_TOTAL_PROFIT_TARGET = 400000
+export const RESTAURANT_TOTAL_PROFIT_TARGET = 500000
 
 function count(current: number, target: number): GoalProgress {
   return { done: current >= target, current: Math.min(current, target), target }

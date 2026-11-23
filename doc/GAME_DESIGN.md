@@ -119,7 +119,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - Milestone goals move the player from **stall** to **small restaurant** (bigger grid, more menu slots, more customers). **[confirmed: milestone goals]** Provisional milestone examples: serve 100 dishes, reach 4★ reputation, earn a set total profit.
 - Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
-- Restaurant goal 7 (provisional, 2026-11-23): earn a set profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
+- Restaurant goal 7 (provisional, 2026-11-23): earn $5,000 profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
 - Later tiers: restaurant → chain of branches → franchise. **[later]**
 - Franchise prestige: sell the chain and restart with a better recipe book and blueprints. **[later; confirmed as the long-term structure]**
 - The first playable ends at the restaurant tier with a "you're ready to expand" end screen. **[provisional]**

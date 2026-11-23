@@ -54,6 +54,25 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 7: Measure and tune
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: measured with `npm run sim -- --journey --seeds 20` (journey-1 to journey-20). Only the goal-7 target was tuned ($4,000 gave end-screen median day 16, $5,000 gives 18); upgrade costs and effect sizes were left as in GAME_DESIGN 6.4.
+
+Results (20 seeds each, 0 loss days everywhere, 20/20 reached the end screen; day = end screen day, "upg" = upgrade-to-restaurant day, median 6):
+
+| Variant | End screen median (min-max) | Days upgrade to end | Median cash spent at restaurant tier |
+| --- | --- | --- | --- |
+| Before this slice (origin 0c0aad0) | 11 (10-14) | 5 | n/a |
+| Goal 7 $4,000 (first try, all features) | 16 (15-17) | 10 | $2,895 |
+| Final: goal 7 $5,000, all features | 18 (17-20) | 12 | $2,895 |
+| `--no-upgrades` | 19 (18-21) | 13 | $1,295 |
+| `--no-pass2` | 18 (17-19) | 12 | $2,495 |
+| `--no-throttle` | 17 (16-19) | 11 | $2,895 |
+
+Service time to the end screen at 1x: median 18 days x 4 min = 72 min (max 20 days = 80 min); 4x: 18 min.
+
+Fryer load (final variant): before the second fryer 67% of restaurant days had 2+ fries customers giving up (3.41 a day on average, 102 days); from the day the second fryer line is built 0.00 a day and 0% of days with 2+ (162 days). The 7 layouts `--days 5 --seed demo` print identical output before and after (stall unchanged).
+
+Findings: the upgrades are worth about one day (end screen 19 without them, 18 with); the second pass changes the end day by less than a day (the old west join into the merger already worked, so what the pass buys is the fries lane no longer sharing the east side). Restaurant profit is about $450 a day once the five-dish line runs.
+
 - What changes: only the goal-7 target, upgrade costs and effect sizes may be tuned.
 - Acceptance: 20/20 seeds reach the end screen within 40 days; end-screen median day 17 to 20, no seed beyond day 28; 0 loss days; `--no-upgrades` ends at least 1 day later (median); before the second fryer at least 50% of restaurant days have 2+ fries customers giving up, after it at most 0.5 per day.
