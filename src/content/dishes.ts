@@ -68,7 +68,7 @@ const list: DishDef[] = [
     name: 'Cheeseburger',
     emoji: '🧀',
     refPrice: 1000,
-    popularity: 2,
+    popularity: 3,
     startsUnlocked: false,
     unlockCost: 15000,
     inputs: ['bun', 'cookedPatty', 'cheese'],
