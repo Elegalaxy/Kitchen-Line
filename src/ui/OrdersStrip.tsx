@@ -7,6 +7,7 @@
 import type { Customer, Defs, GameState } from '../sim/types.ts'
 import { waitingCap } from '../sim/upgrades.ts'
 import { formatMoney } from './format.ts'
+import { criticBadge } from './criticView.ts'
 import { ordersNote, patienceLeft, patienceLevel } from './orders.ts'
 
 const TICKS_PER_SECOND = 10
@@ -21,9 +22,15 @@ function Chip({ c, tick, defs }: { c: Customer; tick: number; defs: Defs }) {
   const frac = patienceLeft(c, tick)
   const level = patienceLevel(frac)
   const secs = secondsLeft(c, tick)
-  const label = `${name} order, ${formatMoney(c.price)}, ${secs} seconds of patience left`
+  const badge = criticBadge(c)
+  const label = `${badge === null ? '' : 'Food critic: '}${name} order, ${formatMoney(c.price)}, ${secs} seconds of patience left`
   return (
-    <li className={`order-chip order-${level}`} aria-label={label} title={label}>
+    <li className={`order-chip order-${level}${badge === null ? '' : ' order-critic'}`} aria-label={label} title={label}>
+      {badge !== null && (
+        <span className="order-critic-badge" aria-hidden="true">
+          ★ {badge}
+        </span>
+      )}
       <span className="order-glyph" aria-hidden="true">
         {dish?.emoji ?? '?'}
       </span>

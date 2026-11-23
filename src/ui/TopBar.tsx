@@ -11,6 +11,7 @@ import Money from './Money.tsx'
 import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
+import { criticNotice } from './criticView.ts'
 import { trendView } from './trendView.ts'
 
 const SPEED_LABEL: Record<Speed, string> = { 0: 'Pause', 1: '1×', 2: '2×', 4: '4×' }
@@ -31,6 +32,7 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
   const rep = reputationView(reputationOf(s), s.repAtDayStart)
   const closing = closingSoonView(s)
   const trend = trendView(s, ctx.store.defs)
+  const critic = criticNotice(s, ctx.store.defs)
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
@@ -106,6 +108,14 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
                 <span aria-hidden="true">✓</span> {closing.pausedNote}
               </span>
             )}
+          </div>
+        )}
+        {!closing.active && critic !== null && (
+          <div className={`critic-cue critic-${critic.kind}`}>
+            <span className="critic-badge">
+              <span aria-hidden="true">★</span> CRITIC
+            </span>
+            <span className="critic-text">{critic.text}</span>
           </div>
         )}
       </div>

@@ -27,6 +27,7 @@ import { clipText } from './format.ts'
 import { handleModalKeys } from './modalKeys.ts'
 import { pantryPauseView } from './pantryPause.ts'
 import { tutorialView } from './tutorial.ts'
+import { criticSummary } from './criticView.ts'
 import { trendSummary } from './trendView.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
@@ -91,6 +92,7 @@ export default function DaySummary({
 
   const pantries = pantryPauseView(state)
   const trend = trendSummary(state, defs)
+  const critic = criticSummary(state)
   const hint = hintText(sum.bottleneckHint, defs)
   const guide = tutorialView(state)
   const teachingSummary = guide.steps[guide.current]?.id === 'summary'
@@ -156,6 +158,12 @@ export default function DaySummary({
           <p className="sum-trend num">
             <span aria-hidden="true">🔥</span> Trend: {trend.name} ({trend.served} served, {trend.lost} lost)
             {trend.onMenu ? '' : ' - not on the menu'}
+          </p>
+        )}
+
+        {critic !== null && (
+          <p className="sum-trend sum-critic num">
+            <span aria-hidden="true">★</span> {critic.text}
           </p>
         )}
 
