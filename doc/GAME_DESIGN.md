@@ -102,10 +102,11 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 - Each served or lost customer leaves a rating from wait time, price versus their budget, and whether they got a dish they wanted. **[provisional]**
 - Reputation is a rolling average of recent ratings and scales the arrival rate. **[provisional]**
 - The end-of-day summary shows sales, lost customers, waste (spoiled during the day and left at close, listed separately), average wait, and a few written reviews that name the problem ("waited forever for fries"). **[provisional]**
+- Food critics (restaurant tier only, section 9): a critic's rating counts `CRITIC_RATING_WEIGHT` = 10 times in the reputation average (it is stored as 10 entries in the rolling window of 50, one review is written). A critic who leaves unserved rates 1 star counted `CRITIC_LOST_WEIGHT` = 3 times. **[provisional]**
 
 ### 6.4 Restaurant upgrades
 
-Bought once each in the build phase, restaurant tier only. **[provisional]** This brings decor-style upgrades forward from **[later]** in a small form; the user approved it on 2026-11-23. The menu cap stays 6; critics come later, at the restaurant tier only (daily trends: section 9).
+Bought once each in the build phase, restaurant tier only. **[provisional]** This brings decor-style upgrades forward from **[later]** in a small form; the user approved it on 2026-11-23. The menu cap stays 6; daily trends and food critics (section 9) also exist at the restaurant tier only.
 
 | Upgrade | Effect | Cost |
 | --- | --- | --- |
@@ -133,7 +134,8 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - Lunch and dinner rushes in every day. **[provisional: first playable]**
 - Daily trends, restaurant tier only. **[provisional]** Each day one dish is "in demand": its taste weight is doubled (`TREND_WEIGHT_FACTOR` = 2) when a customer draws what they like, so more customers want it. The trend is picked from the dishes the player has unlocked (not only those on the menu, so adding the trend dish to the menu is the decision), by a hash of the seed and the day number: no random stream, no saved field, same seed and day give the same trend. At least 2 unlocked dishes are needed. It is announced in the build phase (Menu tab and top bar) and the day summary shows how many of that dish were served. The stall tier has no trends. If the player unlocks a dish before opening, the trend may change, because the pool changed. Approved by the user on 2026-11-24.
-- Food critics and seasonal menus. **[later]**
+- Food critics, restaurant tier only. **[provisional]** On about one restaurant day in six a critic visits (`CRITIC_DAY_MODULUS` = 5: a hash of seed and day picks the days, and two days in a row are never both critic days). The visit is announced the day before (build phase and day summary: "A critic visits tomorrow") and is shown on the day itself. The first possible critic day is the day after the upgrade to restaurant, so it can always be announced. One extra customer, the critic, arrives at a fixed tick inside the dinner rush (hash of seed and day, within `CRITIC_ARRIVAL_SPAN` = 300 ticks of the rush start; no random draw, so the normal arrivals do not change). The critic orders the menu dish with the highest popularity (ties: first on the menu) and ignores the queue cap and the budget (it counts as a customer), is served before other customers who want the same dish, and has higher standards: patience `CRITIC_PATIENCE` = 240 ticks (normal 300 to 600) and the usual wait and price penalties, with the budget set to `CRITIC_BUDGET_PERCENT` = 120 percent of the dish's reference price, so a price over 108 percent of reference costs a star. Their rating counts 10 times in reputation (6.3). A critic who cannot order (empty menu) or gives up counts as a 1-star rating weighted 3. The day summary shows "Critic: N stars (served / lost)". The stall tier has no critics. Approved by the user on 2026-11-23/24.
+- Seasonal menus. **[later]**
 
 ## 10. Presentation
 
@@ -158,7 +160,7 @@ In:
 - Visible-item belts on a fixed tick, pause and speed controls
 - One local save
 
-Out (later): offline progress, seating layout, staff, décor, rent, critics, branches, franchise prestige, blueprints/copy-paste across locations.
+Out (later): offline progress, seating layout, staff, décor, rent, branches, franchise prestige, blueprints/copy-paste across locations.
 
 Success criteria for the first playable: a new player can build a working line for one dish in under 5 minutes, and finding and fixing a bottleneck feels satisfying. **[provisional]**
 
@@ -208,3 +210,5 @@ No open questions remain for the first playable.
 - 2026-11-19: The user confirmed the first-playable plan's section 3 decisions. Section 13 is resolved; the plan's numbers are the provisional defaults.
 
 - 2026-11-19: First design doc. Confirmed by the user: TypeScript + React + Vite with a canvas grid; visible items moving on a fixed tick; first-playable tycoon depth is menu, prices, customers, and reviews; offline progress later; clean shapes and icons; milestone goals with franchise prestige later; one location in the first playable. Remaining rules are provisional defaults.
+
+- 2026-11-24: User decision (restaurant tier only, no **[confirmed]** rule): food critics move from **[later]** to **[provisional]** in section 9 (approved 2026-11-23/24). A critic visits about one restaurant day in six, announced the day before, rated with weight 10 in reputation (6.3), lost critic 1 star weight 3. Numbers in `sim/constants.ts`. Stall runs are unchanged; restaurant hashes change on purpose.
