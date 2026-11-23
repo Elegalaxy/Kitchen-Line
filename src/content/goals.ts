@@ -21,6 +21,11 @@ export const RESTAURANT_DAY_PROFIT_TARGET = 30000
 /** At least 90% of the day's customers served, at an average rating of at least 4.2 stars. */
 export const RESTAURANT_SERVED_PERCENT = 90
 export const RESTAURANT_RATING_TARGET = 4.2
+/**
+ * Restaurant goal 7 (GAME_DESIGN 8): profit made at the restaurant tier, in cents ($4,000). Provisional; tuned
+ * with the restaurant upgrades so the journey ends around day 17 to 20 (plan 2026-11-23-restaurant-growth).
+ */
+export const RESTAURANT_TOTAL_PROFIT_TARGET = 400000
 
 function count(current: number, target: number): GoalProgress {
   return { done: current >= target, current: Math.min(current, target), target }
@@ -87,6 +92,23 @@ function dishSales(state: GameState): GoalProgress {
   }
 }
 
+/**
+ * Restaurant goal 7: profit since the upgrade to restaurant (`tierProfitStart`; an old restaurant save without
+ * it counts all its profit). Like goals 5 and 6 it is only DONE at day end (phase `summary`), so the end screen
+ * never appears in the middle of a service day; the row still shows the day in progress while service is open.
+ */
+function restaurantProfit(state: GameState): GoalProgress {
+  const target = RESTAURANT_TOTAL_PROFIT_TARGET
+  const profit = totalProfit(state) - (state.tierProfitStart ?? 0)
+  return {
+    done: state.phase === 'summary' && profit >= target,
+    current: Math.max(0, Math.min(profit, target)),
+    target,
+  }
+}
+
+const dollars = (cents: number): string => `$${(cents / 100).toLocaleString('en-US')}`
+
 export const GOALS: GoalDef[] = [
   {
     id: 'first-dish',
@@ -135,5 +157,12 @@ export const GOALS: GoalDef[] = [
     label: 'Earn $300 in one day, 90% served, at 4.2★',
     unit: 'cents',
     check: bestDay,
+  },
+  {
+    id: 'restaurant-profit',
+    tier: 'restaurant',
+    label: `Earn ${dollars(RESTAURANT_TOTAL_PROFIT_TARGET)} profit as a restaurant`,
+    unit: 'cents',
+    check: restaurantProfit,
   },
 ]

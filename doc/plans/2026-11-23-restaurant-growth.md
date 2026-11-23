@@ -40,7 +40,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\restaurant-growth`.
 
 ### Step 5: Goal 7
 
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-23: `tierProfitStart` (set by `upgradeTier`, validated in save.ts when present), goal `restaurant-profit` (target `RESTAURANT_TOTAL_PROFIT_TARGET` = $4,000, done only in the summary phase; an old restaurant save without the mark counts all profit). `checkWin` needed no change (it waits for every restaurant goal); the Goals panel and end screen list goals from `defs.goals`, so goal 7 shows up there. Browser check pending.
 - Files: `src/sim/types.ts`, `src/sim/commands.ts`, `src/content/goals.ts`, `src/persist/save.ts`, tests
 - What changes: `tierProfitStart` set by `upgradeTier`; goal `restaurant-profit` (profit made at the restaurant tier, target `RESTAURANT_TOTAL_PROFIT_TARGET`); the end screen comes after goal 7.
 

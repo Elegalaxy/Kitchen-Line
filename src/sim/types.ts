@@ -203,6 +203,11 @@ export type GameState = {
   goalsDone: string[]
   /** Ids of the restaurant upgrades bought (GAME_DESIGN 6.4). Absent until the first purchase. */
   upgrades?: string[]
+  /**
+   * `totals.profit` when the restaurant upgrade was bought (set by `upgradeTier`); restaurant goal 7 counts
+   * profit from there. Absent in older restaurant saves: they count all their profit.
+   */
+  tierProfitStart?: number
   /** True once the "Ready to expand" end screen has been triggered; it never triggers twice. */
   won: boolean
   events: SimEvent[]

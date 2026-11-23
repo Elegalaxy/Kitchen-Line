@@ -67,7 +67,7 @@ describe('goalsView', () => {
     expect(applyCheat(DEFS, s, 'restaurant').tier).toBe('restaurant')
     const won = applyCheat(DEFS, s, 'won')
     expect(won.phase).toBe('won')
-    expect(won.goalsDone).toHaveLength(6)
+    expect(won.goalsDone).toHaveLength(7)
     expect(applyCheat(DEFS, s, 'nope')).toBe(s)
   })
 })

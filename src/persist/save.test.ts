@@ -160,6 +160,9 @@ describe('round trip', () => {
     expect('upgrades' in roundTrip(s)).toBe(false)
     s.upgrades = ['tables', 'sign']
     expect(roundTrip(s).upgrades).toEqual(['tables', 'sign'])
+    s.tierProfitStart = 12345
+    expect(roundTrip(s).tierProfitStart).toBe(12345)
+    delete s.tierProfitStart
     expect(stateHash(roundTrip(s))).toBe(stateHash(s))
     delete s.upgrades
     expect(loadSave(serializeSave(s, 'x')).ok).toBe(true)
@@ -225,6 +228,8 @@ describe('rejection', () => {
     expectRejected(damaged(s, (e) => (e.state.goalsDone = [1])), 'goalsDone')
     expectRejected(damaged(s, (e) => (e.state.upgrades = 'tables')), 'state.upgrades')
     expectRejected(damaged(s, (e) => (e.state.upgrades = [1])), 'state.upgrades')
+    expectRejected(damaged(s, (e) => (e.state.tierProfitStart = 1.5)), 'state.tierProfitStart')
+    expectRejected(damaged(s, (e) => (e.state.tierProfitStart = '5')), 'state.tierProfitStart')
     expectRejected(damaged(s, (e) => (e.state.totals = { served: 1 })), 'totals')
   })
 

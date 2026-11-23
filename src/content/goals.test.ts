@@ -2,8 +2,10 @@
 // below and exactly at its threshold. Content tests may import sim, so the real DEFS are used.
 
 import { describe, expect, it } from 'vitest'
+import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import type { GameState } from '../sim/types.ts'
+import { RESTAURANT_TOTAL_PROFIT_TARGET } from './goals.ts'
 import { DEFS } from './index.ts'
 
 function goal(id: string) {
@@ -17,10 +19,10 @@ function fresh(): GameState {
 }
 
 describe('goal data', () => {
-  it('has four stall goals and two restaurant goals with unique ids', () => {
+  it('has four stall goals and three restaurant goals with unique ids', () => {
     const goals = DEFS.goals ?? []
     expect(goals.filter((g) => g.tier === 'stall')).toHaveLength(4)
-    expect(goals.filter((g) => g.tier === 'restaurant')).toHaveLength(2)
+    expect(goals.filter((g) => g.tier === 'restaurant')).toHaveLength(3)
     expect(new Set(goals.map((g) => g.id)).size).toBe(goals.length)
   })
 
@@ -158,5 +160,56 @@ describe('restaurant goals', () => {
     expect(goal('great-day').check(s).done).toBe(false)
     expect(goal('great-day').check(dayEnd(0, 0, 30000, GOOD)).done).toBe(false)
     expect(goal('great-day').check(fresh()).done).toBe(false)
+  })
+})
+
+describe('restaurant goal 7 (restaurant-profit)', () => {
+  const T = RESTAURANT_TOTAL_PROFIT_TARGET
+  /** A restaurant at day end with `profit` made since the upgrade (and `before` made at the stall). */
+  function atDayEnd(profit: number, before = 0): GameState {
+    const s = fresh()
+    s.tier = 'restaurant'
+    s.tierProfitStart = before
+    s.totals = { served: 500, profit: before + profit, days: 10 }
+    s.phase = 'summary'
+    return s
+  }
+
+  it('is done at and not just below the target, at day end', () => {
+    expect(goal('restaurant-profit').check(atDayEnd(T)).done).toBe(true)
+    expect(goal('restaurant-profit').check(atDayEnd(T - 1)).done).toBe(false)
+    expect(goal('restaurant-profit').check(atDayEnd(T - 1))).toMatchObject({ current: T - 1, target: T })
+  })
+
+  it('only counts profit made after the upgrade', () => {
+    expect(goal('restaurant-profit').check(atDayEnd(T - 100, 50000)).done).toBe(false)
+    expect(goal('restaurant-profit').check(atDayEnd(T, 50000)).done).toBe(true)
+    expect(goal('restaurant-profit').check(atDayEnd(0, 50000)).current).toBe(0)
+  })
+
+  it('an old restaurant save without tierProfitStart counts all its profit', () => {
+    const s = atDayEnd(0)
+    delete s.tierProfitStart
+    s.totals.profit = T
+    expect(goal('restaurant-profit').check(s).done).toBe(true)
+  })
+
+  it('is never done outside the day-end summary phase', () => {
+    for (const phase of ['build', 'service', 'won'] as const) {
+      const s = atDayEnd(T * 2)
+      s.phase = phase
+      expect(goal('restaurant-profit').check(s).done, phase).toBe(false)
+    }
+  })
+
+  it('upgradeTier records the profit made so far', () => {
+    const s = fresh()
+    s.goalsDone = ['first-dish', 'serve-100', 'rating-4', 'profit-300']
+    s.money = 100000
+    s.totals = { served: 120, profit: 31234, days: 5 }
+    const up = applyCommand(s, DEFS, { type: 'upgradeTier' })
+    expect(up.result.ok).toBe(true)
+    expect(up.state.tierProfitStart).toBe(31234)
+    expect(goal('restaurant-profit').check(up.state)).toMatchObject({ done: false, current: 0 })
   })
 })
