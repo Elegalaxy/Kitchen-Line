@@ -98,6 +98,10 @@ export type DayLog = {
   trend: string | null
   /** Units of the trend dish served that day. */
   trendServed: number
+  /** The food critic's result that day (restaurant tier, GAME_DESIGN 9) or null; the scripted player ignores critics. */
+  critic: { stars: number; served: boolean } | null
+  /** Reputation when the day opened (to see what a critic did to it). */
+  repAtStart: number
   /** What the player bought before the day. */
   bought: string[]
   /** Cents spent in this build phase at the restaurant tier (the tier fee itself is not counted). */
@@ -480,6 +484,8 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       friesServed: d.byDish['fries']?.served ?? 0,
       trend,
       trendServed: trend === null ? 0 : (d.byDish[trend]?.served ?? 0),
+      critic: d.critic === undefined ? null : { stars: d.critic.stars, served: d.critic.served },
+      repAtStart: run.state.repAtDayStart,
       bought,
       spent: spentToday,
     })

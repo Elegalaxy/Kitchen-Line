@@ -85,6 +85,16 @@ export function formatJourneyTable(results: JourneyResult[]): string[] {
   const allDays = results.flatMap((r) => r.days)
   const lossDays = allDays.filter((d) => d.profit < 0).length
   lines.push(`days with a loss: ${lossDays} of ${allDays.length}`)
+  const criticDays = allDays.filter((d) => d.critic !== null)
+  const criticLost = criticDays.filter((d) => d.critic?.served === false).length
+  const seedsHit = results.filter((r) => r.days.some((d) => d.critic !== null && d.rep < 3)).length
+  const seedsWithCritic = results.filter((r) => r.days.some((d) => d.critic !== null)).length
+  const swing = criticDays.map((d) => d.rep - d.repAtStart).sort((a, b) => a - b)
+  lines.push(
+    `critic days: ${criticDays.length} in ${seedsWithCritic} of ${results.length} seeds (served ${criticDays.length - criticLost}, lost ${criticLost}); ` +
+      `seeds with reputation below 3 at the end of a critic day: ${seedsHit}` +
+      (swing.length === 0 ? '' : `; reputation change on a critic day: median ${swing[Math.floor((swing.length - 1) / 2)].toFixed(2)}, min ${swing[0].toFixed(2)}, max ${swing[swing.length - 1].toFixed(2)}`),
+  )
   const reached = cols[cols.length - 1]
   const dnf = results.filter((r) => r.wonDay === null).length
   lines.push(`reached the end screen: ${results.length - dnf}/${results.length} seeds`)
@@ -106,7 +116,7 @@ export function formatJourneyDays(r: JourneyResult): string[] {
     lines.push(
       `  day ${String(d.day).padStart(2)} ${d.tier.padEnd(10)} money=${pad(formatMoney(d.moneyStart), 9)} menu=${d.menuSize} ` +
         `cust=${pad(String(d.customers), 3)} served=${pad(String(d.servedPct), 3)}% profit=${pad(formatMoney(d.profit), 8)} ` +
-        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.trend === null ? '' : `trend=${d.trend}:${d.trendServed} `}${d.bought.join(',')}`,
+        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.trend === null ? '' : `trend=${d.trend}:${d.trendServed} `}${d.critic === null ? '' : `critic=${d.critic.stars}*${d.critic.served ? 'served' : 'lost'} `}${d.bought.join(',')}`,
     )
   }
   return lines
