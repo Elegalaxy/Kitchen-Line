@@ -72,6 +72,13 @@ describe('menuView', () => {
     expect(v.rows[2]).toMatchObject({ id: 'soup', locked: true, unlockCost: 4000 })
   })
 
+  it('lists the dish-pack dishes only at the restaurant tier, with their costs and unlock prices', () => {
+    const rest = { ...createGame(DEFS, 'view'), tier: 'restaurant' as const }
+    expect(view(rest).rows.map((r) => r.id)).toEqual(['fries', 'salad', 'soup', 'sandwich', 'burger', 'riceBowl', 'fishAndChips', 'cheeseburger'])
+    expect(rowOf(rest, 'fishAndChips')).toMatchObject({ locked: true, unlockCost: 12000, cost: 180, refPrice: 900 })
+    expect(rowOf(rest, 'cheeseburger')).toMatchObject({ locked: true, unlockCost: 15000, cost: 230, refPrice: 1000 })
+  })
+
   it('reports the shortfall on a locked dish the player cannot afford', () => {
     const s = createGame(DEFS, 'view')
     s.money = 5000
