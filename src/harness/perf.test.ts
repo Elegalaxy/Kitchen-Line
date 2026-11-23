@@ -21,6 +21,8 @@ const DAYS = 7
 // (over 3 s seen on GitHub Actions for the big-grid scenario), so CI gets 8 s: still catches a real (several-fold) slowdown.
 const LIMIT_MS = process.env.CI === undefined ? 1000 : 8000
 const RUNS = 3
+// Each scenario runs RUNS times; the default 5 s test timeout failed CI before LIMIT_MS was even checked.
+const TEST_TIMEOUT_MS = 60_000
 
 function debug(message: string): void {
   console.log(`[DEBUG perf] ${message}\n`)
@@ -88,13 +90,13 @@ describe('performance: 7 days (16,800 ticks) under 1 s', () => {
     const ms = bestMs(bigLoopGrid)
     debug(`bigLoopGrid best of ${RUNS}: ${ms.toFixed(1)} ms`)
     expect(ms).toBeLessThan(LIMIT_MS)
-  })
+  }, TEST_TIMEOUT_MS)
 
   for (const layout of ['saladLine', 'burgerLine', 'soupLine', 'sandwichLine', 'riceBowlLine']) {
     it(`${layout}`, () => {
       const ms = bestMs(() => buildLayoutState(DEFS, layout, 'perf'))
       debug(`${layout} best of ${RUNS}: ${ms.toFixed(1)} ms`)
       expect(ms).toBeLessThan(LIMIT_MS)
-    })
+    }, TEST_TIMEOUT_MS)
   }
 })
