@@ -102,7 +102,7 @@ export function formatJourneyDays(r: JourneyResult): string[] {
     lines.push(
       `  day ${String(d.day).padStart(2)} ${d.tier.padEnd(10)} money=${pad(formatMoney(d.moneyStart), 9)} menu=${d.menuSize} ` +
         `cust=${pad(String(d.customers), 3)} served=${pad(String(d.servedPct), 3)}% profit=${pad(formatMoney(d.profit), 8)} ` +
-        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.bought.join(',')}`,
+        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.trend === null ? '' : `trend=${d.trend}:${d.trendServed} `}${d.bought.join(',')}`,
     )
   }
   return lines

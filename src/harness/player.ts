@@ -47,6 +47,7 @@ import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
 import { placeCost } from '../sim/grid.ts'
+import { currentTrend } from '../sim/trend.ts'
 import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import type { Command, Defs, Dir, GameState, SimEvent } from '../sim/types.ts'
 
@@ -88,6 +89,10 @@ export type DayLog = {
   /** Fries the fryers finished (one fryer makes at most 40 a day) and fries sold. */
   friesMade: number
   friesServed: number
+  /** The day's trending dish (restaurant tier, GAME_DESIGN 9) or null; the scripted player ignores it. */
+  trend: string | null
+  /** Units of the trend dish served that day. */
+  trendServed: number
   /** What the player bought before the day. */
   bought: string[]
   /** Cents spent in this build phase at the restaurant tier (the tier fee itself is not counted). */
@@ -420,6 +425,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     }
     lastFriesPatience = friesPatience
     noteGoals()
+    const trend = currentTrend(run.state, defs, d.day)
     days.push({
       day: d.day,
       tier: run.state.tier,
@@ -436,6 +442,8 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       friesPatience,
       friesMade,
       friesServed: d.byDish['fries']?.served ?? 0,
+      trend,
+      trendServed: trend === null ? 0 : (d.byDish[trend]?.served ?? 0),
       bought,
       spent: spentToday,
     })
