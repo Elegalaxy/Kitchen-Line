@@ -325,6 +325,21 @@ export type DishDef = {
   inputs?: ItemId[]
   /** Lowest tier that can unlock, list and be wanted. Absent = any tier (GAME_DESIGN 6.2, dish pack). */
   requiresTier?: Tier
+  /** Season id (SeasonDef.id) this dish is wanted in; customers only want it then (GAME_DESIGN 9). Absent = all year. */
+  season?: string
+}
+
+/** One season (GAME_DESIGN 9, restaurant tier). Percent maps are of the base value; unlisted entries count as 100. */
+export type SeasonDef = {
+  id: string
+  name: string
+  emoji: string
+  /** Pantry price percent per raw item id. */
+  costPercent: Record<ItemId, number>
+  /** Taste weight percent per dish id. */
+  tastePercent: Record<DishId, number>
+  /** Branch night profit percent. */
+  branchPercent: number
 }
 
 export type Defs = {
@@ -345,6 +360,8 @@ export type Defs = {
   upgrades?: UpgradeDef[]
   /** Branch sites (content/branchAreas.ts). Without them no branch can open. */
   branchAreas?: BranchAreaDef[]
+  /** The four seasons in calendar order (content/seasons.ts). Without them there are no seasons. */
+  seasons?: SeasonDef[]
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */

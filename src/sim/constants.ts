@@ -151,6 +151,9 @@ export const TREND_WEIGHT_FACTOR = 2
 /** GAME_DESIGN 9: a trend needs at least this many unlocked dishes to choose from. */
 export const TREND_MIN_CANDIDATES = 2
 
+/** GAME_DESIGN 9 (provisional, 2026-11-24): a season lasts this many days; the four seasons then repeat. */
+export const SEASON_DAYS = 7
+
 /** GAME_DESIGN 9 (provisional, 2026-11-24): a restaurant day is a critic day when a hash of seed and day is 0 modulo this (and the day before was not): about 1 day in 6. */
 export const CRITIC_DAY_MODULUS = 5
 /** GAME_DESIGN 9: the critic arrives this many ticks after the dinner rush starts at most (hash picks 0 to span - 1). */
