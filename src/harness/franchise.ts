@@ -11,7 +11,7 @@
 // Blueprint library: each run's kitchen is saved into the first free slot (none free: the library is kept) and
 // the most recently saved one starts the next run.
 
-import { buyPerk, emptyMeta, franchisePoints, libraryOf, perkCost, recordFranchise } from '../sim/franchise.ts'
+import { activeKitOf, buyPerk, emptyMeta, franchisePoints, libraryOf, perkCost, recordFranchise } from '../sim/franchise.ts'
 import type { FranchisePoints } from '../sim/franchise.ts'
 import type { Defs, MetaState } from '../sim/types.ts'
 import { runJourney } from './player.ts'
@@ -54,6 +54,10 @@ export type MetaSeed = {
   bought: string[][]
   /** Points left unspent after each franchise. */
   left: number[]
+  /** The library after each franchise: the run number saved in each slot (null = empty). */
+  library: (number | null)[][]
+  /** The run whose kitchen starts the next run after each franchise (null: none, or the perk is not owned). */
+  startedWith: (number | null)[]
   /** Why a run could not be franchised (the chain end screen was not reached), or null. */
   problem: string | null
 }
@@ -63,7 +67,7 @@ export type MetaOptions = PlayerOptions & { seeds: number; runs: number; seedPre
 /** One seed: play run 1 (chain on), franchise, spend, play run 2 (and 3). */
 export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs: number, order: string[] = SPEND_ORDER): MetaSeed {
   let meta = emptyMeta()
-  const out: MetaSeed = { base, runs: [], earned: [], bought: [], left: [], problem: null }
+  const out: MetaSeed = { base, runs: [], earned: [], bought: [], left: [], library: [], startedWith: [], problem: null }
   for (let run = 1; run <= runs; run += 1) {
     const r = runJourney(defs, base, { ...opts, chain: true, meta: run === 1 ? undefined : meta })
     out.runs.push(r)
@@ -81,6 +85,10 @@ export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs:
     meta = spent.meta
     out.bought.push(spent.bought)
     out.left.push(meta.points)
+    const lib = libraryOf(meta)
+    out.library.push(lib.map((e) => e?.run ?? null))
+    const kit = (meta.perks.starterKit ?? 0) > 0 ? activeKitOf(meta) : undefined
+    out.startedWith.push(lib.find((e) => e !== null && e.kit === kit)?.run ?? null)
   }
   return out
 }
@@ -112,6 +120,19 @@ export function formatMetaPoints(sets: MetaSeed[]): string[] {
     const spent = sets.flatMap((s) => (s.earned[0] === undefined ? [] : [s.earned[0].total - s.left[0]])).sort((a, b) => a - b)
     const mid = (v: number[]): number => v[Math.floor((v.length - 1) / 2)]
     lines.push(`FP earned: median ${mid(totals)}, min ${totals[0]}, max ${totals[totals.length - 1]}; points spent: median ${mid(spent)}, min ${spent[0]}, max ${spent[spent.length - 1]}`)
+  }
+  return lines
+}
+
+/** Per seed and franchise: the library slots (run numbers) and which run's kitchen the next run starts with. */
+export function formatMetaLibrary(sets: MetaSeed[]): string[] {
+  const lines = ['blueprint library after each franchise (run number in each of the slots, - = empty), kitchen the next run starts with']
+  for (const s of sets) {
+    const parts = s.library.map((slots, k) => {
+      const used = s.startedWith[k]
+      return `after run ${k + 1}: [${slots.map((r) => (r === null ? '-' : String(r))).join(' ')}] -> run ${k + 2} ${used === null ? 'starts empty' : `starts with run ${used}`}`
+    })
+    lines.push(`${s.base.padEnd(12)}${parts.length === 0 ? (s.problem ?? 'not franchised') : parts.join('; ')}`)
   }
   return lines
 }

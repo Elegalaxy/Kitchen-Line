@@ -6,7 +6,7 @@
 import { DEFS } from '../content/index.ts'
 import { DAY_TICKS } from '../sim/constants.ts'
 import { USAGE, parseArgs } from './args.ts'
-import { formatMetaMedians, formatMetaPoints, runMetaSet } from './franchise.ts'
+import { formatMetaLibrary, formatMetaMedians, formatMetaPoints, runMetaSet } from './franchise.ts'
 import { formatFailures, formatFryerLoad, formatJourneyDays, formatJourneyTable, runJourneySet } from './journey.ts'
 import { formatRun, layoutNames, runDays } from './run.ts'
 import type { RunResult } from './run.ts'
@@ -55,6 +55,7 @@ if (options.mode === 'list') {
     }
     console.log('=== franchise')
     for (const line of formatMetaPoints(sets)) console.log(line)
+    for (const line of formatMetaLibrary(sets)) console.log(line)
     for (const line of formatMetaMedians(sets, options.runs)) console.log(line)
   } else {
     console.log(header)

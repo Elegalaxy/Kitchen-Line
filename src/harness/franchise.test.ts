@@ -5,7 +5,7 @@ import { DEFS } from '../content/index.ts'
 import { emptyMeta } from '../sim/franchise.ts'
 import { blueprintOf } from '../sim/blueprint.ts'
 import { createGame } from '../sim/game.ts'
-import { formatMetaMedians, formatMetaPoints, KIT_SPEND_ORDER, runMetaSeed, spendPoints } from './franchise.ts'
+import { formatMetaLibrary, formatMetaMedians, formatMetaPoints, KIT_SPEND_ORDER, runMetaSeed, SPEND_ORDER, spendPoints } from './franchise.ts'
 
 describe('spendPoints', () => {
   it('buys by priority order (seed money, good name, bigger stall), skips what it cannot afford, and leaves the rest', () => {
@@ -57,6 +57,25 @@ describe('--meta journey with the starter kitchen', () => {
     expect(s.runs[1].failures).toEqual([])
     expect(s.runs[1].wonDay).not.toBeNull()
     expect(s.runs[1].upgradeDay ?? 99).toBeLessThan(s.runs[0].upgradeDay ?? 0)
+    // the library holds run 1's kitchen in the first slot and run 2 starts with it
+    expect(s.library[0]).toEqual([1, null, null])
+    expect(s.startedWith[0]).toBe(1)
+    expect(formatMetaLibrary([s]).join(' ')).toContain('after run 1: [1 - -] -> run 2 starts with run 1')
   }, 120_000)
 })
 
+describe('--meta library policy', () => {
+  it('without the starter kitchen perk the next run starts empty even with a saved kitchen', () => {
+    const s = runMetaSeed(DEFS, 'journey-1', { maxDays: 60 }, 2, SPEND_ORDER)
+    expect(s.library[0]).toEqual([1, null, null])
+    expect(s.startedWith[0]).toBeNull()
+  }, 120_000)
+
+  it('three runs: each run saves into the next free slot and the newest kitchen starts the next run', () => {
+    const s = runMetaSeed(DEFS, 'journey-1', { maxDays: 60 }, 3, KIT_SPEND_ORDER)
+    expect(s.problem).toBeNull()
+    expect(s.library).toEqual([[1, null, null], [1, 2, null]])
+    expect(s.startedWith).toEqual([1, 2])
+    expect(s.runs[2].failures).toEqual([])
+  }, 240_000)
+})
