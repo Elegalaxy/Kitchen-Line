@@ -74,13 +74,13 @@ describe('parseArgs', () => {
   it('parses journey mode with defaults and flags', () => {
     expect(parse('--journey')).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, upgrades: true, pass2: true, pro: true, fryer: 'auto', maxDays: 40, example: 1, pause: true },
+      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, upgrades: true, pass2: true, pro: true, fryer: 'auto', chain: true, maxDays: 60, example: 1, pause: true },
     })
     expect(
       parse('--journey', '--seeds', '5', '--cautious', '--no-throttle', '--fryer', 'never', '--max-days', '15', '--example', '3'),
     ).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, upgrades: true, pass2: true, pro: true, fryer: 'never', maxDays: 15, example: 3, pause: true },
+      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, upgrades: true, pass2: true, pro: true, fryer: 'never', chain: true, maxDays: 15, example: 3, pause: true },
     })
   })
 
@@ -105,6 +105,15 @@ describe('parseArgs', () => {
     expect(j.ok && j.options.mode === 'journey' && [j.options.upgrades, j.options.pass2]).toEqual([false, false])
     const one = parse('--journey', '--no-pass2')
     expect(one.ok && one.options.mode === 'journey' && [one.options.upgrades, one.options.pass2]).toEqual([true, false])
+  })
+
+  it('--no-chain stops at the restaurant end screen and keeps the old 40 day default; --max-days overrides', () => {
+    const j = parse('--journey', '--no-chain')
+    expect(j.ok && j.options.mode === 'journey' && [j.options.chain, j.options.maxDays]).toEqual([false, 40])
+    const m = parse('--journey', '--no-chain', '--max-days', '50')
+    expect(m.ok && m.options.mode === 'journey' && [m.options.chain, m.options.maxDays]).toEqual([false, 50])
+    const d = parse('--journey')
+    expect(d.ok && d.options.mode === 'journey' && [d.options.chain, d.options.maxDays]).toEqual([true, 60])
   })
 
   it('--no-pro turns the pro fryer purchase off (journey only)', () => {

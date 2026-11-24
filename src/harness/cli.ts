@@ -34,8 +34,9 @@ if (options.mode === 'list') {
     upgrades: options.upgrades,
     pass2: options.pass2,
     pro: options.pro,
+    chain: options.chain,
   })
-  console.log(`[journey] ${options.cautious ? 'cautious' : 'efficient'} player, shared-line pantry interval ${interval}, second fryer ${options.fryer}, pantry pause ${options.pause ? 'on' : 'off'}, upgrades ${options.upgrades ? 'on' : 'off'}, second pass ${options.pass2 ? 'on' : 'off'}, pro fryer ${options.pro ? 'on' : 'off'}, ${options.seeds} seeds, max ${options.maxDays} days`)
+  console.log(`[journey] ${options.cautious ? 'cautious' : 'efficient'} player, shared-line pantry interval ${interval}, second fryer ${options.fryer}, pantry pause ${options.pause ? 'on' : 'off'}, upgrades ${options.upgrades ? 'on' : 'off'}, second pass ${options.pass2 ? 'on' : 'off'}, pro fryer ${options.pro ? 'on' : 'off'}${options.chain ? ', chain on' : ''}, ${options.seeds} seeds, max ${options.maxDays} days`)
   for (const line of formatJourneyTable(results)) console.log(line)
   for (const line of formatFryerLoad(results)) console.log(line)
   for (const line of formatJourneyDays(results[options.example - 1])) console.log(line)

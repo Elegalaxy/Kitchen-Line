@@ -47,21 +47,25 @@ const pad = (s: string, n: number): string => s.padStart(n)
 const cell = (v: number | null, n = 8): string => pad(v === null ? '-' : String(v), n)
 const statCell = (s: Stat | null, pick: 'median' | 'min' | 'max'): string => cell(s === null ? null : s[pick])
 
-function valuesOf(r: JourneyResult): (number | null)[] {
-  return [...GOAL_COLUMNS.map((c) => r.goalDay[c.id] ?? null), r.upgradeDay, r.wonDay]
+function valuesOf(r: JourneyResult, chain: boolean): (number | null)[] {
+  const base = [...GOAL_COLUMNS.map((c) => r.goalDay[c.id] ?? null), r.upgradeDay, r.wonDay]
+  return chain ? [...base, ...r.branchDay, r.chainDay] : base
 }
+
+const median = (v: number[]): number => [...v].sort((a, b) => a - b)[Math.floor((v.length - 1) / 2)]
 
 /** Per-seed table, the aggregate rows and the playtime lines. */
 export function formatJourneyTable(results: JourneyResult[]): string[] {
-  const heads = [...GOAL_COLUMNS.map((c) => c.head), 'upgrade', 'END']
+  const chain = results.some((r) => r.chain)
+  const heads = [...GOAL_COLUMNS.map((c) => c.head), 'upgrade', 'END', ...(chain ? ['br1', 'br2', 'br3', 'CHAIN'] : [])]
   const lines: string[] = []
   lines.push(`${'seed'.padEnd(12)}${heads.map((h) => pad(h, 8)).join('')}${pad('money', 12)}${pad('issues', 8)}`)
   for (const r of results) {
     lines.push(
-      `${r.seed.padEnd(12)}${valuesOf(r).map((v) => cell(v)).join('')}${pad(formatMoney(r.finalMoney), 12)}${pad(String(r.failures.length), 8)}`,
+      `${r.seed.padEnd(12)}${valuesOf(r, chain).map((v) => cell(v)).join('')}${pad(formatMoney(r.finalMoney), 12)}${pad(String(r.failures.length), 8)}`,
     )
   }
-  const cols = heads.map((_, i) => stat(results.map((r) => valuesOf(r)[i])))
+  const cols = heads.map((_, i) => stat(results.map((r) => valuesOf(r, chain)[i])))
   for (const pick of ['median', 'min', 'max'] as const) {
     lines.push(`${pick.padEnd(12)}${cols.map((s) => statCell(s, pick)).join('')}`)
   }
@@ -95,7 +99,7 @@ export function formatJourneyTable(results: JourneyResult[]): string[] {
       `seeds with reputation below 3 at the end of a critic day: ${seedsHit}` +
       (swing.length === 0 ? '' : `; reputation change on a critic day: median ${swing[Math.floor((swing.length - 1) / 2)].toFixed(2)}, min ${swing[0].toFixed(2)}, max ${swing[swing.length - 1].toFixed(2)}`),
   )
-  const reached = cols[cols.length - 1]
+  const reached = cols[GOAL_COLUMNS.length + 1]
   const dnf = results.filter((r) => r.wonDay === null).length
   lines.push(`reached the end screen: ${results.length - dnf}/${results.length} seeds`)
   if (reached !== null) {
@@ -106,6 +110,36 @@ export function formatJourneyTable(results: JourneyResult[]): string[] {
         `1x ${mins(reached.median, 1)} min (max ${mins(reached.max, 1)}), 4x ${mins(reached.median, 4)} min (max ${mins(reached.max, 4)}); build time between days not included`,
     )
   }
+  if (chain) lines.push(...formatChainLines(results))
+  return lines
+}
+
+/** The chain stage lines: day, service time, branch nets and spending. */
+function formatChainLines(results: JourneyResult[]): string[] {
+  const lines: string[] = []
+  const secPerDay = DAY_TICKS / TICKS_PER_SECOND
+  const mins = (days: number, speed: number): string => ((days * secPerDay) / speed / 60).toFixed(0)
+  const done = results.filter((r) => r.chainDay !== null)
+  lines.push(`reached the chain end screen: ${done.length}/${results.length} seeds`)
+  const chainSt = stat(results.map((r) => r.chainDay))
+  if (chainSt !== null) {
+    lines.push(
+      `service time to the chain end screen (median ${chainSt.median} days, max ${chainSt.max}): ` +
+        `1x ${mins(chainSt.median, 1)} min (max ${mins(chainSt.max, 1)}), 4x ${mins(chainSt.median, 4)} min (max ${mins(chainSt.max, 4)}); build time between days not included`,
+    )
+  }
+  const gap = stat(results.map((r) => (r.chainDay === null || r.wonDay === null ? null : r.chainDay - r.wonDay)))
+  if (gap !== null) lines.push(`days from the restaurant end screen to CHAIN: median ${gap.median}, min ${gap.min}, max ${gap.max} (${gap.n} seeds)`)
+  const nets = results.flatMap((r) => r.days.flatMap((d) => d.branchNets))
+  if (nets.length > 0) {
+    lines.push(`branch net per night: median ${formatMoney(median(nets))}, min ${formatMoney(Math.min(...nets))}, max ${formatMoney(Math.max(...nets))} (${nets.length} branch nights)`)
+  }
+  const spent = stat(results.map((r) => (r.branchDay[0] === null ? null : Math.round(r.branchSpent / 100))))
+  if (spent !== null) lines.push(`cash spent on branches (open and refit): median $${spent.median}, min $${spent.min}, max $${spent.max} (${spent.n} seeds)`)
+  const chainDays = results.flatMap((r) => (r.chain ? r.days.filter((d) => r.wonDay !== null && d.day > r.wonDay) : []))
+  lines.push(`flagship days with a loss after the restaurant end screen: ${chainDays.filter((d) => d.profit < 0).length} of ${chainDays.length}`)
+  const negative = results.filter((r) => r.failures.some((f) => f.includes('money is negative'))).length
+  lines.push(`seeds where money went negative: ${negative}`)
   return lines
 }
 
@@ -116,7 +150,7 @@ export function formatJourneyDays(r: JourneyResult): string[] {
     lines.push(
       `  day ${String(d.day).padStart(2)} ${d.tier.padEnd(10)} money=${pad(formatMoney(d.moneyStart), 9)} menu=${d.menuSize} ` +
         `cust=${pad(String(d.customers), 3)} served=${pad(String(d.servedPct), 3)}% profit=${pad(formatMoney(d.profit), 8)} ` +
-        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.trend === null ? '' : `trend=${d.trend}:${d.trendServed} `}${d.critic === null ? '' : `critic=${d.critic.stars}*${d.critic.served ? 'served' : 'lost'} `}${d.bought.join(',')}`,
+        `stars=${d.rep.toFixed(2)} lost=${d.lostPatience}/${d.lostNoMatch}/${d.lostFull} fries=${d.friesMade}/${d.friesServed} ${d.trend === null ? '' : `trend=${d.trend}:${d.trendServed} `}${d.critic === null ? '' : `critic=${d.critic.stars}*${d.critic.served ? 'served' : 'lost'} `}${d.branchNets.length === 0 ? '' : `branches=${d.branchNets.map((n) => formatMoney(n)).join('/')} `}${d.bought.join(',')}`,
     )
   }
   return lines

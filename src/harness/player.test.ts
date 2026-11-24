@@ -103,6 +103,24 @@ describe('pro fryer', () => {
   }, 60_000)
 })
 
+describe('chain stage', () => {
+  it('after the restaurant end screen the player opens branches and stops at the chain end screen; without chain it stops at won', () => {
+    const r = runJourney(DEFS, 'journey-1', { maxDays: 60, chain: true })
+    expect(r.failures).toEqual([])
+    expect(r.wonDay).not.toBeNull()
+    expect(r.branchDay[0]).not.toBeNull()
+    expect(r.branchDay[0] as number).toBeGreaterThan(r.wonDay as number)
+    expect(r.state.branches?.length).toBeGreaterThan(0)
+    expect(r.days.some((d) => d.branchNets.length > 0)).toBe(true)
+    expect(r.branchSpent).toBeGreaterThan(0)
+    const off = runJourney(DEFS, 'journey-1', { maxDays: 60 })
+    expect(off.chain).toBe(false)
+    expect(off.state.branches).toBeUndefined()
+    expect(off.days.length).toBe(off.wonDay)
+    if (r.chainDay !== null) expect(r.state.chainWon).toBe(true)
+  }, 30_000)
+})
+
 describe('journey table', () => {
   it('stat takes the lower median and ignores nulls', () => {
     expect(stat([3, null, 1, 2, 10])).toEqual({ median: 2, min: 1, max: 10, n: 4 })

@@ -40,6 +40,15 @@
 // Pro stations (2026-11-24): at the restaurant tier, the first day after fries customers gave up (2 or more) the
 // player swaps the fries fryer for a pro fryer (sell the base one at 100%, place the pro one in the same tile); only
 // if fries customers still give up on a later day does the second fryer line follow. `pro: false` turns it off.
+// Chain stage (2026-11-24, `chain: true`): after the restaurant end screen (state.won) the player dismisses it and keeps
+// playing the SAME kitchen (the restaurant purchases above still run). In every build phase, after the menu is synced:
+//  a. OPEN the next branch when openBranchProblem is null and the cost still leaves the flagship's operating reserve
+//     (reserveNow(), the same reserve the upgrade buying keeps). A 'branch would lose money' refusal is not a failure
+//     (the player just tries again on a later day, e.g. after a refit-worthy kitchen change).
+//  b. REFIT a branch when its blueprint differs from the kitchen AND the kitchen gained value since the branch's copy
+//     (blueprintOf(...).value > branch.blueprint.value; a menu or price change alone is not worth the $250 fee) AND the
+//     refit cost leaves the reserve. The player never closes or sells (there is no such command).
+// The run stops at the chain end screen (state.chainWon). Without `chain` it stops at the restaurant end screen as before.
 // Same seed gives the same run (it only uses applyCommand and runTicks).
 
 import { PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
@@ -49,6 +58,8 @@ import { profitOf } from '../sim/economy.ts'
 import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
+import { blueprintOf, sameBlueprint } from '../sim/blueprint.ts'
+import { openBranchCost, openBranchProblem, refitCost, refitProblem } from '../sim/branches.ts'
 import { buildingAt, placeCost } from '../sim/grid.ts'
 import { currentTrend } from '../sim/trend.ts'
 import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
@@ -71,6 +82,8 @@ export type PlayerOptions = {
   pass2?: boolean
   /** Swap the fries fryer for a pro fryer when fries customers gave up (restaurant tier). Default true. */
   pro?: boolean
+  /** Keep playing after the restaurant end screen: open and refit branches until the chain end screen. Default false. */
+  chain?: boolean
 }
 
 export type DayLog = {
@@ -106,6 +119,10 @@ export type DayLog = {
   bought: string[]
   /** Cents spent in this build phase at the restaurant tier (the tier fee itself is not counted). */
   spent: number
+  /** Net cents (after rent) of each branch's night, by branch id order; empty without branches. */
+  branchNets: number[]
+  /** Cents spent on opening and refitting branches in this build phase. */
+  branchSpent: number
 }
 
 export type JourneyResult = {
@@ -117,6 +134,14 @@ export type JourneyResult = {
   /** Day the pro fryer was bought, or null. */
   proFryerDay: number | null
   wonDay: number | null
+  /** True when the chain stage was played (`chain: true`). */
+  chain: boolean
+  /** Day the n-th branch was opened (index 0 = first), null when not opened. */
+  branchDay: (number | null)[]
+  /** Day the chain end screen showed, or null. */
+  chainDay: number | null
+  /** Cents spent on opening and refitting branches. */
+  branchSpent: number
   /** Cents spent on buildings, recipes, grids and restaurant upgrades while at the restaurant tier. */
   restaurantSpent: number
   finalMoney: number
@@ -346,6 +371,35 @@ function syncMenu(run: Run, built: Set<string>): void {
   send(run, { type: 'setMenu', dishes: want }, 'menu')
 }
 
+/** Chain policy (see the header): open when the reserve is kept, refit when the kitchen gained value. */
+function branchPolicy(run: Run, bought: string[], reserve: number, branchDay: (number | null)[]): void {
+  const { defs } = run
+  if (openBranchProblem(run.state, defs) === null && run.state.money - openBranchCost(run.state, defs) >= reserve) {
+    const out = applyCommand(run.state, defs, { type: 'openBranch' })
+    if (out.result.ok) {
+      run.state = out.state
+      const n = run.state.branches?.length ?? 0
+      branchDay[n - 1] ??= run.state.day
+      bought.push(`branch${n}`)
+    } else if (out.result.reason !== 'branch would lose money') {
+      run.failures.push(`day ${run.state.day}: openBranch rejected: ${out.result.reason}`)
+    }
+  }
+  for (const b of [...(run.state.branches ?? [])]) {
+    const bp = blueprintOf(run.state, defs)
+    if (sameBlueprint(bp, b.blueprint) || bp.value <= b.blueprint.value) continue
+    if (refitProblem(run.state, defs, b.id) !== null) continue
+    if (run.state.money - refitCost(run.state, defs, b) < reserve) continue
+    const out = applyCommand(run.state, defs, { type: 'refitBranch', id: b.id })
+    if (out.result.ok) {
+      run.state = out.state
+      bought.push(`refit${b.id}`)
+    } else if (out.result.reason !== 'branch would lose money') {
+      run.failures.push(`day ${run.state.day}: refitBranch ${b.id} rejected: ${out.result.reason}`)
+    }
+  }
+}
+
 export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): JourneyResult {
   const cautious = opts.cautious === true
   const maxDays = opts.maxDays ?? 40
@@ -364,6 +418,10 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   let upgradeDay: number | null = null
   let restaurantSpent = 0
   let wonDay: number | null = null
+  let chainDay: number | null = null
+  let branchSpent = 0
+  const branchDay: (number | null)[] = [null, null, null]
+  const chain = opts.chain === true
   let friesPatience = 0
   let friesMade = 0
   const secondFryer = opts.secondFryer ?? 'auto'
@@ -445,6 +503,13 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     }
     syncMenu(run, built)
     noteGoals()
+    let branchSpentToday = 0
+    if (chain && run.state.won === true) {
+      const money0 = run.state.money
+      branchPolicy(run, bought, reserveNow(), branchDay)
+      branchSpentToday = money0 - run.state.money
+      branchSpent += branchSpentToday
+    }
     const spentToday = run.state.tier === 'restaurant' ? moneyBefore - run.state.money : 0
     restaurantSpent += spentToday
 
@@ -488,14 +553,22 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       repAtStart: run.state.repAtDayStart,
       bought,
       spent: spentToday,
+      branchNets: (d.branches ?? []).map((b) => b.net),
+      branchSpent: branchSpentToday,
     })
+    if (run.state.money < 0) run.failures.push(`day ${d.day}: money is negative (${run.state.money})`)
     for (const m of run.state.menu) {
       const row = d.byDish[m.dish]
       if (d.customers >= 30 && (row === undefined || row.served === 0)) run.failures.push(`day ${d.day}: ${m.dish} sold 0 (on the menu)`)
     }
     if (run.state.phase === 'won') {
+      if (run.state.chainWon === true) {
+        chainDay ??= d.day
+        wonDay ??= d.day
+        break
+      }
       wonDay ??= d.day
-      if (opts.continueAfterWin !== true) break
+      if (opts.continueAfterWin !== true && !chain) break
     }
     if (!send(run, { type: 'dismissSummary' }, 'dismiss')) break
     run.state = resumeAfterDay(run.state, defs)
@@ -507,6 +580,10 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     upgradeDay,
     proFryerDay,
     wonDay,
+    chain,
+    branchDay,
+    chainDay,
+    branchSpent,
     restaurantSpent,
     finalMoney: run.state.money,
     failures: run.failures,
