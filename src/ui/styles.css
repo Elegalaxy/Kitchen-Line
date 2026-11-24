@@ -2061,3 +2061,46 @@ kbd {
   font-size: 0.7rem;
   line-height: 1.2;
 }
+
+/* Seasons (GAME_DESIGN 9): restaurant tier only. Tags carry a word, colour is a second cue. */
+.stat-season dd {
+  font-size: 1rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.season-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--info);
+  border-radius: 999px;
+  color: var(--info);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.season-tag-out {
+  border-color: var(--text-faint);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.cost-arrow {
+  display: inline-block;
+  width: 1.2ch;
+  margin-left: 2px;
+  font-size: 0.75em;
+}
+
+.cost-up {
+  color: var(--bad);
+}
+
+.cost-down {
+  color: var(--good);
+}
+
+.cost-value {
+  white-space: nowrap;
+}

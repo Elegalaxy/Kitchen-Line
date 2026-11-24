@@ -12,6 +12,7 @@
 import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { ingredientCostOf } from '../content/dishes.ts'
+import { itemCost } from '../sim/season.ts'
 import { report } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { formatMoney, reasonText } from './format.ts'
@@ -19,6 +20,8 @@ import { debugLog } from './debug.ts'
 import { checkPriceText, menuView } from './menuView.ts'
 import type { MenuRow } from './menuView.ts'
 import { centsToInput } from './money.ts'
+import { CostArrow, SeasonTagView } from './seasonParts.tsx'
+import { costTitle } from './seasonView.ts'
 import { recipeSteps } from './recipeView.ts'
 import type { RecipeStep } from './recipeView.ts'
 import type { Snapshot } from './store.ts'
@@ -153,6 +156,7 @@ function Row({
       <td className="cell-dish" role="cell">
         <span className="dish-name">
           <span aria-hidden="true">{row.emoji}</span> {row.name}
+          <SeasonTagView tag={row.season} />
           {trending && (
             <span className="trend-tag" title="In demand today: 2x taste weight">
               <span aria-hidden="true">🔥</span> Trend
@@ -169,7 +173,9 @@ function Row({
         >
           Recipe
         </button>
-        <span className="pal-reason">{row.toggleReason === null ? '' : `⚠ ${row.toggleReason}`}</span>
+        <span className="pal-reason">
+          {row.toggleReason !== null ? `⚠ ${row.toggleReason}` : row.seasonWarning !== null ? `⚠ ${row.seasonWarning}` : ''}
+        </span>
       </td>
       <td className="cell-price" role="cell">
         <PriceInput
@@ -182,8 +188,11 @@ function Row({
       <td className="cell-stat cell-ref num" role="cell" data-label="Ref.">
         {formatMoney(row.refPrice)}
       </td>
-      <td className="cell-stat cell-cost num" role="cell" data-label="Cost">
-        {formatMoney(row.cost)}
+      <td className="cell-stat cell-cost num" role="cell" data-label="Cost" title={costTitle(row.cost, row.baseCost)}>
+        <span className="cost-value">
+          {formatMoney(row.cost)}
+          <CostArrow cost={row.cost} base={row.baseCost} />
+        </span>
       </td>
       <td className="cell-stat cell-margin num" role="cell" data-label="Margin">
         {row.margin === null ? (
@@ -210,7 +219,13 @@ function Row({
 }
 
 export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
-  const view = menuView(snap.state, ctx.store.defs, ingredientCostOf)
+  const { defs } = ctx.store
+  const view = menuView(
+    snap.state,
+    defs,
+    (d) => ingredientCostOf(d, (i) => itemCost(snap.state, defs, i)),
+    ingredientCostOf,
+  )
   const rows = view.rows.filter((row) => !row.locked)
   const [openRecipe, setOpenRecipe] = useState<string | null>(null)
   const tableRef = useRef<HTMLTableElement>(null)

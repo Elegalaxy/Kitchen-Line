@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react'
 import { ASSEMBLER_TICKS, PANTRY_INTERVALS } from '../sim/constants.ts'
 import { refundOf, removeBlocked } from '../sim/commands.ts'
+import { itemCost } from '../sim/season.ts'
 import { isPro, stationTicks } from '../sim/stations.ts'
 import type { Building, BuildingKind, ConfigFields, Defs, Item } from '../sim/types.ts'
 import { removeAt, report, rotateAction } from './actions.ts'
@@ -236,7 +237,7 @@ export default function Inspector({
             <select value={b.ingredient} onChange={(e) => configure({ ingredient: e.target.value })}>
               {rawItems.map((i) => (
                 <option key={i.id} value={i.id}>
-                  {i.emoji} {i.name} ({formatMoney(i.cost ?? 0)})
+                  {i.emoji} {i.name} ({formatMoney(itemCost(snap.state, defs, i.id) ?? i.cost ?? 0)})
                 </option>
               ))}
             </select>

@@ -11,6 +11,8 @@ import { debugLog } from './debug.ts'
 import { formatMoney } from './format.ts'
 import { expansionView, upgradeView } from './goalsView.ts'
 import { menuView } from './menuView.ts'
+import { SeasonTagView } from './seasonParts.tsx'
+import { itemCost } from '../sim/season.ts'
 import { upgradeRows } from './upgradesView.ts'
 import type { UpgradeRow } from './upgradesView.ts'
 import type { MenuRow } from './menuView.ts'
@@ -29,6 +31,7 @@ function RecipeRow({ ctx, row, readOnly, phaseNote }: { ctx: Ctx; row: MenuRow; 
     <li className="upgrade-row">
       <span className="dish-name">
         <span aria-hidden="true">{row.emoji}</span> {row.name}
+        <SeasonTagView tag={row.season} />
       </span>
       {row.locked ? (
         <button type="button" className="btn unlock-btn" disabled={reason !== null} onClick={unlock}>
@@ -76,7 +79,7 @@ export default function UpgradesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
   const { defs } = store
   const upgrade = upgradeView(state, defs)
   const exp = expansionView(state, defs)
-  const menu = menuView(state, defs, ingredientCostOf)
+  const menu = menuView(state, defs, (d) => ingredientCostOf(d, (i) => itemCost(state, defs, i)), ingredientCostOf)
   const recipes = menu.rows.filter((row) => row.unlockCost > 0)
   const fastCost = paletteCost(defs, 'belt', true)
   const fastLocked = paletteReason(state, defs, 'belt', true) === 'Restaurant tier'

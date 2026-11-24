@@ -12,6 +12,7 @@ import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
 import { criticNotice } from './criticView.ts'
+import { seasonView } from './seasonView.ts'
 import { trendView } from './trendView.ts'
 
 const SPEED_LABEL: Record<Speed, string> = { 0: 'Pause', 1: '1×', 2: '2×', 4: '4×' }
@@ -32,6 +33,7 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
   const rep = reputationView(reputationOf(s), s.repAtDayStart)
   const closing = closingSoonView(s)
   const trend = trendView(s, ctx.store.defs)
+  const season = seasonView(s, ctx.store.defs)
   const critic = criticNotice(s, ctx.store.defs)
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
@@ -60,6 +62,15 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
         <dt>Time</dt>
         <dd className="num clock">{clockText(s.dayTick)}</dd>
       </dl>
+      {season !== null && (
+        <dl className="stat stat-season" title={[season.progress, ...season.costChanges, ...season.tasteChanges].join(', ')}>
+          <dt>Season</dt>
+          <dd className="num">
+            <span aria-hidden="true">{season.emoji}</span> {season.short}
+            <span className="sr-only">: {season.progress}</span>
+          </dd>
+        </dl>
+      )}
       {trend !== null && (
         <dl className="stat stat-trend" title={`${trend.text}. Add it to the menu to catch the demand.`}>
           <dt>Trend</dt>

@@ -29,6 +29,7 @@ import { handleModalKeys } from './modalKeys.ts'
 import { pantryPauseView } from './pantryPause.ts'
 import { tutorialView } from './tutorial.ts'
 import { criticSummary } from './criticView.ts'
+import { seasonForecast } from './seasonView.ts'
 import { trendSummary } from './trendView.ts'
 
 function Delta({ d }: { d: DeltaView | null }) {
@@ -93,6 +94,7 @@ export default function DaySummary({
 
   const pantries = pantryPauseView(state)
   const trend = trendSummary(state, defs)
+  const forecast = seasonForecast(state, defs)
   const critic = criticSummary(state)
   const chain = branchSummary(state, defs)
   const hint = hintText(sum.bottleneckHint, defs)
@@ -160,6 +162,12 @@ export default function DaySummary({
           <p className="sum-trend num">
             <span aria-hidden="true">🔥</span> Trend: {trend.name} ({trend.served} served, {trend.lost} lost)
             {trend.onMenu ? '' : ' - not on the menu'}
+          </p>
+        )}
+
+        {forecast !== null && (
+          <p className="sum-trend sum-season">
+            {forecast.text}
           </p>
         )}
 

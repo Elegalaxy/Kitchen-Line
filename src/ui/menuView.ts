@@ -7,6 +7,8 @@ import { priceBounds, priceProblem } from '../sim/menu.ts'
 import type { Defs, DishDef, DishId, GameState } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 import { parseDollars } from './money.ts'
+import { seasonTag } from './seasonView.ts'
+import type { SeasonTag } from './seasonView.ts'
 
 export type MarginView = {
   kind: 'up' | 'down' | 'even'
@@ -64,8 +66,14 @@ export type MenuRow = {
   /** Current menu price in cents (null off the menu). */
   price: number | null
   refPrice: number
-  /** Raw ingredient cost in cents. */
+  /** Raw ingredient cost in cents at today's pantry prices (seasonal at the restaurant tier). */
   cost: number
+  /** Raw ingredient cost at base prices (equals `cost` without seasons). */
+  baseCost: number
+  /** Season tag of a seasonal dish, or null. */
+  season: SeasonTag | null
+  /** Warning when the dish is on the menu out of season, or null. */
+  seasonWarning: string | null
   /** Price minus cost (null off the menu). */
   margin: MarginView | null
   /** Dishes of this kind served today (0 before the day starts). */
@@ -86,8 +94,16 @@ export type MenuView = {
   note: string | null
 }
 
-/** Everything the panel shows. `costOf` is `ingredientCostOf` from content (the sim does not own it). */
-export function menuView(state: GameState, defs: Defs, costOf: (dish: DishId) => number): MenuView {
+/**
+ * Everything the panel shows. `costOf` is `ingredientCostOf` from content (the sim does not own it),
+ * with a seasonal price function when seasons apply; `baseCostOf` is the same at base prices (default: `costOf`).
+ */
+export function menuView(
+  state: GameState,
+  defs: Defs,
+  costOf: (dish: DishId) => number,
+  baseCostOf: (dish: DishId) => number = costOf,
+): MenuView {
   const cap = MENU_CAP[state.tier]
   const note = lockNote(state.phase)
   const count = state.menu.length
@@ -99,6 +115,7 @@ export function menuView(state: GameState, defs: Defs, costOf: (dish: DishId) =>
     const entry = state.menu.find((m) => m.dish === d.id)
     const cost = costOf(d.id)
     const missing = d.unlockCost - state.money
+    const season = seasonTag(d, state, defs)
     return {
       id: d.id,
       name: d.name,
@@ -108,6 +125,10 @@ export function menuView(state: GameState, defs: Defs, costOf: (dish: DishId) =>
       price: entry?.price ?? null,
       refPrice: d.refPrice,
       cost,
+      baseCost: baseCostOf(d.id),
+      season,
+      seasonWarning:
+        entry !== undefined && season !== null && !season.inSeason ? `Out of season: no orders until day ${season.fromDay}` : null,
       margin: entry === undefined ? null : marginView(entry.price, cost),
       served: servedToday[d.id]?.served ?? 0,
       unlockCost: d.unlockCost,
