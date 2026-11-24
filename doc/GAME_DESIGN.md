@@ -55,6 +55,7 @@ Building happens while service is paused or running. **[provisional: building is
 - A belt tile holds at most 2 items (one per half). **[provisional]**
 - Items have a freshness timer. Fresh ingredients that expire on the line become waste. **[provisional: in the first playable, only fresh produce and finished dishes spoil]**
 - Dish pack (2026-11-24): two more raw ingredients, fish (150 cents per item, fresh: spoils like tomato and lettuce) and cheese (60 cents, does not spoil). Fried fish is a processed item. **[provisional]**
+- Seasons (2026-11-24): one more raw ingredient, pumpkin (40 cents per item, does not spoil). Its pantry price moves with the season (section 7). **[provisional]**
 
 ### 5.3 Buildings (first playable)
 
@@ -78,6 +79,7 @@ Building happens while service is paused or running. **[provisional: building is
 - First playable target: one street-food set of about 6 dishes (for example fries, burger, rice bowl, salad, soup, sandwich), sharing ingredients so lines can overlap. **[provisional]**
 - New recipes are bought with money between days. **[provisional]**
 - Dish pack (2026-11-24), two restaurant-tier dishes on known buildings. **[provisional]** Fish and chips: fish goes through the fryer (60 ticks, like fries) into fried fish, then an assembler combines fried fish and fries, so it competes with fries for the fryer; reference price $9.00, unlock $120. Cheeseburger: an assembler variant of the burger (bun, cooked patty, cheese); reference price $10.00, unlock $150. A dish can name a tier it needs (`requiresTier`); it can only be unlocked, shown in the Menu and Upgrades tabs and wanted by customers from that tier on.
+- Seasonal dishes (2026-11-24, restaurant tier, one per season, built on known buildings, section 9). **[provisional]** Spring roll (assembler: cooked rice + chopped lettuce; reference $6.50, popularity 3, unlock $80). Fish taco (assembler: fried fish + chopped lettuce + sliced tomato; reference $10.00, popularity 3, unlock $120). Pumpkin soup (stove: pumpkin to pumpkin soup, 60 ticks, a station dish like soup; reference $6.00, popularity 3, unlock $80). Beef stew (assembler: cooked patty + potato strips; reference $8.50, popularity 3, unlock $100). A seasonal dish names its season (`DishDef.season`).
 
 ## 6. Front of house: the tycoon half
 
@@ -87,12 +89,13 @@ First-playable scope is menu, prices, customers, and reviews. **[confirmed]** Se
 
 - The player picks which unlocked dishes are on the menu (provisional cap: 4 at the stall, 6 at the restaurant).
 - Each dish has a player-set price. A reference price is shown. **[provisional]**
-- The restaurant cap stays 6 with the dish pack (user decision, 2026-11-24): 8 dishes compete for 6 slots.
+- The restaurant cap stays 6 with the dish pack (user decision, 2026-11-24): 8 dishes compete for 6 slots. With the four seasonal dishes (seasons, 2026-11-24, cap unchanged by user decision) 12 dishes compete for 6 slots.
 
 ### 6.2 Customers
 
 - Customers arrive at a rate set by the time of day (rush hours) and by reputation. **[provisional]** Balance numbers (2026-11-20): mean gap 100 ticks when quiet and 30 in a rush at 3★ (about 51 customers a day at the stall). The restaurant tier multiplies the arrival rate by 2.0 (was 1.5, 2026-11-23).
 - Taste pool (2026-11-24): a customer draws their liked dishes from the dishes whose tier is at or below the current tier. A dish with a `requiresTier` (the dish pack) is in the pool only when it is also unlocked, so a restaurant that never buys fish and chips never loses customers to it. The older dishes stay in the pool even when locked, as before. **[provisional]**
+- Seasons change the taste pool (restaurant tier, section 9, 2026-11-24): a seasonal dish is in the pool, in the daily trend pool and in the critic's choice only in its own season, even when unlocked and on the menu. Each season also scales the taste weight of some dishes (percent of popularity; unlisted dishes 100). **[provisional]**
 - Each has a taste profile (preferred dishes), a budget, and patience. They choose an affordable menu dish they like; if none, they leave. **[provisional]**
 - An order waits at the pass. If patience runs out before the dish arrives, the customer leaves unhappy and pays nothing. **[provisional]**
 - Seating is abstract in the first playable: a fixed capacity of waiting orders (provisional: 6 at the stall). **[provisional]**
@@ -120,6 +123,8 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Money comes from dish sales. Costs are ingredients (charged at the pantry), building purchases, and kitchen expansions. **[provisional]**
 - No wages or loans in the first playable. **[later: staff]** Branches pay rent every night (8.1, provisional); the flagship pays no rent. **[later: flagship rent]**
 - Bankruptcy: if money runs out, pantries stop emitting until there is cash, so the player can always recover by selling buildings. No game-over in the first playable. **[provisional]**
+
+- Seasonal pantry prices (restaurant tier only, 2026-11-24, section 9): the pantry charge for an ingredient is its base cost times the season's percent, rounded to whole cents; the stall always pays base prices. **[provisional]**
 
 ## 8. Progression and win state
 
@@ -149,6 +154,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - **Cost.** Opening costs the blueprint's value (about $1,550 for the first-playable kitchens) plus a fee: $1,000, $2,000, $3,000 for branch 1, 2, 3 (`BRANCH_OPEN_FEES`). A **refit** (copy the current flagship kitchen to the branch again) costs $250 (`BRANCH_REFIT_FEE`) plus any increase in blueprint value. A refit with an unchanged kitchen is refused. There is no close-branch command: an open that would not make money is refused instead.
 - **Test day.** Opening or refitting runs one full headless day of the blueprint (pantries paused for the last `CLOSING_SOON_TICKS`, like the harness player), at the site's demand, with the flagship's current reputation and day. The result (profit, sales, served, customers) is stored as the branch's `expected`. The open is refused ("branch would lose money") when expected profit minus the night's rent is zero or less. The test day uses its own random stream (seed + branch id), so the flagship's draws never change, and it has no critic.
+- **Season factor (2026-11-24, provisional).** The night also scales with the season (section 9): `round(expected profit x noise x P(season of the night) / (100 x P(season of the branch's test day)))`, where P is the season's `branchPercent`. The test day already sees its own season (it runs at the flagship's day), so the factor is relative. When the two percents are equal the result is exactly the old formula.
 - **Every night** each branch adds `round(expected profit x noise / 100) - rent` to the money, where noise is 90 to 110 (`BRANCH_NOISE_PERCENT` = 10) from a hash of seed, night, branch and day (no random stream, nothing stored beyond the day summary). The day summary shows each branch's net and rent.
 - **Goals (chain).** 1) Open 3 branches. 2) Branches earn $5,000 net in total (`chainProfit`). 3) $1,000 in one day (flagship profit plus the branch nets of that day; was $1,200 until the 2026-11-24 harness measurement, see the chain plan: with $1,200 three of 20 seeds needed 40 days or more, because the flagship makes about $350 to $530 a night and the three branches about $500 to $600 together). Goals 2 and 3 are only done in the summary phase. When all three are done the "Chain built" end screen shows (measured with the scripted player, 20 seeds: median day 31, max 35, about 2.1 h of service at 1x).
 - Without branches nothing changes: a run that never opens a branch has identical hashes and results.
@@ -159,7 +165,14 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Lunch and dinner rushes in every day. **[provisional: first playable]**
 - Daily trends, restaurant tier only. **[provisional]** Each day one dish is "in demand": its taste weight is doubled (`TREND_WEIGHT_FACTOR` = 2) when a customer draws what they like, so more customers want it. The trend is picked from the dishes the player has unlocked (not only those on the menu, so adding the trend dish to the menu is the decision), by a hash of the seed and the day number: no random stream, no saved field, same seed and day give the same trend. At least 2 unlocked dishes are needed. It is announced in the build phase (Menu tab and top bar) and the day summary shows how many of that dish were served. The stall tier has no trends. If the player unlocks a dish before opening, the trend may change, because the pool changed. Approved by the user on 2026-11-24.
 - Food critics, restaurant tier only. **[provisional]** On about one restaurant day in six a critic visits (`CRITIC_DAY_MODULUS` = 5: a hash of seed and day picks the days, and two days in a row are never both critic days). The visit is announced the day before (build phase and day summary: "A critic visits tomorrow") and is shown on the day itself. The first possible critic day is the day after the upgrade to restaurant, so it can always be announced. One extra customer, the critic, arrives at a fixed tick inside the dinner rush (hash of seed and day, within `CRITIC_ARRIVAL_SPAN` = 300 ticks of the rush start; no random draw, so the normal arrivals do not change). The critic orders the menu dish with the highest popularity (ties: first on the menu) and ignores the queue cap and the budget (it counts as a customer), is served before other customers who want the same dish, and has higher standards: patience `CRITIC_PATIENCE` = 240 ticks (normal 300 to 600) and the usual wait and price penalties, with the budget set to `CRITIC_BUDGET_PERCENT` = 120 percent of the dish's reference price, so a price over 108 percent of reference costs a star. Their rating counts 10 times in reputation (6.3). A critic who cannot order (empty menu) or gives up counts as a 1-star rating weighted 3. The day summary shows "Critic: N stars (served / lost)". The stall tier has no critics. Approved by the user on 2026-11-23/24.
-- Seasonal menus. **[later]**
+- Seasons, restaurant tier only. **[provisional]** Approved by the user on 2026-11-24 (any-time unlock and menu listing, orders only in season; four seasonal dishes plus the new ingredient pumpkin; branches feel the season through a small night ratio; menu cap stays 6). The calendar is a pure function of the day: `seasonIndex = floor((day - 1) / 7) mod 4` (`SEASON_DAYS` = 7): Spring, Summer, Autumn, Winter, then again. No random stream, no saved field. The stall tier has no seasons, and a run without season defs behaves as before. Spring is the baseline: its only effects are cheaper lettuce, dear pumpkin and its dish. A seasonal dish can be unlocked and put on the menu at any time at the restaurant tier, but customers only want it in its season: off-season it is left out of the taste pool, the trend pool and the critic's choice. Nothing edits the menu automatically. Each season has pantry price percents (section 7), taste percents (6.2: taste weight is popularity x percent / 100, trend x2 on top) and a branch night percent (8.1). Unlisted entries count as 100.
+
+| Season | Pantry price (percent) | Taste (percent) | Branch night | Seasonal dish |
+| --- | --- | --- | --- | --- |
+| Spring | lettuce 75, pumpkin 200 | none | 100 | Spring roll |
+| Summer | tomato 75, lettuce 75, fish 125, pumpkin 200 | salad 150, sandwich 125, soup 50 | 105 | Fish taco |
+| Autumn | potato 75, tomato 125, pumpkin 100 | soup 150, rice bowl 125, salad 75 | 100 | Pumpkin soup |
+| Winter | tomato 150, lettuce 150, rice 75, patty 90, pumpkin 200 | soup 200, rice bowl 125, burger 125, salad 50, sandwich 75 | 95 | Beef stew |
 
 ## 10. Presentation
 
@@ -205,6 +218,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-24: User decision (restaurant tier only, no **[confirmed]** rule): seasons replace "Seasonal menus [later]" in section 9 as **[provisional]**. Four 7-day seasons cycle by day number; each shifts pantry prices (7), taste weights (6.2) and branch nights (8.1) and has one seasonal dish (5.4) wanted only in its season; new ingredient pumpkin (5.2). Any-time unlock and menu listing, orders only in season; menu cap stays 6 (6.1). Pure function of the day (no stream, no state field, no save change). Stall runs are unchanged; restaurant hashes change on purpose. Plan: doc/plans/2026-11-24-seasons.md.
 
 - 2026-11-24: User decision (ends the **[confirmed]** "one location" rule; chain stage, provisional numbers): after the restaurant end screen the player can open up to 3 branches (8.1). Each runs a blueprint snapshot of the flagship kitchen, adds its nightly profit minus rent to the day summary, and has chain goals and a "Chain built" end screen. Blueprints are a copy across locations, not grid copy/paste: the **[confirmed]** "Copy/paste is [later]" rule (section 13) is not changed. Branch rent is the only rent; flagship rent stays **[later]**. Without branches all hashes and fixtures are unchanged.
 
