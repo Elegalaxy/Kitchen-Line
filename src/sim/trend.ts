@@ -4,6 +4,7 @@
 // It uses NO random stream and stores nothing, so the RNG draw count and order never change.
 
 import { TREND_MIN_CANDIDATES } from './constants.ts'
+import { inSeason } from './season.ts'
 import type { Defs, DishId, GameState } from './types.ts'
 
 const FNV_OFFSET = 0x811c9dc5
@@ -25,13 +26,13 @@ export function trendFor(seed: string, day: number, candidates: readonly DishId[
   return candidates[(hash >>> 0) % candidates.length]
 }
 
-/** Unlocked dishes in defs order (the trend pool). */
-export function trendCandidates(state: Pick<GameState, 'unlocked'>, defs: Defs): DishId[] {
-  return Object.keys(defs.dishes).filter((id) => state.unlocked.includes(id))
+/** Unlocked dishes in defs order (the trend pool); seasonal dishes only in their season on `day` (season.ts). */
+export function trendCandidates(state: Pick<GameState, 'unlocked' | 'tier' | 'day'>, defs: Defs, day = state.day): DishId[] {
+  return Object.keys(defs.dishes).filter((id) => state.unlocked.includes(id) && inSeason(state, defs, defs.dishes[id], day))
 }
 
 /** Today's trend for `state` (restaurant tier only; null at the stall). Uses `day` (the build or service day). */
 export function currentTrend(state: Pick<GameState, 'seed' | 'day' | 'tier' | 'unlocked'>, defs: Defs, day = state.day): DishId | null {
   if (state.tier !== 'restaurant') return null
-  return trendFor(state.seed, day, trendCandidates(state, defs))
+  return trendFor(state.seed, day, trendCandidates(state, defs, day))
 }

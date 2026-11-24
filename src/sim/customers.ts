@@ -14,6 +14,8 @@
 //      customer who ordered exactly that dish (a sale, economy.ts). Unmatched dishes stay.
 // The taste pool leaves out dishes of a higher tier and tiered dishes not unlocked (no `requiresTier` = always in).
 // At the restaurant tier the day's trending dish (trend.ts) has double taste weight; the draw count is unchanged.
+// Seasons (season.ts, restaurant tier): a seasonal dish is in the pool only in its season, and the season scales the
+// taste weight (popularity x percent / 100). The weights are floats; still one draw per liked dish, same order.
 // A food critic (critic.ts, restaurant tier, some days) joins `waiting` at a hash-chosen dinner-rush tick, after the
 // arrivals step, with no random draw; matching serves a critic before others who ordered the same dish.
 // Restaurant upgrades (upgrades.ts) scale the arrival chance, budget and patience and add waiting places.
@@ -43,6 +45,7 @@ import { phaseAt } from './day.ts'
 import { recordLoss, recordSale } from './economy.ts'
 import { rateLost, rateServed, submitRating } from './reviews.ts'
 import { nextFloat, nextInt, pickWeighted } from './rng.ts'
+import { inSeason, tastePercent } from './season.ts'
 import { criticArrivalTick, criticDish, isCriticDay, makeCritic } from './critic.ts'
 import { currentTrend } from './trend.ts'
 import type { Customer, Defs, DishId, GameState, Weighted } from './types.ts'
@@ -72,8 +75,11 @@ export function arrivalChance(state: Pick<GameState, 'dayTick' | 'ratings' | 'ti
 function drawCustomer(state: GameState, defs: Defs): Customer | null {
   const stream = state.rng.arrivals
   // Taste pool (GAME_DESIGN 6.2): dishes of the current tier or lower; a dish that names a tier must also be unlocked.
+  // A seasonal dish is in the pool only in its own season (season.ts).
   const dishes = Object.values(defs.dishes).filter(
-    (d) => d.requiresTier === undefined || (TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier] && state.unlocked.includes(d.id)),
+    (d) =>
+      (d.requiresTier === undefined || (TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier] && state.unlocked.includes(d.id))) &&
+      inSeason(state, defs, d),
   )
   if (dishes.length === 0) return null
   const count = Math.min(nextInt(stream, PREFS_MIN, PREFS_MAX), dishes.length)
@@ -81,7 +87,7 @@ function drawCustomer(state: GameState, defs: Defs): Customer | null {
   const trend = currentTrend(state, defs)
   const pool: Weighted<DishId>[] = dishes.map((d) => ({
     value: d.id,
-    weight: d.id === trend ? d.popularity * TREND_WEIGHT_FACTOR : d.popularity,
+    weight: ((d.popularity * tastePercent(state, defs, d.id)) / 100) * (d.id === trend ? TREND_WEIGHT_FACTOR : 1),
   }))
   const prefs: DishId[] = []
   for (let i = 0; i < count; i += 1) {

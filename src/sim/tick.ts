@@ -7,7 +7,7 @@
 //     neighbour with tryInsert, then slot 0 moves to slot 1 if empty. An item moves at
 //     most once per tick. `stalled` is true when slot 1 was full and could not push.
 //   - Pantry: cooldown counts down; at 0 it emits if money >= cost and its front accepts,
-//     charging the cost to today.ingredientCost and resetting the cooldown. Otherwise the
+//     charging the cost (the season's price at the restaurant tier, season.ts) to today.ingredientCost and resetting the cooldown. Otherwise the
 //     status is noCash or blocked and it retries next tick (the first emit is at tick 0).
 //     A pantry paused by the player skips all of that: status `paused`, cooldown frozen.
 //   - Chopper/fryer/stove (stations.ts): push a held output out the front, else count
@@ -26,6 +26,7 @@ import { updateGoals } from './goals.ts'
 import { buildingAt, neighbor } from './grid.ts'
 import { stepRouting } from './logistics.ts'
 import { updateOrder } from './order.ts'
+import { itemCost } from './season.ts'
 import { stepSpoilage } from './spoil.ts'
 import { stepAssembler, stepStation } from './stations.ts'
 import { opposite, tryInsert } from './transfer.ts'
@@ -73,7 +74,8 @@ function stepPantry(state: GameState, defs: Defs, b: PantryBuilding, moved: Set<
     b.status = 'ok'
     return
   }
-  const cost = defs.items[b.ingredient]?.cost
+  // Seasonal price at the restaurant tier (season.ts); the base cost at the stall or without season defs.
+  const cost = itemCost(state, defs, b.ingredient)
   if (cost === undefined) {
     b.status = 'blocked'
     return

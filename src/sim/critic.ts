@@ -5,6 +5,7 @@
 // visit can always be announced the day before.
 
 import { CRITIC_ARRIVAL_SPAN, CRITIC_BUDGET_PERCENT, CRITIC_DAY_MODULUS, CRITIC_ID_OFFSET, CRITIC_PATIENCE, DAY_PHASE_STARTS } from './constants.ts'
+import { inSeason } from './season.ts'
 import type { Customer, Defs, DishId, GameState } from './types.ts'
 
 const FNV_OFFSET = 0x811c9dc5
@@ -46,12 +47,17 @@ export function isCriticDay(state: CriticView, day = state.day): boolean {
   return criticDay(state.seed, day)
 }
 
-/** The dish the critic orders: the menu dish with the highest popularity (ties: first on the menu); null on an empty menu. */
-export function criticDish(state: Pick<GameState, 'menu'>, defs: Defs): DishId | null {
+/**
+ * The dish the critic orders: the menu dish with the highest popularity (ties: first on the menu); null on an empty menu.
+ * A seasonal dish that is out of season is skipped (season.ts); a menu with only such dishes counts as empty.
+ */
+export function criticDish(state: Pick<GameState, 'menu' | 'tier' | 'day'>, defs: Defs): DishId | null {
   let best: DishId | null = null
   let bestPop = -1
   for (const m of state.menu) {
-    const pop = defs.dishes[m.dish]?.popularity ?? 0
+    const def = defs.dishes[m.dish]
+    if (def !== undefined && !inSeason(state, defs, def)) continue
+    const pop = def?.popularity ?? 0
     if (pop > bestPop) {
       best = m.dish
       bestPop = pop
