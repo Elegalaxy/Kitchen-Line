@@ -1937,3 +1937,111 @@ kbd {
   line-height: 1.3;
   white-space: nowrap;
 }
+
+/* Branches tab (chain stage, GAME_DESIGN 8.1) */
+.branch-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.branch-kpi {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.branch-kpi dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.branch-kpi dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.branch-kpi-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-height: 1.5em;
+}
+
+.branch-kpi-sub {
+  min-height: 1.3em;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.branch-good {
+  color: var(--good);
+}
+
+.branch-bad {
+  color: var(--bad);
+}
+
+.branch-flat {
+  color: var(--text-muted);
+}
+
+.branch-kpi-value.money {
+  color: var(--money);
+}
+
+.branch-site {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.branch-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.branch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-weight: 600;
+}
+
+.branch-badge {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.branch-badge.ok {
+  color: var(--good);
+}
+
+.branch-badge.stale {
+  color: var(--warn);
+}
+
+.branch-btn {
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.sum-row.total dt,
+.sum-row.total dd {
+  font-weight: 700;
+  color: var(--text);
+}
