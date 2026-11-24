@@ -6,7 +6,7 @@ import type { MenuEntry } from './run.ts'
 
 export const USAGE = [
   'usage: npm run sim -- --layout <name> --seed <text> --days <1-100> [--menu dish:cents,dish:cents] [--speedtest] [--no-pause]',
-  '       npm run sim -- --journey [--seeds <1-200>] [--cautious] [--no-throttle] [--no-upgrades] [--no-pass2] [--no-pro] [--fryer auto|always|never] [--no-chain] [--max-days <1-100>] [--example <n>] [--no-pause]',
+  '       npm run sim -- --journey [--seeds <1-200>] [--cautious] [--no-throttle] [--no-upgrades] [--no-pass2] [--no-pro] [--fryer auto|always|never] [--no-chain] [--max-days <1-100>] [--example <n>] [--no-pause] [--meta [--runs <2-3>]]',
   '       npm run sim -- --list',
   '  --menu       dishes on the menu with prices in cents (fries:300,salad:450); default: the layout menu',
   '  --no-pause   pause all pantries for the last 400 ticks of each day and resume them next morning by default; this turns it off',
@@ -23,6 +23,8 @@ export const USAGE = [
   '  --no-chain   journey: stop at the restaurant end screen (default: keep playing, open branches, stop at the chain end screen)',
   '  --max-days   journey: give up after this many days (default 60, or 40 with --no-chain)',
   '  --example    journey: per-day table for seed journey-<n> (default 1)',
+  '  --meta       journey: franchise after run 1 (chain end screen), spend the points (first affordable perk level in the order seedMoney, goodName, biggerStall), play run 2 on the next run seed; implies --journey and the chain',
+  '  --runs       --meta: runs to play per seed, 2 or 3 (default 2)',
 ].join('\n')
 
 export const DAYS_MAX = 100
@@ -32,7 +34,7 @@ export type FryerMode = 'auto' | 'always' | 'never'
 
 export type CliOptions =
   | { mode: 'list' }
-  | { mode: 'journey'; seeds: number; cautious: boolean; throttle: boolean; upgrades: boolean; pass2: boolean; pro: boolean; fryer: FryerMode; chain: boolean; maxDays: number; example: number; pause: boolean }
+  | { mode: 'journey'; seeds: number; cautious: boolean; throttle: boolean; upgrades: boolean; pass2: boolean; pro: boolean; fryer: FryerMode; chain: boolean; maxDays: number; example: number; pause: boolean; meta: boolean; runs: number }
   | { mode: 'run'; layout: string; seed: string; days: number; menu: MenuEntry[] | undefined; speedtest: boolean; pause: boolean }
 
 export type ParseResult = { ok: true; options: CliOptions } | { ok: false; error: string }
@@ -76,6 +78,8 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
   let maxDays: number | undefined
   let chain = true
   let example = 1
+  let meta = false
+  let runs = 2
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (arg === '--list') list = true
@@ -88,21 +92,24 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
     else if (arg === '--no-pass2') pass2 = false
     else if (arg === '--no-pro') pro = false
     else if (arg === '--no-chain') chain = false
+    else if (arg === '--meta') meta = true
     else if (arg === '--fryer') {
       const value = argv[i + 1]
       if (value !== 'auto' && value !== 'always' && value !== 'never') return bad(`--fryer must be auto, always or never, received ${JSON.stringify(value)}`)
       i += 1
       fryer = value
-    } else if (arg === '--seeds' || arg === '--max-days' || arg === '--example') {
+    } else if (arg === '--seeds' || arg === '--max-days' || arg === '--example' || arg === '--runs') {
       const value = argv[i + 1]
       if (value === undefined || value.startsWith('--')) return bad(`${arg} requires a value`)
       i += 1
-      const max = arg === '--seeds' ? SEEDS_MAX : DAYS_MAX
-      if (!/^[1-9][0-9]*$/.test(value) || Number(value) > max) {
-        return bad(`${arg} must be an integer from 1 to ${max}, received ${JSON.stringify(value)}`)
+      const min = arg === '--runs' ? 2 : 1
+      const max = arg === '--seeds' ? SEEDS_MAX : arg === '--runs' ? 3 : DAYS_MAX
+      if (!/^[1-9][0-9]*$/.test(value) || Number(value) > max || Number(value) < min) {
+        return bad(`${arg} must be an integer from ${min} to ${max}, received ${JSON.stringify(value)}`)
       }
       if (arg === '--seeds') seeds = Number(value)
       else if (arg === '--max-days') maxDays = Number(value)
+      else if (arg === '--runs') runs = Number(value)
       else example = Number(value)
     } else if (arg === '--layout' || arg === '--seed' || arg === '--days' || arg === '--menu') {
       const value = argv[i + 1]
@@ -129,9 +136,10 @@ export function parseArgs(argv: readonly string[], defs: Defs, layouts: readonly
     }
   }
   if (list) return { ok: true, options: { mode: 'list' } }
-  if (journey) {
+  if (journey || meta) {
+    if (meta && !chain) return bad('--meta needs the chain (remove --no-chain)')
     if (example > seeds) return bad(`--example ${example} is beyond --seeds ${seeds}`)
-    return { ok: true, options: { mode: 'journey', seeds, cautious, throttle, upgrades, pass2, pro, fryer, chain, maxDays: maxDays ?? (chain ? 60 : 40), example, pause } }
+    return { ok: true, options: { mode: 'journey', seeds, cautious, throttle, upgrades, pass2, pro, fryer, chain, maxDays: maxDays ?? (chain ? 60 : 40), example, pause, meta, runs } }
   }
   if (layout === undefined) return bad('--layout is required')
   if (seed === undefined) return bad('--seed is required')

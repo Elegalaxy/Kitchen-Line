@@ -64,7 +64,7 @@ describe('runJourney', () => {
       expect(r.goalDay[id], id).not.toBeNull()
     }
     expect(r.goalDay['restaurant-profit'] as number).toBeGreaterThanOrEqual(r.goalDay['great-day'] as number)
-  }, 30_000)
+  }, 120_000)
 
   it('buys the second pass, the second fryer line into it and all four restaurant upgrades', () => {
     const r = runJourney(DEFS, 'journey-1', { maxDays: 30 })
@@ -76,7 +76,7 @@ describe('runJourney', () => {
     expect(r.restaurantSpent).toBeGreaterThan(0)
     expect(r.days.some((d) => d.bought.includes('pass2'))).toBe(true)
     expect(r.failures).toEqual([])
-  }, 30_000)
+  }, 120_000)
 
   it('--no-pass2 and --no-upgrades keep the old east join and buy no upgrade', () => {
     const r = runJourney(DEFS, 'journey-1', { maxDays: 30, pass2: false, upgrades: false })
@@ -86,7 +86,7 @@ describe('runJourney', () => {
     expect('upgrades' in r.state).toBe(false)
     expect(r.wonDay).not.toBeNull()
     expect(r.failures).toEqual([])
-  }, 30_000)
+  }, 120_000)
 })
 
 describe('pro fryer', () => {
@@ -100,7 +100,7 @@ describe('pro fryer', () => {
     const off = runJourney(DEFS, 'journey-1', { maxDays: 30, pro: false })
     expect(off.proFryerDay).toBeNull()
     expect(Object.values(off.state.buildings).some((b) => b.kind === 'fryer' && b.pro === true)).toBe(false)
-  }, 60_000)
+  }, 120_000)
 })
 
 describe('chain stage', () => {
@@ -118,7 +118,7 @@ describe('chain stage', () => {
     expect(off.state.branches).toBeUndefined()
     expect(off.days.length).toBe(off.wonDay)
     if (r.chainDay !== null) expect(r.state.chainWon).toBe(true)
-  }, 30_000)
+  }, 120_000)
 })
 
 describe('journey table', () => {

@@ -55,7 +55,7 @@ import { PANTRY_DEFAULT_INTERVAL, UPGRADE_COST } from '../sim/constants.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { profitOf } from '../sim/economy.ts'
-import { createGame } from '../sim/game.ts'
+import { createRun } from '../sim/franchise.ts'
 import { stateHash } from '../sim/hash.ts'
 import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
 import { blueprintOf, sameBlueprint } from '../sim/blueprint.ts'
@@ -64,7 +64,7 @@ import { buildingAt, placeCost } from '../sim/grid.ts'
 import { currentSeason } from '../sim/season.ts'
 import { currentTrend } from '../sim/trend.ts'
 import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
-import type { Command, Defs, Dir, GameState, SimEvent } from '../sim/types.ts'
+import type { Command, Defs, Dir, GameState, MetaState, SimEvent } from '../sim/types.ts'
 
 export type PlayerOptions = {
   cautious?: boolean
@@ -85,6 +85,8 @@ export type PlayerOptions = {
   pro?: boolean
   /** Keep playing after the restaurant end screen: open and refit branches until the chain end screen. Default false. */
   chain?: boolean
+  /** Start from `createRun(defs, seed, meta)` (franchise perks and recipe book; seed is the base seed). Default: no meta, the plain start. */
+  meta?: MetaState
 }
 
 export type DayLog = {
@@ -412,7 +414,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   let proFryer = false
   let proFryerDay: number | null = null
   const FRIES2 = fries2(opts.sharedInterval ?? 80, usePass2)
-  const run: Run = { state: createGame(defs, seed), defs, failures: [] }
+  const run: Run = { state: createRun(defs, seed, opts.meta), defs, failures: [] }
   const built = new Set<string>()
   const failedProjects = new Set<string>()
   const goalDay: Record<string, number | null> = {}
@@ -578,7 +580,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
     run.state = resumeAfterDay(run.state, defs)
   }
   return {
-    seed,
+    seed: run.state.seed,
     days,
     goalDay,
     upgradeDay,

@@ -41,8 +41,18 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\franchise-core`.
 - Files: `src/persist/meta.ts` (+ test): keys, `serializeMeta` / `loadMeta`.
 
 ### Step 5: Harness `--meta`
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `PlayerOptions.meta` (the player starts from `createRun`), `src/harness/franchise.ts` (spend policy, `runMetaSeed`, tables), CLI `--meta [--runs 2|3]` (+ args tests, `franchise.test.ts`); full-journey test timeouts raised to 120 s. Output without `--meta` byte-identical (8 journey seeds, 11 layouts). Measured 20 seeds, run 2 with seed money 3 + good name 1: restaurant end screen median day 14, chain end screen median day 27 (acceptance met, no number tuned). Issues: no rejected command; the only issue lines are "soup sold 0 (on the menu)", 3 seeds in run 1 and 2 in run 2, the same pre-existing journey issue as without `--meta` (baseline 8 seeds: 1).
+- Spend policy (harness only): buy the next level of the first perk in the order seedMoney, goodName, biggerStall that is affordable. A first try, cheapest affordable level first, bought good name 2 + seed money 2 (28 points) and gave chain median 28 (restaurant 14), so it was dropped.
 - Files: `src/harness/*`: run the journey as run N with a given meta; print points and the run-2 start.
+
+| 20 seeds | restaurant end screen (median / min / max day) | chain end screen (median / min / max day) |
+|---|---|---|
+| Run 1 (no perks) | 18 / 17 / 20 | 32 / 29 / 37 |
+| Run 2, seed money 3 + good name 1 (32 points) | 14 / 13 / 16 | 27 / 23 / 33 |
+| Run 2, good name 2 + seed money 2 (28 points) | 14 / 14 / 16 | 28 / 24 / 33 |
+
+FP earned after run 1: median 35, min 32, max 37 (chain 10, earnings 15 to 18, speed 3 to 10, reputation 0 to 2); points spent 32 (left 0 to 5).
 
 ### Step 6: UI session glue
 - Status: `done`
