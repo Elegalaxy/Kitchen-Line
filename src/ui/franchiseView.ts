@@ -3,7 +3,7 @@
 // kept. `picks` is the list of perk ids chosen in the modal (one id per level, in order); nothing is
 // bought until the player confirms (session.franchiseOut). Pure and unit-tested.
 
-import { buyPerk, canFranchise, franchisePoints, perkCost, recordFranchise } from '../sim/franchise.ts'
+import { buyPerk, canFranchise, franchisePoints, perkCost, recordFranchise, starterKitSummary } from '../sim/franchise.ts'
 import type { Defs, GameState, MetaState, PerkDef } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 
@@ -26,6 +26,8 @@ export type PerkCardView = {
   nextEffect: string | null
   /** Effect of the levels owned so far, "None yet" at level 0. */
   currentEffect: string
+  /** Starter kitchen perk only: "12 buildings, value $155.00", or "None saved yet"; null on other perks. */
+  kitText: string | null
   canBuy: boolean
   /** Why Buy is disabled (null when it is enabled). */
   reason: string | null
@@ -65,6 +67,7 @@ export function effectText(perk: PerkDef, level: number, defs: Defs): string {
     const step = defs.expansions?.[e.startExpansion * level - 1]
     parts.push(step === undefined ? `${plural(e.startExpansion * level, 'free expansion')}` : `Start with a ${step.width} × ${step.height} kitchen`)
   }
+  if (e.starterKit === true) parts.push('Your saved stall kitchen, built free on day 1')
   return parts.join(', ')
 }
 
@@ -95,6 +98,10 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
     const nextCost = perkCost(after.meta, defs, perk.id)
     const maxed = nextCost === null
     const short = !maxed && after.meta.points < nextCost
+    const needsKit = perk.effect.starterKit === true
+    const kit = needsKit ? after.meta.starterKit : undefined
+    const noKit = needsKit && kit === undefined
+    const summary = kit === undefined ? null : starterKitSummary(kit)
     return {
       id: perk.id,
       name: perk.name,
@@ -107,8 +114,15 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
       costText: maxed ? '–' : `${nextCost} points`,
       nextEffect: maxed ? null : effectText(perk, level + 1, defs),
       currentEffect: level === 0 ? 'None yet' : effectText(perk, level, defs),
-      canBuy: !maxed && !short,
-      reason: maxed ? 'Top level reached' : short ? `Needs ${nextCost - after.meta.points} more points` : null,
+      kitText: !needsKit ? null : summary === null ? 'None saved yet' : `${plural(summary.buildings, 'building')}, value ${formatMoney(summary.value)}`,
+      canBuy: !maxed && !short && !noKit,
+      reason: maxed
+        ? 'Top level reached'
+        : noKit
+          ? 'Upgrade to a restaurant in a run first'
+          : short
+            ? `Needs ${nextCost - after.meta.points} more points`
+            : null,
     }
   })
   const bookNames = after.meta.recipeBook.map((id) => defs.dishes[id]?.name ?? id)

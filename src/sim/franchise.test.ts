@@ -384,3 +384,16 @@ describe('starterKit perk: createRun', () => {
     expect(Object.values(m.starterKit!.buildings)[0].x).not.toBe(99)
   })
 })
+
+describe('buyPerk starterKit', () => {
+  it('needs a saved kitchen in the meta', () => {
+    const poor = meta({ points: 20 })
+    const r = buyPerk(poor, DEFS, 'starterKit')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.reason).toBe('no saved kitchen yet')
+    const ok = buyPerk({ ...poor, starterKit: upgraded().stallKit }, DEFS, 'starterKit')
+    expect(ok.ok && ok.meta.points).toBe(6)
+    expect(ok.ok && ok.meta.perks.starterKit).toBe(1)
+  })
+})
+

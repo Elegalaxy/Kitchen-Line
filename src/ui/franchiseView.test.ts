@@ -62,4 +62,19 @@ describe('franchiseView', () => {
     expect(franchiseView(newGameState(DEFS, null), emptyMeta(), DEFS, []).blocked).toBe('Build the chain first')
     expect(franchiseView(won, done, DEFS, []).nextRun).toBe(3)
   })
+
+  it('starter kitchen card: shows the saved kitchen of this run, or says a restaurant upgrade is needed first', () => {
+    const card = franchiseView(won, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')
+    expect(card?.kitText).toMatch(/^\d+ buildings, value \$\d/)
+    expect(card).toMatchObject({ nextCost: 14, canBuy: true, reason: null })
+    const bare = structuredClone(won)
+    delete bare.stallKit
+    const none = franchiseView(bare, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')
+    expect(none).toMatchObject({ kitText: 'None saved yet', canBuy: false, reason: 'Upgrade to a restaurant in a run first' })
+    // a kit kept from an earlier run counts when this run has none
+    const kept = franchiseView(bare, { ...emptyMeta(), starterKit: won.stallKit }, DEFS, []).cards.find((c) => c.id === 'starterKit')
+    expect(kept?.canBuy).toBe(true)
+    // other cards have no kit line
+    expect(franchiseView(won, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'seedMoney')?.kitText).toBeNull()
+  })
 })

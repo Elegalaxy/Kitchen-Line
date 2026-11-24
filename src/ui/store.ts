@@ -11,6 +11,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
+import { blueprintOf } from '../sim/blueprint.ts'
 import { DAY_TICKS } from '../sim/constants.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
@@ -224,12 +225,14 @@ export function applyCheat(defs: Defs, state: GameState, name: string): GameStat
     case 'restaurant':
       next.goalsDone = ids('stall')
       next.tier = 'restaurant'
+      next.stallKit = blueprintOf(state, defs) // what the upgrade would have saved (starter kitchen perk)
       next.totals = { served: 120, profit: 31000, days: 5 }
       next.money = 100000
       return next
     case 'won':
       next.goalsDone = [...ids('stall'), ...ids('restaurant')]
       next.tier = 'restaurant'
+      next.stallKit = blueprintOf(state, defs) // what the upgrade would have saved (starter kitchen perk)
       next.totals = { served: 640, profit: 98000, days: 12 }
       next.money = 100000
       next.won = true
@@ -238,6 +241,7 @@ export function applyCheat(defs: Defs, state: GameState, name: string): GameStat
     case 'chain': {
       next.goalsDone = [...ids('stall'), ...ids('restaurant')]
       next.tier = 'restaurant'
+      next.stallKit = blueprintOf(state, defs) // what the upgrade would have saved (starter kitchen perk)
       next.totals = { served: 640, profit: 98000, days: 12 }
       next.money = 1_000_000
       next.won = true

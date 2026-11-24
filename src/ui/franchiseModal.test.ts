@@ -23,6 +23,8 @@ describe('franchise markup', () => {
     expect(html).toContain('Seed money')
     expect(html).toContain('Level 0 / 3')
     expect(html).toContain('Recipe book')
+    expect(html).toContain('Starter kitchen')
+    expect(html).toContain('Saved kitchen')
   })
 
   it('the confirm is an alertdialog with the kept text', () => {

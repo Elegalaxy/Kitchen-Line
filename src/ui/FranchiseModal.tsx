@@ -122,6 +122,12 @@ export default function FranchiseModal({
                         <dt>Next level</dt>
                         <dd>{c.nextEffect ?? '–'}</dd>
                       </div>
+                      {c.kitText !== null && (
+                        <div className="kv-row">
+                          <dt>Saved kitchen</dt>
+                          <dd>{c.kitText}</dd>
+                        </div>
+                      )}
                       <div className="kv-row">
                         <dt>Cost</dt>
                         <dd className="num">{c.costText}</dd>

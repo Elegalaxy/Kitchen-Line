@@ -10,4 +10,8 @@ export const PERKS: PerkDef[] = [
   { id: 'goodName', name: 'Good name', emoji: '⭐', costs: [5, 8], effect: { goodRatings: 4 } },
   // start with expansion 1 (10 x 8), applied free
   { id: 'biggerStall', name: 'Bigger stall', emoji: '📐', costs: [10], effect: { startExpansion: 1 } },
+  // Install the stall kitchen saved at the latest run's restaurant upgrade, free, on day 1 (GAME_DESIGN 8.2).
+  // The price is the FP only: the $150 start cash could not pay for the buildings. Provisional cost, tuned by
+  // the harness (doc/plans/2026-11-24-starter-kit.md).
+  { id: 'starterKit', name: 'Starter kitchen', emoji: '🍳', costs: [14], effect: { starterKit: true } },
 ]

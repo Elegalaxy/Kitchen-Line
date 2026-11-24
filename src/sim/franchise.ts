@@ -122,7 +122,10 @@ export function perkCost(meta: MetaState, defs: Defs, id: string): number | null
 
 /** Buy the next level of a perk. Points are spent; levels are permanent. */
 export function buyPerk(meta: MetaState, defs: Defs, id: string): FranchiseResult {
-  if (perkOf(defs, id) === undefined) return { ok: false, reason: 'unknown perk' }
+  const perk = perkOf(defs, id)
+  if (perk === undefined) return { ok: false, reason: 'unknown perk' }
+  // The starter kitchen is only worth points once a run has saved a kitchen to install.
+  if (perk.effect.starterKit === true && meta.starterKit === undefined) return { ok: false, reason: 'no saved kitchen yet' }
   const cost = perkCost(meta, defs, id)
   if (cost === null) return { ok: false, reason: 'already at the top level' }
   if (meta.points < cost) return { ok: false, reason: `needs ${cost} points` }
