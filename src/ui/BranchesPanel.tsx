@@ -8,6 +8,7 @@ import { report } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { branchCards, branchKpis, nextSiteView } from './branchesView.ts'
 import type { BranchCardView } from './branchesView.ts'
+import { canFranchise } from '../sim/franchise.ts'
 import { debugLog } from './debug.ts'
 import type { Snapshot } from './store.ts'
 
@@ -60,7 +61,7 @@ function BranchCard({ card, busy, pending, onRefit }: { card: BranchCardView; bu
   )
 }
 
-export default function BranchesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
+export default function BranchesPanel({ ctx, snap, onFranchise }: { ctx: Ctx; snap: Snapshot; onFranchise: () => void }) {
   const { store } = ctx
   const state = snap.state
   const [pending, setPending] = useState<Pending>(null)
@@ -183,6 +184,16 @@ export default function BranchesPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot 
           </ul>
         )}
       </section>
+
+      {canFranchise(state) && (
+        <section className="panel" aria-label="Franchise">
+          <h2 className="panel-title">Franchise</h2>
+          <p className="empty">The chain is built. Sell it and start a new stall with permanent perks.</p>
+          <button type="button" className="btn-primary goal-btn" onClick={onFranchise}>
+            Franchise out…
+          </button>
+        </section>
+      )}
     </>
   )
 }

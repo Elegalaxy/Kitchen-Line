@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import NewGameConfirm from './NewGameConfirm.tsx'
 
-export default function SettingsMenu({ onNewGame }: { onNewGame: () => void }) {
+export default function SettingsMenu({ run, onNewGame }: { run: number; onNewGame: () => void }) {
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -86,6 +86,7 @@ export default function SettingsMenu({ onNewGame }: { onNewGame: () => void }) {
       )}
       {confirming && (
         <NewGameConfirm
+          run={run}
           onCancel={() => {
             setConfirming(false)
             buttonRef.current?.focus()

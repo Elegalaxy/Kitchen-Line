@@ -18,7 +18,7 @@ import type { SideTab } from './sideTabs.ts'
 import type { Snapshot } from './store.ts'
 import type { UiState } from './uiState.ts'
 
-export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot; ui: UiState }) {
+export default function SidePanel({ ctx, snap, ui, onFranchise }: { ctx: Ctx; snap: Snapshot; ui: UiState; onFranchise: () => void }) {
   const won = snap.state.won === true
   const tabs = visibleTabs(won)
   const tab = effectiveTab(ui.tab, won)
@@ -65,7 +65,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
         {tab === 'menu' && <MenuPanel ctx={ctx} snap={snap} />}
         {tab === 'upgrades' && <UpgradesPanel ctx={ctx} snap={snap} />}
         {tab === 'goals' && <GoalsPanel ctx={ctx} snap={snap} />}
-        {tab === 'branches' && <BranchesPanel ctx={ctx} snap={snap} />}
+        {tab === 'branches' && <BranchesPanel ctx={ctx} snap={snap} onFranchise={onFranchise} />}
       </div>
     </aside>
   )

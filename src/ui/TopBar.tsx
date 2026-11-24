@@ -26,7 +26,7 @@ const RUSH_BANDS = DAY_PHASE_STARTS.flatMap((p, i) => {
   return []
 })
 
-export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; store: GameStore; snap: Snapshot; onNewGame: () => void }) {
+export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx; store: GameStore; snap: Snapshot; run: number; onNewGame: () => void }) {
   const s = snap.state
   const phase = PHASE_TEXT[phaseKey(s)]
   const pct = (Math.min(s.dayTick, DAY_TICKS) / DAY_TICKS) * 100
@@ -38,6 +38,12 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
+      {run >= 2 && (
+        <dl className="stat stat-run" title={`Franchise run ${run}`}>
+          <dt>Run</dt>
+          <dd className="num">{run}</dd>
+        </dl>
+      )}
       <dl className="stat">
         <dt>Day</dt>
         <dd className="num">{s.day}</dd>
@@ -102,7 +108,7 @@ export default function TopBar({ ctx, store, snap, onNewGame }: { ctx: Ctx; stor
           </button>
         ))}
       </div>
-      <SettingsMenu onNewGame={onNewGame} />
+      <SettingsMenu run={run} onNewGame={onNewGame} />
       <div className="closing-slot" role="status" aria-live="polite">
         {closing.active && (
           <div className="closing-cue">

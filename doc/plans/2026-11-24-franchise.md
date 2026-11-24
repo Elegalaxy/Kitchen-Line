@@ -55,7 +55,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\franchise-core`.
 - Files: `src/ui/franchiseView.ts`, `FranchiseModal.tsx`, `EndScreen.tsx`, `styles.css` (+ tests)
 
 ### Step 8: UI extras
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: top bar "Run N" stat from run 2 (shown from the first frame of the run, so nothing shifts); Branches tab franchise card once the chain is built (same modal); tutorial latch: `guideHiddenForRun` (App sets `guideDone` when `meta.runsCompleted >= 1`, so the TutorialCard, the ghost hints and the salad top-up, which are all gated by `guideDone` in the UI, are off; no sim change, run 1 and all hashes unchanged); "New game" restarts the current run keeping perks and re-arms the guide only while `runsCompleted === 0`; the New game confirm says points, perks and recipe book are kept from run 2. Test: `franchiseTutorial.test.ts` (run-2 state renders no TutorialCard, no hints). Browser-checked run 2: Run 2 stat, day 1, no tutorial card.
 - Files: top-bar "Run N" stat, Branches card note, tutorial latch (checklist and `tutorialHelp` only in run 1).
 
 ### Step 9: Wrap-up

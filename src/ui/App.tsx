@@ -18,7 +18,7 @@ import SidePanel from './SidePanel.tsx'
 import { getBrowserStorage } from './persistence.ts'
 import SaveNotice from './SaveNotice.tsx'
 import { getGameSession } from './session.ts'
-import { clearTutorialDone, clearTutorialHelp, readTutorialDone } from './tutorialLatch.ts'
+import { clearTutorialDone, clearTutorialHelp, guideHiddenForRun, newGameRearmsGuide, readTutorialDone } from './tutorialLatch.ts'
 import { useSnapshot } from './store.ts'
 import Toast from './Toast.tsx'
 import TileInfo from './TileInfo.tsx'
@@ -53,15 +53,18 @@ export default function App() {
   const [notice, setNotice] = useState(session.notice)
   const [uiStore] = useState(() => {
     const ui = createUiStore()
-    if (readTutorialDone(getBrowserStorage())) ui.set({ guideDone: true })
+    if (guideHiddenForRun(session.meta.runsCompleted) || readTutorialDone(getBrowserStorage())) ui.set({ guideDone: true })
     return ui
   })
   const [franchiseOpen, setFranchiseOpen] = useState(false)
   const newGame = (): void => {
     session.newGame()
-    clearTutorialDone(getBrowserStorage())
-    clearTutorialHelp(getBrowserStorage())
-    uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: false, tab: 'build' })
+    const rearm = newGameRearmsGuide(session.meta.runsCompleted)
+    if (rearm) {
+      clearTutorialDone(getBrowserStorage())
+      clearTutorialHelp(getBrowserStorage())
+    }
+    uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: !rearm, tab: 'build' })
     setNotice(null)
   }
   const franchiseOut = (picks: string[]): { ok: true } | { ok: false; reason: string } => {
@@ -109,7 +112,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <TopBar ctx={ctx} store={store} snap={snap} onNewGame={newGame} />
+      <TopBar ctx={ctx} store={store} snap={snap} run={session.meta.runsCompleted + 1} onNewGame={newGame} />
       {snap.state.phase === 'summary' && (
         <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })}
           onTogglePantries={() => togglePantriesAction(ctx)}
@@ -146,7 +149,7 @@ export default function App() {
             </div>
           </div>
         </div>
-        <SidePanel ctx={ctx} snap={snap} ui={ui} />
+        <SidePanel ctx={ctx} snap={snap} ui={ui} onFranchise={() => setFranchiseOpen(true)} />
       </div>
       {notice !== null && <SaveNotice reason={notice} onStartNew={newGame} />}
       <Toast toast={ui.toast} />

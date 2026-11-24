@@ -4,7 +4,7 @@
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 
-export default function NewGameConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+export default function NewGameConfirm({ run = 1, onCancel, onConfirm }: { run?: number; onCancel: () => void; onConfirm: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -48,6 +48,11 @@ export default function NewGameConfirm({ onCancel, onConfirm }: { onCancel: () =
         <p id="confirm-text" className="notice-help">
           This deletes your current save: the kitchen, money, goals and every day played. It cannot be undone.
         </p>
+        {run >= 2 && (
+          <p className="notice-help">
+            Your franchise points, perks and recipe book are kept. Run {run} starts over with its perks.
+          </p>
+        )}
         <div className="confirm-actions">
           <button ref={cancelRef} type="button" className="btn-primary" onClick={onCancel}>
             Cancel

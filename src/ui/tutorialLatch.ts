@@ -8,6 +8,19 @@ export const TUTORIAL_DONE_KEY = 'kitchen-line.tutorial-done.v1'
 /** Set once the salad-line top-up has been paid, so a reload does not pay it again. */
 export const TUTORIAL_HELP_KEY = 'kitchen-line.tutorial-help.v1'
 
+/**
+ * The guide and the salad top-up belong to the first ever run (GAME_DESIGN 13, user decision 2026-11-24):
+ * once a run has been franchised, later runs never show them.
+ */
+export function guideHiddenForRun(runsCompleted: number): boolean {
+  return runsCompleted >= 1
+}
+
+/** "New game" re-arms the guide only in the first ever run; in a franchised run it stays hidden. */
+export function newGameRearmsGuide(runsCompleted: number): boolean {
+  return runsCompleted === 0
+}
+
 /** Remember a paid top-up when storage is missing (tests and private mode). */
 let helpWithoutStorage = false
 
