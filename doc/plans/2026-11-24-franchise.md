@@ -50,7 +50,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\franchise-core`.
 - Files: `src/ui/session.ts`, `persistence.ts`, `store.ts`: meta load/save with a `.corrupt` copy, `franchiseOut`, `buyPerk`, `startRun`.
 
 ### Step 7: UI view, Franchise modal, end screen
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `ui/franchiseView.ts` (points rows, perk cards with level / next cost / next effect / Buy reason, balance after picks, kept lines), `FranchiseModal.tsx` (picks are local until confirmed, Back and Esc leave), `FranchiseConfirm.tsx` (alertdialog, Cancel focused), `EndScreen.tsx` chain variant (points preview, primary "Franchise out...", quiet "Keep playing"), App wiring, styles. Browser-checked at 800 x 600 on a dev server (chainwon cheat): end screen, modal, two perk picks, confirm, run 2 day 1 with $400 and rating 3.4. Tests: `franchiseView.test.ts`, `franchiseModal.test.ts`. 375 px and 1024 px not browser-verified (the browser pane was hidden and stopped rendering).
 - Files: `src/ui/franchiseView.ts`, `FranchiseModal.tsx`, `EndScreen.tsx`, `styles.css` (+ tests)
 
 ### Step 8: UI extras

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { canFranchise } from '../sim/franchise.ts'
 import type { Defs } from '../sim/types.ts'
 import { handleHotkey, togglePantriesAction } from './actions.ts'
 import type { Ctx } from './actions.ts'
@@ -6,6 +7,7 @@ import GridCanvas from './canvas/GridCanvas.tsx'
 import DaySummary from './DaySummary.tsx'
 import { debugLog } from './debug.ts'
 import EndScreen from './EndScreen.tsx'
+import FranchiseModal from './FranchiseModal.tsx'
 import GoalTracker from './GoalTracker.tsx'
 import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
@@ -54,12 +56,22 @@ export default function App() {
     if (readTutorialDone(getBrowserStorage())) ui.set({ guideDone: true })
     return ui
   })
+  const [franchiseOpen, setFranchiseOpen] = useState(false)
   const newGame = (): void => {
     session.newGame()
     clearTutorialDone(getBrowserStorage())
     clearTutorialHelp(getBrowserStorage())
     uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: false, tab: 'build' })
     setNotice(null)
+  }
+  const franchiseOut = (picks: string[]): { ok: true } | { ok: false; reason: string } => {
+    const out = session.franchiseOut(picks)
+    if (out.ok) {
+      uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: true, tab: 'build' })
+      setNotice(null)
+      setFranchiseOpen(false)
+    }
+    return out
   }
   const snap = useSnapshot(store)
   const ui = useUi(uiStore)
@@ -103,8 +115,23 @@ export default function App() {
           onTogglePantries={() => togglePantriesAction(ctx)}
         />
       )}
-      {snap.state.phase === 'won' && (
-        <EndScreen state={snap.state} onKeepPlaying={() => store.dispatch({ type: 'dismissSummary' })} />
+      {snap.state.phase === 'won' && !franchiseOpen && (
+        <EndScreen
+          state={snap.state}
+          defs={store.defs}
+          meta={session.meta}
+          onKeepPlaying={() => store.dispatch({ type: 'dismissSummary' })}
+          onFranchise={() => setFranchiseOpen(true)}
+        />
+      )}
+      {franchiseOpen && canFranchise(snap.state) && (
+        <FranchiseModal
+          state={snap.state}
+          meta={session.meta}
+          defs={store.defs}
+          onClose={() => setFranchiseOpen(false)}
+          onFranchise={franchiseOut}
+        />
       )}
       <div className="workspace">
         <div className="stage">
