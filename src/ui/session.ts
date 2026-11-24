@@ -7,12 +7,14 @@
 // - Autosave and the page-hide saves run only when the session is allowed to save.
 
 import { DEFS } from '../content/index.ts'
-import type { Defs } from '../sim/types.ts'
+import { buyPerk, canFranchise, createRun, emptyMeta, recordFranchise } from '../sim/franchise.ts'
+import type { Defs, MetaState } from '../sim/types.ts'
 import { applyCheat, createStore, newGameState } from './store.ts'
 import type { GameStore } from './store.ts'
 import { debugLog } from './debug.ts'
 import { clearSavedGame, createAutosaver, getBrowserStorage, readSavedGame, writeSavedGame } from './persistence.ts'
 import type { Autosaver, StorageLike } from './persistence.ts'
+import { readMeta, writeMeta } from './metaPersistence.ts'
 
 export type GameSession = {
   store: GameStore
@@ -20,8 +22,21 @@ export type GameSession = {
   notice: string | null
   /** True when saving is switched off for this session (dev params). */
   ephemeral: boolean
-  /** Replace the game with a fresh one and overwrite the save. Also clears `notice`. */
+  /** Franchise progress (GAME_DESIGN 8.2). Empty until the first franchise-out. */
+  readonly meta: MetaState
+  /** Why the stored franchise progress could not be loaded (it was kept under the .corrupt key), or null. */
+  readonly metaNotice: string | null
+  /**
+   * Replace the game with a fresh run of the current number (perks and recipe book kept) and
+   * overwrite the save. Also clears `notice`.
+   */
   newGame(): void
+  /**
+   * Sell the chain: book the points, buy `perkIds` (one id per level, in order), write the meta FIRST,
+   * then start run N+1 and write the save. Refused (nothing changes, nothing is written) when the chain
+   * is not built, the run is already franchised, or a perk cannot be bought.
+   */
+  franchiseOut(perkIds: string[]): { ok: true } | { ok: false; reason: string }
 }
 
 export type SessionOptions = {
@@ -52,6 +67,9 @@ export function createSession(defs: Defs, options: SessionOptions): GameSession 
   const ephemeral = dev !== null
   let notice: string | null = null
   let store: GameStore
+  // A dev session keeps its meta in memory only: it is never read from or written to storage.
+  const metaRead = ephemeral ? { meta: emptyMeta(), notice: null } : readMeta(storage, defs)
+  let meta = metaRead.meta
 
   if (dev !== null) {
     const start = newGameState(defs, dev.layout)
@@ -90,13 +108,39 @@ export function createSession(defs: Defs, options: SessionOptions): GameSession 
       return notice
     },
     ephemeral,
+    get meta() {
+      return meta
+    },
+    metaNotice: metaRead.notice,
     newGame() {
       notice = null
       clearSavedGame(storage)
-      store.replaceState(newGameState(defs, null), 1)
+      store.replaceState(createRun(defs, undefined, meta), 1)
       startSaving()
       if (!ephemeral) writeSavedGame(storage, store.getState(), now())
-      debugLog('[save]', 'new game started')
+      debugLog('[save]', `new game started (run ${meta.runsCompleted + 1})`)
+    },
+    franchiseOut(perkIds) {
+      const state = store.getState()
+      if (!canFranchise(state)) return { ok: false, reason: 'The chain is not built yet.' }
+      const booked = recordFranchise(meta, state, defs)
+      if (!booked.ok) return { ok: false, reason: booked.reason }
+      let next = booked.meta
+      for (const id of perkIds) {
+        const bought = buyPerk(next, defs, id)
+        if (!bought.ok) return { ok: false, reason: bought.reason }
+        next = bought.meta
+      }
+      if (!ephemeral && storage !== null && !writeMeta(storage, next, now())) {
+        return { ok: false, reason: 'The franchise progress could not be saved, so the chain was kept.' }
+      }
+      meta = next
+      notice = null
+      store.replaceState(createRun(defs, undefined, meta), 1)
+      startSaving()
+      if (!ephemeral) writeSavedGame(storage, store.getState(), now())
+      debugLog('[save]', `franchised out: now run ${meta.runsCompleted + 1}, points ${meta.points}`)
+      return { ok: true }
     },
   }
   return session

@@ -45,7 +45,8 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\franchise-core`.
 - Files: `src/harness/*`: run the journey as run N with a given meta; print points and the run-2 start.
 
 ### Step 6: UI session glue
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `ui/metaPersistence.ts` (read/write/clear, `.corrupt` copy, unknown dish and perk ids dropped), `session.meta`, `session.metaNotice`, `franchiseOut(perkIds)` (record, buy, write meta first, then run N+1 and the save; refused for no chain, duplicate seed, unaffordable perk or a failed meta write; dev sessions write nothing), `newGame()` via `createRun` with the meta. Tests in `ui/franchiseSession.test.ts`.
 - Files: `src/ui/session.ts`, `persistence.ts`, `store.ts`: meta load/save with a `.corrupt` copy, `franchiseOut`, `buyPerk`, `startRun`.
 
 ### Step 7: UI view, Franchise modal, end screen
