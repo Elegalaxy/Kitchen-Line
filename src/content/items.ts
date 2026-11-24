@@ -21,6 +21,8 @@ const list: ItemDef[] = [
   // Dish pack (GAME_DESIGN 5.2, 5.4): fish is fresh and spoils like produce; cheese does not spoil.
   { id: 'fish', name: 'Fish', emoji: '🐟', kind: 'raw', cost: 150, spoilTicks: FRESH_SPOIL_TICKS },
   { id: 'cheese', name: 'Cheese', emoji: '🧀', kind: 'raw', cost: 60 },
+  // Seasons (GAME_DESIGN 5.2): pumpkin does not spoil; its pantry price moves with the season (7).
+  { id: 'pumpkin', name: 'Pumpkin', emoji: '🎃', kind: 'raw', cost: 40 },
 
   { id: 'potatoStrips', name: 'Potato strips', emoji: '🥔', kind: 'processed' },
   {
@@ -49,6 +51,11 @@ const list: ItemDef[] = [
   { id: 'riceBowl', name: 'Rice bowl', emoji: '🍛', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
   { id: 'fishAndChips', name: 'Fish and chips', emoji: '🐠', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
   { id: 'cheeseburger', name: 'Cheeseburger', emoji: '🧀', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  // Seasonal dishes (GAME_DESIGN 5.4).
+  { id: 'springRoll', name: 'Spring roll', emoji: '🥟', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  { id: 'fishTaco', name: 'Fish taco', emoji: '🌮', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  { id: 'pumpkinSoup', name: 'Pumpkin soup', emoji: '🥣', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
+  { id: 'beefStew', name: 'Beef stew', emoji: '🥘', kind: 'dish', spoilTicks: DISH_SPOIL_TICKS },
 ]
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(list.map((i) => [i.id, i]))

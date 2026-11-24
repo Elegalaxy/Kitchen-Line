@@ -73,7 +73,7 @@ describe('content', () => {
       if (!['fryer', 'stove', 'assembler'].includes(b.kind)) expect(b.pro, `${b.kind} has no pro`).toBeUndefined()
     }
     expect(Object.values(DEFS.dishes).filter((d) => d.startsUnlocked).map((d) => d.id)).toEqual(['fries', 'salad'])
-    expect(Object.keys(DEFS.dishes)).toHaveLength(8)
+    expect(Object.keys(DEFS.dishes)).toHaveLength(12)
   })
 
   it('the sim places and refunds with the real defs', () => {
@@ -96,6 +96,15 @@ describe('ingredientCostOf', () => {
     expect(cost('riceBowl')).toBe(150) // rice + patty
     expect(cost('fishAndChips')).toBe(180) // fish + potato (the fries)
     expect(cost('cheeseburger')).toBe(230) // bun + patty + cheese
+    expect(cost('springRoll')).toBe(70) // rice + lettuce
+    expect(cost('fishTaco')).toBe(230) // fish + lettuce + tomato
+    expect(cost('pumpkinSoup')).toBe(40) // pumpkin
+    expect(cost('beefStew')).toBe(150) // patty + potato
+  })
+
+  it('uses a price override for raw items only', () => {
+    expect(ingredientCostOf('salad', (id) => (id === 'tomato' ? 100 : undefined))).toBe(140)
+    expect(ingredientCostOf('salad', () => undefined)).toBe(80)
   })
 
   it('matches the raw item costs in DEFS, never exceeds the reference price, and is 0 for unknown ids', () => {
@@ -105,5 +114,39 @@ describe('ingredientCostOf', () => {
     }
     expect(ingredientCostOf('nope')).toBe(0)
     expect(ingredientCostOf('potato')).toBe(DEFS.items['potato'].cost)
+  })
+})
+
+describe('seasons', () => {
+  const seasons = DEFS.seasons ?? []
+
+  it('has four seasons, each with exactly one seasonal restaurant dish', () => {
+    expect(seasons.map((x) => x.id)).toEqual(['spring', 'summer', 'autumn', 'winter'])
+    for (const season of seasons) {
+      const dishes = Object.values(DEFS.dishes).filter((d) => d.season === season.id)
+      expect(dishes, season.id).toHaveLength(1)
+      expect(dishes[0].requiresTier, season.id).toBe('restaurant')
+    }
+  })
+
+  it('every dish.season names a season and every percent key is a known raw item or dish', () => {
+    const ids = new Set(seasons.map((x) => x.id))
+    for (const d of Object.values(DEFS.dishes)) if (d.season !== undefined) expect(ids.has(d.season), d.id).toBe(true)
+    for (const season of seasons) {
+      for (const [item, pct] of Object.entries(season.costPercent)) {
+        expect(DEFS.items[item]?.kind, `${season.id} ${item}`).toBe('raw')
+        expect(pct).toBeGreaterThan(0)
+      }
+      for (const [dish, pct] of Object.entries(season.tastePercent)) {
+        expect(DEFS.dishes[dish], `${season.id} ${dish}`).toBeDefined()
+        expect(pct).toBeGreaterThan(0)
+      }
+      expect(season.branchPercent).toBeGreaterThan(0)
+    }
+  })
+
+  it('pumpkin is a raw item that does not spoil', () => {
+    expect(DEFS.items['pumpkin']).toMatchObject({ kind: 'raw', cost: 40 })
+    expect(DEFS.items['pumpkin'].spoilTicks).toBeUndefined()
   })
 })

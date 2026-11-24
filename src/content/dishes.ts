@@ -1,6 +1,6 @@
 // Dishes. Reference prices and recipe unlock costs are in cents and provisional
 // (GAME_DESIGN 6.1 and 5.4, plan 2.5). Popularity is the taste draw weight.
-// Fries and soup are made by stations; the others by an assembler from `inputs`.
+// Fries, soup and pumpkin soup are made by stations; the others by an assembler from `inputs`.
 // Fries and salad start unlocked.
 
 import type { DishDef } from '../sim/types.ts'
@@ -74,6 +74,55 @@ const list: DishDef[] = [
     inputs: ['bun', 'cookedPatty', 'cheese'],
     requiresTier: 'restaurant',
   },
+  // Seasonal dishes (GAME_DESIGN 5.4, 9): restaurant tier, wanted only in their season. Ingredient cost: spring roll 70
+  // (rice 30 + lettuce 40), fish taco 230 (fish 150 + lettuce 40 + tomato 40), pumpkin soup 40, beef stew 150 (patty 120 + potato 30).
+  {
+    id: 'springRoll',
+    name: 'Spring roll',
+    emoji: '🥟',
+    refPrice: 650,
+    popularity: 3,
+    startsUnlocked: false,
+    unlockCost: 8000,
+    inputs: ['cookedRice', 'choppedLettuce'],
+    requiresTier: 'restaurant',
+    season: 'spring',
+  },
+  {
+    id: 'fishTaco',
+    name: 'Fish taco',
+    emoji: '🌮',
+    refPrice: 1000,
+    popularity: 3,
+    startsUnlocked: false,
+    unlockCost: 12000,
+    inputs: ['friedFish', 'choppedLettuce', 'slicedTomato'],
+    requiresTier: 'restaurant',
+    season: 'summer',
+  },
+  {
+    id: 'pumpkinSoup',
+    name: 'Pumpkin soup',
+    emoji: '🥣',
+    refPrice: 600,
+    popularity: 3,
+    startsUnlocked: false,
+    unlockCost: 8000,
+    requiresTier: 'restaurant',
+    season: 'autumn',
+  },
+  {
+    id: 'beefStew',
+    name: 'Beef stew',
+    emoji: '🥘',
+    refPrice: 850,
+    popularity: 3,
+    startsUnlocked: false,
+    unlockCost: 10000,
+    inputs: ['cookedPatty', 'potatoStrips'],
+    requiresTier: 'restaurant',
+    season: 'winter',
+  },
 ]
 
 export const DISHES: Record<string, DishDef> = Object.fromEntries(list.map((d) => [d.id, d]))
@@ -83,12 +132,13 @@ export const DISHES: Record<string, DishDef> = Object.fromEntries(list.map((d) =
  * a raw item costs its pantry price, a processed item or dish made by a station costs what
  * its station input costs, and an assembler dish is the sum of its inputs (plan 2.5).
  * Display helper for the menu panel; the sim never imports it. Unknown ids cost 0.
+ * `priceOf` overrides a raw item's pantry price (for example the season's price); it falls back to the base cost.
  */
-export function ingredientCostOf(dish: string): number {
+export function ingredientCostOf(dish: string, priceOf?: (item: string) => number | undefined): number {
   const walk = (id: string, depth: number): number => {
     if (depth > 8) return 0
     const item = ITEMS[id]
-    if (item?.cost !== undefined) return item.cost
+    if (item?.cost !== undefined) return priceOf?.(id) ?? item.cost
     const station = STATION_RECIPES.find((r) => r.output === id)
     if (station !== undefined) return walk(station.input, depth + 1)
     const inputs = DISHES[id]?.inputs

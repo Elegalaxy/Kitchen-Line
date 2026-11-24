@@ -20,4 +20,6 @@ export const STATION_RECIPES: StationRecipe[] = [
   { station: 'stove', input: 'patty', output: 'cookedPatty', ticks: COOK_TICKS },
   { station: 'stove', input: 'rice', output: 'cookedRice', ticks: COOK_TICKS },
   { station: 'stove', input: 'slicedTomato', output: 'soup', ticks: COOK_TICKS },
+  // Seasons (GAME_DESIGN 5.4): pumpkin soup is a station dish like soup.
+  { station: 'stove', input: 'pumpkin', output: 'pumpkinSoup', ticks: COOK_TICKS },
 ]
