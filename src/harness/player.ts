@@ -61,6 +61,7 @@ import { allGoalsDone, upgradeProblem } from '../sim/goals.ts'
 import { blueprintOf, sameBlueprint } from '../sim/blueprint.ts'
 import { openBranchCost, openBranchProblem, refitCost, refitProblem } from '../sim/branches.ts'
 import { buildingAt, placeCost } from '../sim/grid.ts'
+import { currentSeason } from '../sim/season.ts'
 import { currentTrend } from '../sim/trend.ts'
 import { resumeAfterDay, runServiceDay } from './pausePolicy.ts'
 import type { Command, Defs, Dir, GameState, SimEvent } from '../sim/types.ts'
@@ -109,6 +110,8 @@ export type DayLog = {
   friesServed: number
   /** The day's trending dish (restaurant tier, GAME_DESIGN 9) or null; the scripted player ignores it. */
   trend: string | null
+  /** The season id on that day (restaurant tier, GAME_DESIGN 9) or null at the stall. */
+  season: string | null
   /** Units of the trend dish served that day. */
   trendServed: number
   /** The food critic's result that day (restaurant tier, GAME_DESIGN 9) or null; the scripted player ignores critics. */
@@ -548,6 +551,7 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
       friesMade,
       friesServed: d.byDish['fries']?.served ?? 0,
       trend,
+      season: currentSeason(run.state, defs, d.day)?.id ?? null,
       trendServed: trend === null ? 0 : (d.byDish[trend]?.served ?? 0),
       critic: d.critic === undefined ? null : { stars: d.critic.stars, served: d.critic.served },
       repAtStart: run.state.repAtDayStart,
