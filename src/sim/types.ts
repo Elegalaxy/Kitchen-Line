@@ -362,6 +362,39 @@ export type Defs = {
   branchAreas?: BranchAreaDef[]
   /** The four seasons in calendar order (content/seasons.ts). Without them there are no seasons. */
   seasons?: SeasonDef[]
+  /** Franchise perks (content/perks.ts). Without them none is on offer. */
+  perks?: PerkDef[]
+}
+
+/**
+ * A franchise perk (GAME_DESIGN 8.2): permanent levels bought with franchise points between runs.
+ * `costs[i]` is the price of level i + 1. The effect is per level and changes the starting state only.
+ */
+export type PerkDef = {
+  id: string
+  name: string
+  emoji: string
+  costs: number[]
+  effect: {
+    /** Cents of extra start cash per level. */
+    startMoney?: number
+    /** Starting virtual ratings turned into 4 stars, per level (a count). */
+    goodRatings?: number
+    /** Expansion steps applied for free at the start, per level. */
+    startExpansion?: number
+  }
+}
+
+/** One finished franchised run in the meta history (GAME_DESIGN 8.2). */
+export type RunRecord = { run: number; seed: string; days: number; profit: number; chainProfit: number; points: number }
+
+/** Meta progress across runs (GAME_DESIGN 8.2), saved under its own key. Not part of `GameState`. */
+export type MetaState = {
+  runsCompleted: number
+  points: number
+  perks: Record<string, number>
+  recipeBook: DishId[]
+  history: RunRecord[]
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */

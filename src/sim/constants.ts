@@ -177,3 +177,19 @@ export const BRANCH_REFIT_FEE = 25000
 export const BRANCH_NOISE_PERCENT = 10
 /** Critic customer ids start here so they never equal a normal customer id (those are the arrival tick). */
 export const CRITIC_ID_OFFSET = 1_000_000_000
+
+/** GAME_DESIGN 8.2 (franchise, provisional, 2026-11-24): franchise points. Chain built is worth this many. */
+export const FRANCHISE_CHAIN_POINTS = 10
+/** GAME_DESIGN 8.2: 1 point per this many cents of (totals.profit + chainProfit) ($1,000), capped. */
+export const FRANCHISE_EARNINGS_STEP = 100000
+export const FRANCHISE_EARNINGS_CAP = 25
+/** GAME_DESIGN 8.2: speed points = max(0, FRANCHISE_SPEED_DAYS - totals.days), capped. */
+export const FRANCHISE_SPEED_DAYS = 40
+export const FRANCHISE_SPEED_CAP = 10
+/** GAME_DESIGN 8.2: points per full star of reputation above FRANCHISE_REP_BASE. */
+export const FRANCHISE_REP_BASE = 3
+export const FRANCHISE_REP_POINTS = 2
+/** GAME_DESIGN 8.2: how many finished runs the meta history keeps. */
+export const FRANCHISE_HISTORY_MAX = 100
+/** GAME_DESIGN 8.2: run 1 keeps this seed; run N uses `${seed}-runN`. */
+export const FRANCHISE_BASE_SEED = 'kitchen-line'

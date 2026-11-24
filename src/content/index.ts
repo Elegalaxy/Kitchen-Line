@@ -7,6 +7,7 @@ import { DISHES } from './dishes.ts'
 import { EXPANSIONS } from './expansions.ts'
 import { GOALS } from './goals.ts'
 import { ITEMS } from './items.ts'
+import { PERKS } from './perks.ts'
 import { REVIEW_TEMPLATES } from './reviewText.ts'
 import { SEASONS } from './seasons.ts'
 import { STATION_RECIPES } from './recipes.ts'
@@ -23,4 +24,5 @@ export const DEFS: Defs = {
   upgrades: UPGRADES,
   branchAreas: BRANCH_AREAS,
   seasons: SEASONS,
+  perks: PERKS,
 }
