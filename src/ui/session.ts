@@ -7,7 +7,7 @@
 // - Autosave and the page-hide saves run only when the session is allowed to save.
 
 import { DEFS } from '../content/index.ts'
-import { buyPerk, canFranchise, createRun, emptyMeta, recordFranchise } from '../sim/franchise.ts'
+import { buyPerk, canFranchise, chooseKit, createRun, emptyMeta, recordFranchise } from '../sim/franchise.ts'
 import type { Defs, MetaState } from '../sim/types.ts'
 import { applyCheat, createStore, newGameState } from './store.ts'
 import type { GameStore } from './store.ts'
@@ -35,8 +35,10 @@ export type GameSession = {
    * Sell the chain: book the points, buy `perkIds` (one id per level, in order), write the meta FIRST,
    * then start run N+1 and write the save. Refused (nothing changes, nothing is written) when the chain
    * is not built, the run is already franchised, or a perk cannot be bought.
+   * `kit` is the blueprint library choice: `saveSlot` takes this run's kitchen (null or absent: not saved),
+   * `useSlot` starts the next run (null: none; absent: the most recently saved).
    */
-  franchiseOut(perkIds: string[]): { ok: true } | { ok: false; reason: string }
+  franchiseOut(perkIds: string[], kit?: { saveSlot?: number | null; useSlot?: number | null }): { ok: true } | { ok: false; reason: string }
 }
 
 export type SessionOptions = {
@@ -120,10 +122,10 @@ export function createSession(defs: Defs, options: SessionOptions): GameSession 
       if (!ephemeral) writeSavedGame(storage, store.getState(), now())
       debugLog('[save]', `new game started (run ${meta.runsCompleted + 1})`)
     },
-    franchiseOut(perkIds) {
+    franchiseOut(perkIds, kit = {}) {
       const state = store.getState()
       if (!canFranchise(state)) return { ok: false, reason: 'The chain is not built yet.' }
-      const booked = recordFranchise(meta, state, defs)
+      const booked = recordFranchise(meta, state, defs, { saveSlot: kit.saveSlot ?? null })
       if (!booked.ok) return { ok: false, reason: booked.reason }
       let next = booked.meta
       for (const id of perkIds) {
@@ -131,6 +133,9 @@ export function createSession(defs: Defs, options: SessionOptions): GameSession 
         if (!bought.ok) return { ok: false, reason: bought.reason }
         next = bought.meta
       }
+      const chosen = chooseKit(next, kit.useSlot)
+      if (!chosen.ok) return { ok: false, reason: chosen.reason }
+      next = chosen.meta
       if (!ephemeral && storage !== null && !writeMeta(storage, next, now())) {
         return { ok: false, reason: 'The franchise progress could not be saved, so the chain was kept.' }
       }

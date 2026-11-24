@@ -5,12 +5,16 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS as BASE } from './chainKit.ts'
 import {
+  activeKitOf,
   applyFranchiseStart,
   buyPerk,
   canFranchise,
+  chooseKit,
   createRun,
   emptyMeta,
   franchisePoints,
+  latestSlot,
+  libraryOf,
   perkCost,
   recordFranchise,
   runSeed,
@@ -250,7 +254,7 @@ function upgraded(): GameState {
 }
 
 function kitMeta(kit: Blueprint | undefined, perks: Record<string, number> = { starterKit: 1 }): MetaState {
-  return { ...emptyMeta(), perks, recipeBook: ['fries', 'salad'], ...(kit === undefined ? {} : { starterKit: kit }) }
+  return { ...emptyMeta(), perks, recipeBook: ['fries', 'salad'], ...(kit === undefined ? {} : { library: [{ run: 1, kit }, null, null] }) }
 }
 
 describe('stallKit (saved at the upgrade)', () => {
@@ -266,34 +270,94 @@ describe('stallKit (saved at the upgrade)', () => {
   })
 })
 
-describe('recordFranchise keeps the starter kitchen', () => {
-  it('copies the latest run kit, replaces an older one, and keeps the old one when the run has none', () => {
-    const first = upgraded()
-    first.chainWon = true
-    first.phase = 'build'
-    const r1 = recordFranchise(emptyMeta(), first, DEFS)
-    expect(r1.ok && r1.meta.starterKit).toEqual(first.stallKit)
-    if (!r1.ok) return
-    const second = createGame(DEFS, 'kit-run-2')
-    second.chainWon = true
-    second.phase = 'build'
-    const r2 = recordFranchise(r1.meta, second, DEFS)
-    expect(r2.ok && r2.meta.starterKit).toEqual(first.stallKit)
-    const third = upgraded()
-    third.seed = 'kit-run-3'
-    third.stallKit = { ...third.stallKit!, menu: [{ dish: 'fries', price: 400 }] }
-    third.chainWon = true
-    third.phase = 'build'
-    const r3 = recordFranchise(r1.meta, third, DEFS)
-    expect(r3.ok && r3.meta.starterKit?.menu).toEqual([{ dish: 'fries', price: 400 }])
+function wonUpgraded(seed: string, price?: number): GameState {
+  const s = upgraded()
+  s.seed = seed
+  if (price !== undefined) s.stallKit = { ...s.stallKit!, menu: [{ dish: 'fries', price }] }
+  s.chainWon = true
+  s.phase = 'build'
+  return s
+}
+
+describe('recordFranchise and the blueprint library', () => {
+  it('saves the kit only into the chosen slot; no slot (or null) saves nothing', () => {
+    const run = wonUpgraded('lib-1')
+    const none = recordFranchise(emptyMeta(), run, DEFS)
+    expect(none.ok && none.meta.library).toBeUndefined()
+    const skipped = recordFranchise(emptyMeta(), run, DEFS, { saveSlot: null })
+    expect(skipped.ok && 'library' in skipped.meta).toBe(false)
+    const r = recordFranchise(emptyMeta(), run, DEFS, { saveSlot: 1 })
+    expect(r.ok && r.meta.library).toEqual([null, { run: 1, kit: run.stallKit }, null])
+    expect(r.ok && r.meta.library?.[1]?.kit).not.toBe(run.stallKit)
   })
 
-  it('a run with no kit adds no starterKit key to an empty meta', () => {
+  it('overwrites a slot, keeps the others, and counts the run number', () => {
+    const r1 = recordFranchise(emptyMeta(), wonUpgraded('lib-1'), DEFS, { saveSlot: 0 })
+    if (!r1.ok) throw new Error(r1.reason)
+    const r2 = recordFranchise(r1.meta, wonUpgraded('lib-2', 400), DEFS, { saveSlot: 2 })
+    expect(r2.ok && r2.meta.library?.map((e) => e?.run ?? null)).toEqual([1, null, 2])
+    if (!r2.ok) return
+    const r3 = recordFranchise(r2.meta, wonUpgraded('lib-3', 450), DEFS, { saveSlot: 0 })
+    expect(r3.ok && r3.meta.library?.map((e) => e?.run ?? null)).toEqual([3, null, 2])
+    expect(r3.ok && r3.meta.library?.[0]?.kit.menu).toEqual([{ dish: 'fries', price: 450 }])
+    expect(latestSlot(libraryOf(r3.ok ? r3.meta : emptyMeta()))).toBe(0)
+  })
+
+  it('a run with no kit saves nothing, even with a slot; a bad slot refuses without booking', () => {
     const s = createGame(DEFS, 'plain')
     s.chainWon = true
     s.phase = 'build'
-    const r = recordFranchise(emptyMeta(), s, DEFS)
+    const r = recordFranchise(emptyMeta(), s, DEFS, { saveSlot: 0 })
+    expect(r.ok && 'library' in r.meta).toBe(false)
+    for (const bad of [3, -1, 1.5]) expect(recordFranchise(emptyMeta(), s, DEFS, { saveSlot: bad }).ok).toBe(false)
+  })
+
+  it('an old meta with the single starterKit reads as slot 1 and moves into the library', () => {
+    const kit = upgraded().stallKit!
+    const old: MetaState = { ...emptyMeta(), runsCompleted: 2, starterKit: kit, history: [{ run: 2, seed: 'x', days: 1, profit: 0, chainProfit: 0, points: 1 }] }
+    expect(libraryOf(old)).toEqual([{ run: 2, kit }, null, null])
+    expect(activeKitOf(old)).toBe(kit)
+    const r = recordFranchise(old, wonUpgraded('lib-9'), DEFS)
     expect(r.ok && 'starterKit' in r.meta).toBe(false)
+    expect(r.ok && r.meta.library).toEqual([{ run: 2, kit }, null, null])
+    expect(libraryOf({ ...emptyMeta(), starterKit: kit })[0]?.run).toBe(1)
+  })
+})
+
+describe('the chosen kitchen (activeKit)', () => {
+  const kitA = (): Blueprint => upgraded().stallKit!
+  const kitB = (): Blueprint => ({ ...kitA(), menu: [{ dish: 'fries', price: 400 }] })
+  const two = (): MetaState => ({
+    ...emptyMeta(),
+    perks: { starterKit: 1 },
+    recipeBook: ['fries', 'salad'],
+    library: [{ run: 1, kit: kitA() }, { run: 2, kit: kitB() }, null],
+  })
+
+  it('defaults to the most recently saved, and a choice overrides it (null = none)', () => {
+    expect(activeKitOf(two())?.menu).toEqual([{ dish: 'fries', price: 400 }])
+    const first = chooseKit(two(), 0)
+    expect(first.ok && activeKitOf(first.meta)?.menu).toEqual(kitA().menu)
+    const none = chooseKit(two(), null)
+    expect(none.ok && activeKitOf(none.meta)).toBeUndefined()
+    const back = chooseKit(none.ok ? none.meta : two(), undefined)
+    expect(back.ok && 'activeKit' in back.meta).toBe(false)
+    expect(chooseKit(two(), 2).ok).toBe(false)
+    expect(chooseKit(two(), 7).ok).toBe(false)
+  })
+
+  it('createRun installs the chosen kitchen; none, or a slot that is now empty, equals no kit', () => {
+    const m = two()
+    expect(createRun(DEFS, 'kitchen-line', m).menu).toEqual([{ dish: 'fries', price: 400 }])
+    const a = chooseKit(m, 0)
+    if (!a.ok) throw new Error(a.reason)
+    expect(createRun(DEFS, 'kitchen-line', a.meta).menu).toEqual(kitA().menu)
+    const noKit = stateHash(createRun(DEFS, 'kitchen-line', { ...m, library: [null, null, null] }))
+    const none = chooseKit(m, null)
+    if (!none.ok) throw new Error(none.reason)
+    expect(stateHash(createRun(DEFS, 'kitchen-line', none.meta))).toBe(noKit)
+    expect(stateHash(createRun(DEFS, 'kitchen-line', { ...m, activeKit: 2 }))).toBe(noKit)
+    expect(stateHash(createRun(DEFS, 'kitchen-line', m))).not.toBe(noKit)
   })
 })
 
@@ -381,19 +445,30 @@ describe('starterKit perk: createRun', () => {
     const m = kitMeta(kit())
     const run = createRun(DEFS, 'kitchen-line', m)
     Object.values(run.buildings)[0].x = 99
-    expect(Object.values(m.starterKit!.buildings)[0].x).not.toBe(99)
+    expect(Object.values(m.library![0]!.kit.buildings)[0].x).not.toBe(99)
   })
 })
 
 describe('buyPerk starterKit', () => {
-  it('needs a saved kitchen in the meta', () => {
+  it('needs a saved kitchen in the library (or the legacy single one)', () => {
     const poor = meta({ points: 20 })
     const r = buyPerk(poor, DEFS, 'starterKit')
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.reason).toBe('no saved kitchen yet')
-    const ok = buyPerk({ ...poor, starterKit: upgraded().stallKit }, DEFS, 'starterKit')
+    const ok = buyPerk({ ...poor, library: [null, null, { run: 1, kit: upgraded().stallKit! }] }, DEFS, 'starterKit')
     expect(ok.ok && ok.meta.points).toBe(6)
     expect(ok.ok && ok.meta.perks.starterKit).toBe(1)
+    expect(buyPerk({ ...poor, starterKit: upgraded().stallKit }, DEFS, 'starterKit').ok).toBe(true)
+  })
+
+  it('counts the kitchen saved in this franchise out (record first, then buy)', () => {
+    const run = wonUpgraded('lib-buy')
+    const booked = recordFranchise(meta({ points: 5 }), run, DEFS, { saveSlot: 0 })
+    if (!booked.ok) throw new Error(booked.reason)
+    expect(booked.meta.points).toBeGreaterThanOrEqual(14)
+    expect(buyPerk(booked.meta, DEFS, 'starterKit').ok).toBe(true)
+    const dropped = recordFranchise(meta({ points: 5 }), run, DEFS)
+    if (!dropped.ok) throw new Error(dropped.reason)
+    expect(buyPerk({ ...dropped.meta, points: 50 }, DEFS, 'starterKit').ok).toBe(false)
   })
 })
-

@@ -191,5 +191,7 @@ export const FRANCHISE_REP_BASE = 3
 export const FRANCHISE_REP_POINTS = 2
 /** GAME_DESIGN 8.2: how many finished runs the meta history keeps. */
 export const FRANCHISE_HISTORY_MAX = 100
+/** GAME_DESIGN 8.2: how many stall kitchens the blueprint library holds. */
+export const LIBRARY_SLOTS = 3
 /** GAME_DESIGN 8.2: run 1 keeps this seed; run N uses `${seed}-runN`. */
 export const FRANCHISE_BASE_SEED = 'kitchen-line'

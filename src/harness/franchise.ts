@@ -8,8 +8,10 @@
 // (A first try, "cheapest affordable level first", bought good name 2 + seed money 2 and was slower.)
 // With the starter kitchen (`--meta` default, `--no-starterkit` turns it off) the order is starterKit first, then
 // the three above: the kitchen is bought once a run has saved one (buyPerk refuses it before that).
+// Blueprint library: each run's kitchen is saved into the first free slot (none free: the library is kept) and
+// the most recently saved one starts the next run.
 
-import { buyPerk, emptyMeta, franchisePoints, perkCost, recordFranchise } from '../sim/franchise.ts'
+import { buyPerk, emptyMeta, franchisePoints, libraryOf, perkCost, recordFranchise } from '../sim/franchise.ts'
 import type { FranchisePoints } from '../sim/franchise.ts'
 import type { Defs, MetaState } from '../sim/types.ts'
 import { runJourney } from './player.ts'
@@ -66,7 +68,10 @@ export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs:
     const r = runJourney(defs, base, { ...opts, chain: true, meta: run === 1 ? undefined : meta })
     out.runs.push(r)
     if (run === runs) break
-    const rec = recordFranchise(meta, r.state, defs)
+    // Library policy: the run's kitchen goes into the first free slot (a full library stays as it is); the next run
+    // starts with the most recently saved kitchen (the default choice).
+    const free = libraryOf(meta).findIndex((e) => e === null)
+    const rec = recordFranchise(meta, r.state, defs, { saveSlot: free < 0 ? null : free })
     if (!rec.ok) {
       out.problem = `run ${run}: ${rec.reason}`
       break

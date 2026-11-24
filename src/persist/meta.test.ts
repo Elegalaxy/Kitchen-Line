@@ -147,3 +147,30 @@ describe('starter kitchen in the meta (optional)', () => {
   })
 })
 
+describe('blueprint library in the meta (optional)', () => {
+  const kit = () => blueprintOf(chainReady(), DEFS)
+
+  it('round-trips with kitchens, nulls and a choice; a meta without a library still loads', () => {
+    const m = { ...sample(), library: [{ run: 1, kit: kit() }, null, { run: 3, kit: kit() }], activeKit: 2 }
+    expect(loadMeta(serializeMeta(m, '2026-11-24T00:00:00Z'))).toEqual({ ok: true, meta: m })
+    expect(loadMeta(env({ ...sample(), activeKit: null })).ok).toBe(true)
+    expect(loadMeta(env({ ...sample(), starterKit: kit() })).ok).toBe(true)
+  })
+
+  it('rejects a hostile library with a reason', () => {
+    const reason = (over: Record<string, unknown>): string => {
+      const r = loadMeta(env({ ...sample(), ...over }))
+      return r.ok ? '' : r.reason
+    }
+    expect(reason({ library: 'x' })).toContain('meta.library')
+    expect(reason({ library: [null, null, null, null] })).toContain('too many')
+    expect(reason({ library: [5] })).toContain('meta.library[0]')
+    expect(reason({ library: [{ run: 0, kit: kit() }] })).toContain('meta.library[0].run')
+    expect(reason({ library: [{ run: 1 }] })).toContain('meta.library[0].kit')
+    expect(reason({ library: [null, { run: 1, kit: { ...kit(), tiles: [] } }] })).toContain('meta.library[1].kit.tiles')
+    expect(reason({ library: [{ run: 1, kit: { ...kit(), width: 100000 } }] })).toContain('meta.library[0].kit')
+    expect(reason({ activeKit: 3 })).toContain('meta.activeKit')
+    expect(reason({ activeKit: 'a' })).toContain('meta.activeKit')
+    expect(reason({ activeKit: 0.5 })).toContain('meta.activeKit')
+  })
+})

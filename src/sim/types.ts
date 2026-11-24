@@ -395,6 +395,9 @@ export type PerkDef = {
 /** One finished franchised run in the meta history (GAME_DESIGN 8.2). */
 export type RunRecord = { run: number; seed: string; days: number; profit: number; chainProfit: number; points: number }
 
+/** One saved kitchen in the blueprint library: the run it came from and its stall kitchen (GAME_DESIGN 8.2). */
+export type LibraryEntry = { run: number; kit: Blueprint }
+
 /** Meta progress across runs (GAME_DESIGN 8.2), saved under its own key. Not part of `GameState`. */
 export type MetaState = {
   runsCompleted: number
@@ -402,8 +405,12 @@ export type MetaState = {
   perks: Record<string, number>
   recipeBook: DishId[]
   history: RunRecord[]
-  /** The stall kitchen of the latest run that upgraded to a restaurant (GAME_DESIGN 8.2). Absent until one did. */
+  /** Legacy single saved kitchen (before the library). Read as library slot 1 by `libraryOf`; never written any more. */
   starterKit?: Blueprint
+  /** The blueprint library: LIBRARY_SLOTS slots, null = empty. Absent until a kitchen is saved (GAME_DESIGN 8.2). */
+  library?: (LibraryEntry | null)[]
+  /** Slot (0-based) of the kitchen that starts the next run, or null for none. Absent: the most recently saved one. */
+  activeKit?: number | null
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */

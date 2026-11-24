@@ -5,8 +5,10 @@
 //   recordFranchise  book the run: points, history, recipe book (stall dishes only)
 //   buyPerk          spend points on the next level of a perk (permanent)
 //   createRun        createGame plus the perks and the recipe book: the starting state only
-// Starter kitchen (2026-11-24): `recordFranchise` keeps the run's `stallKit` (the stall kitchen at the
-// restaurant upgrade) as `meta.starterKit`; the `starterKit` perk installs it free on day 1.
+// Blueprint library (2026-11-24): the run's `stallKit` (the stall kitchen at the restaurant upgrade) is saved
+// by the player's choice into one of LIBRARY_SLOTS slots of `meta.library` (`recordFranchise` options); the
+// `starterKit` perk installs the chosen saved kitchen (`meta.activeKit`, default the latest) free on day 1.
+// An old meta with the single `starterKit` reads as library slot 1 (`libraryOf`).
 // No tick rule: with an empty meta, or perks but no kit, `createRun` is exactly `createGame`.
 
 import {
@@ -23,20 +25,69 @@ import {
   FRANCHISE_REP_POINTS,
   FRANCHISE_SPEED_CAP,
   FRANCHISE_SPEED_DAYS,
+  LIBRARY_SLOTS,
 } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { createGame } from './game.ts'
 import { footprint } from './grid.ts'
 import { priceProblem } from './menu.ts'
-import type { Blueprint, Defs, DishId, GameState, MetaState, PerkDef } from './types.ts'
+import type { Blueprint, Defs, DishId, GameState, LibraryEntry, MetaState, PerkDef } from './types.ts'
 
 export type PointsPart = { id: 'chain' | 'earnings' | 'speed' | 'reputation'; label: string; points: number }
 export type FranchisePoints = { total: number; parts: PointsPart[] }
+
+/** `saveSlot`: the library slot (0-based) that takes this run's kitchen; null or absent: do not save it. */
+export type RecordOptions = { saveSlot?: number | null }
 
 export type FranchiseResult = { ok: true; meta: MetaState } | { ok: false; reason: string }
 
 export function emptyMeta(): MetaState {
   return { runsCompleted: 0, points: 0, perks: {}, recipeBook: [], history: [] }
+}
+
+/**
+ * The library as exactly LIBRARY_SLOTS slots (null = empty). An old meta's single `starterKit` is slot 1, as
+ * run (last history run, or 1). Pure; does not change the meta.
+ */
+export function libraryOf(meta: MetaState): (LibraryEntry | null)[] {
+  const slots: (LibraryEntry | null)[] = []
+  for (let i = 0; i < LIBRARY_SLOTS; i += 1) slots.push(meta.library?.[i] ?? null)
+  if (meta.library === undefined && meta.starterKit !== undefined) {
+    slots[0] = { run: meta.history[meta.history.length - 1]?.run ?? 1, kit: meta.starterKit }
+  }
+  return slots
+}
+
+/** The most recently saved slot (highest run, a tie goes to the later slot), or null when the library is empty. */
+export function latestSlot(library: (LibraryEntry | null)[]): number | null {
+  let best: number | null = null
+  let bestRun = -1
+  for (let i = 0; i < library.length; i += 1) {
+    const e = library[i]
+    if (e !== null && e.run >= bestRun) {
+      best = i
+      bestRun = e.run
+    }
+  }
+  return best
+}
+
+/** The kitchen the next run starts with: the player's choice (`activeKit`; null = none), else the latest saved. */
+export function activeKitOf(meta: MetaState): Blueprint | undefined {
+  const lib = libraryOf(meta)
+  if (meta.activeKit === null) return undefined
+  const slot = meta.activeKit ?? latestSlot(lib)
+  return slot === null ? undefined : lib[slot]?.kit
+}
+
+/** Choose the kitchen that starts the next run: a slot, null for none, undefined for the default (latest saved). */
+export function chooseKit(meta: MetaState, slot: number | null | undefined): FranchiseResult {
+  const next = { ...meta }
+  if (slot === undefined) delete next.activeKit
+  else if (slot === null) next.activeKit = null
+  else if (libraryOf(meta)[slot]?.kit === undefined) return { ok: false, reason: 'no saved kitchen in that slot' }
+  else next.activeKit = slot
+  return { ok: true, meta: next }
 }
 
 const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n))
@@ -79,9 +130,11 @@ function bookable(defs: Defs, id: DishId): boolean {
  * FRANCHISE_HISTORY_MAX), and merge its unlocked stall dishes into the recipe book. Refused when the
  * chain is not built, or when the history already holds this state's seed (a reloaded tab cannot pay twice).
  */
-export function recordFranchise(meta: MetaState, state: GameState, defs: Defs): FranchiseResult {
+export function recordFranchise(meta: MetaState, state: GameState, defs: Defs, options: RecordOptions = {}): FranchiseResult {
   if (!canFranchise(state)) return { ok: false, reason: 'chain not built yet' }
   if (meta.history.some((h) => h.seed === state.seed)) return { ok: false, reason: 'this run is already franchised' }
+  const slot = options.saveSlot ?? null
+  if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot >= LIBRARY_SLOTS)) return { ok: false, reason: 'bad library slot' }
   const points = franchisePoints(state).total
   const book = [...meta.recipeBook]
   for (const id of state.unlocked) if (bookable(defs, id) && !book.includes(id)) book.push(id)
@@ -103,8 +156,12 @@ export function recordFranchise(meta: MetaState, state: GameState, defs: Defs): 
     recipeBook: book,
     history,
   }
-  // The latest run's kitchen always replaces the old one; a run that never upgraded keeps the old one.
-  if (state.stallKit !== undefined) next.starterKit = structuredClone(state.stallKit)
+  // The kitchen is saved only when the player picked a slot (it may overwrite what is there); a run that never
+  // upgraded has no kit. A legacy single kit moves into the library.
+  delete next.starterKit
+  const library = libraryOf(meta)
+  if (slot !== null && state.stallKit !== undefined) library[slot] = { run: meta.runsCompleted + 1, kit: structuredClone(state.stallKit) }
+  if (library.some((e) => e !== null)) next.library = library
   return { ok: true, meta: next }
 }
 
@@ -124,8 +181,8 @@ export function perkCost(meta: MetaState, defs: Defs, id: string): number | null
 export function buyPerk(meta: MetaState, defs: Defs, id: string): FranchiseResult {
   const perk = perkOf(defs, id)
   if (perk === undefined) return { ok: false, reason: 'unknown perk' }
-  // The starter kitchen is only worth points once a run has saved a kitchen to install.
-  if (perk.effect.starterKit === true && meta.starterKit === undefined) return { ok: false, reason: 'no saved kitchen yet' }
+  // The starter kitchen is only worth points once a kitchen is saved (a franchise out books its save first).
+  if (perk.effect.starterKit === true && libraryOf(meta).every((e) => e === null)) return { ok: false, reason: 'no saved kitchen yet' }
   const cost = perkCost(meta, defs, id)
   if (cost === null) return { ok: false, reason: 'already at the top level' }
   if (meta.points < cost) return { ok: false, reason: `needs ${cost} points` }
@@ -256,7 +313,8 @@ export function applyFranchiseStart(state: GameState, defs: Defs, meta: MetaStat
     state.height = step.height
     state.expansion += 1
   }
-  if (meta.starterKit !== undefined && perkTotal(meta, defs, 'starterKit') > 0) installStarterKit(state, defs, meta.starterKit)
+  const kit = activeKitOf(meta)
+  if (kit !== undefined && perkTotal(meta, defs, 'starterKit') > 0) installStarterKit(state, defs, kit)
   state.events = []
 }
 

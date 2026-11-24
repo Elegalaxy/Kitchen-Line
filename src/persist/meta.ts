@@ -6,8 +6,8 @@
 // `loadMeta` never trusts its input and never throws. Every field is required. Persist cannot see the
 // content defs, so perk ids and dish ids are checked for shape only (the UI ignores ids it does not know);
 // counts are bounded so a hostile file cannot make the loader do unbounded work. The helpers are small
-// copies of the ones in save.ts on purpose (save.ts is not refactored for this); the optional starter kitchen
-// reuses save.ts's blueprint check.
+// copies of the ones in save.ts on purpose (save.ts is not refactored for this); the optional saved kitchens
+// (the blueprint library, and the legacy single `starterKit` of older files) reuse save.ts's blueprint check.
 
 import type { MetaState } from '../sim/types.ts'
 import { blueprint, Invalid } from './save.ts'
@@ -25,6 +25,8 @@ const MAX_BOOK = 200
 const MAX_PERKS = 64
 const MAX_PERK_LEVEL = 99
 const MAX_POINTS = 1_000_000
+/** Same as LIBRARY_SLOTS in sim/constants.ts (persist imports no sim values). */
+const MAX_LIBRARY = 3
 
 type Obj = Record<string, unknown>
 
@@ -82,6 +84,16 @@ function validateMeta(v: unknown): MetaState {
   history(m.history, 'meta.history')
   // Optional, so older meta files load. The same grid checks as a branch's blueprint (bounded sizes).
   if (m.starterKit !== undefined) blueprint(m.starterKit, 'meta.starterKit')
+  if (m.library !== undefined) {
+    arr(m.library, 'meta.library', MAX_LIBRARY).forEach((x, i) => {
+      if (x === null) return
+      const p = `meta.library[${i}]`
+      const e = obj(x, p)
+      int(e.run, `${p}.run`, 1)
+      blueprint(e.kit, `${p}.kit`)
+    })
+  }
+  if (m.activeKit !== undefined && m.activeKit !== null) int(m.activeKit, 'meta.activeKit', 0, MAX_LIBRARY - 1)
   return m as unknown as MetaState
 }
 

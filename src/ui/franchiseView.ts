@@ -1,10 +1,11 @@
 // View helper for the Franchise modal and the "Chain built" preview (GAME_DESIGN 8.2): the points
 // breakdown, the perk cards with their next cost and effect, the balance after the picks, and what is
-// kept. `picks` is the list of perk ids chosen in the modal (one id per level, in order); nothing is
-// bought until the player confirms (session.franchiseOut). Pure and unit-tested.
+// kept, and the blueprint library (which slot takes this run's kitchen, which saved kitchen starts the next
+// run). `picks` is the list of perk ids chosen in the modal (one id per level, in order); nothing is
+// bought or saved until the player confirms (session.franchiseOut). Pure and unit-tested.
 
-import { buyPerk, canFranchise, franchisePoints, perkCost, recordFranchise, starterKitSummary } from '../sim/franchise.ts'
-import type { Defs, GameState, MetaState, PerkDef } from '../sim/types.ts'
+import { buyPerk, canFranchise, franchisePoints, latestSlot, libraryOf, perkCost, recordFranchise, starterKitSummary } from '../sim/franchise.ts'
+import type { Blueprint, Defs, GameState, LibraryEntry, MetaState, PerkDef } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 
 export type PointsRow = { id: string; label: string; text: string }
@@ -33,6 +34,17 @@ export type PerkCardView = {
   reason: string | null
 }
 
+/** The player's two library choices in the modal; undefined means "the default". */
+export type KitChoices = {
+  /** Slot that takes this run's kitchen; null = don't save. Default: the first empty slot, else don't save. */
+  saveSlot?: number | null
+  /** Slot that starts the next run; null = none. Default: the most recently saved. */
+  useSlot?: number | null
+}
+
+/** One library slot as the modal shows it. */
+export type SlotView = { slot: number; name: string; text: string; empty: boolean }
+
 export type FranchiseView = {
   /** The number of the run that starts next. */
   nextRun: number
@@ -50,6 +62,16 @@ export type FranchiseView = {
   bookText: string
   /** One line per kept thing, for the confirm summary and the end-screen preview. */
   kept: string[]
+  /** This run's kitchen ("21 buildings, value $607.00"), or null when the run never upgraded (no save choice). */
+  runKitText: string | null
+  /** The slots this run's kitchen could go into (what is there now), and the selected one (null = don't save). */
+  saveSlots: SlotView[]
+  saveSelected: number | null
+  /** The saved kitchens after this franchise (the choices for the next run), and the selected one (null = none). */
+  useSlots: SlotView[]
+  useSelected: number | null
+  /** The Starter kitchen perk is owned after the picks, so the player chooses which kitchen starts the next run. */
+  kitOwned: boolean
   /** Why franchising is not possible now, or null. */
   blocked: string | null
   startLabel: string
@@ -71,8 +93,31 @@ export function effectText(perk: PerkDef, level: number, defs: Defs): string {
   return parts.join(', ')
 }
 
-function projected(meta: MetaState, state: GameState, defs: Defs, picks: string[]): { meta: MetaState; applied: string[] } {
-  const booked = recordFranchise(meta, state, defs)
+/** "Run 2, fries + salad, 21 buildings, value $607.00" (dishes from the menu, else the unlocked ones). */
+export function kitLabel(entry: LibraryEntry, defs: Defs): string {
+  const ids = entry.kit.menu.length > 0 ? entry.kit.menu.map((m) => m.dish) : entry.kit.unlocked
+  const names = ids.map((id) => (defs.dishes[id]?.name ?? id).toLowerCase())
+  const s = starterKitSummary(entry.kit)
+  return `Run ${entry.run}, ${names.length === 0 ? 'no dishes' : names.join(' + ')}, ${plural(s.buildings, 'building')}, value ${formatMoney(s.value)}`
+}
+
+function kitText(kit: Blueprint): string {
+  const s = starterKitSummary(kit)
+  return `${plural(s.buildings, 'building')}, value ${formatMoney(s.value)}`
+}
+
+function slotViews(library: (LibraryEntry | null)[], defs: Defs): SlotView[] {
+  return library.map((e, slot) => ({ slot, name: `Slot ${slot + 1}`, text: e === null ? 'Empty' : kitLabel(e, defs), empty: e === null }))
+}
+
+function projected(
+  meta: MetaState,
+  state: GameState,
+  defs: Defs,
+  picks: string[],
+  saveSlot: number | null,
+): { meta: MetaState; applied: string[] } {
+  const booked = recordFranchise(meta, state, defs, { saveSlot })
   let cur: MetaState = booked.ok ? booked.meta : { ...meta, points: meta.points + franchisePoints(state).total }
   const applied: string[] = []
   for (const id of picks) {
@@ -84,11 +129,18 @@ function projected(meta: MetaState, state: GameState, defs: Defs, picks: string[
   return { meta: cur, applied }
 }
 
-export function franchiseView(state: GameState, meta: MetaState, defs: Defs, picks: string[]): FranchiseView {
+export function franchiseView(state: GameState, meta: MetaState, defs: Defs, picks: string[], choices: KitChoices = {}): FranchiseView {
   const fp = franchisePoints(state)
+  const before = libraryOf(meta)
+  const firstEmpty = before.findIndex((e) => e === null)
+  const wanted = choices.saveSlot === undefined ? (firstEmpty < 0 ? null : firstEmpty) : choices.saveSlot
+  const saveSelected = state.stallKit === undefined || wanted === null || wanted < 0 || wanted >= before.length ? null : wanted
   const rows: PointsRow[] = fp.parts.map((p) => ({ id: p.id, label: p.label, text: `+${p.points}` }))
-  const booked = projected(meta, state, defs, [])
-  const after = projected(meta, state, defs, picks)
+  const booked = projected(meta, state, defs, [], saveSelected)
+  const after = projected(meta, state, defs, picks, saveSelected)
+  const library = libraryOf(after.meta)
+  const useWanted = choices.useSlot === undefined ? latestSlot(library) : choices.useSlot
+  const useSelected = useWanted === null || library[useWanted] == null ? null : useWanted
   const spent = booked.meta.points - after.meta.points
   const perks = defs.perks ?? []
   const cards: PerkCardView[] = perks.map((perk) => {
@@ -99,9 +151,8 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
     const maxed = nextCost === null
     const short = !maxed && after.meta.points < nextCost
     const needsKit = perk.effect.starterKit === true
-    const kit = needsKit ? after.meta.starterKit : undefined
-    const noKit = needsKit && kit === undefined
-    const summary = kit === undefined ? null : starterKitSummary(kit)
+    const saved = library.filter((e) => e !== null).length
+    const noKit = needsKit && saved === 0
     return {
       id: perk.id,
       name: perk.name,
@@ -114,7 +165,7 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
       costText: maxed ? '–' : `${nextCost} points`,
       nextEffect: maxed ? null : effectText(perk, level + 1, defs),
       currentEffect: level === 0 ? 'None yet' : effectText(perk, level, defs),
-      kitText: !needsKit ? null : summary === null ? 'None saved yet' : `${plural(summary.buildings, 'building')}, value ${formatMoney(summary.value)}`,
+      kitText: !needsKit ? null : saved === 0 ? 'None saved yet' : `${saved} of ${library.length} slots used`,
       canBuy: !maxed && !short && !noKit,
       reason: maxed
         ? 'Top level reached'
@@ -130,6 +181,7 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
   const perkLines = cards.filter((c) => c.level > 0).map((c) => `${c.name} level ${c.level}`)
   const nextRun = meta.runsCompleted + 2
   const dup = meta.history.some((h) => h.seed === state.seed)
+  const kitOwned = cards.some((c) => c.id === 'starterKit' && c.level > 0)
   return {
     nextRun,
     rows,
@@ -142,6 +194,12 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
     bookNames,
     bookText,
     kept: [bookText, perkLines.length === 0 ? 'Perks: none yet' : `Perks: ${perkLines.join(', ')}`, `Points left: ${after.meta.points}`],
+    runKitText: state.stallKit === undefined ? null : kitText(state.stallKit),
+    saveSlots: slotViews(before, defs),
+    saveSelected,
+    useSlots: slotViews(library, defs),
+    useSelected,
+    kitOwned,
     blocked: dup ? 'This run is already franchised' : canFranchise(state) ? null : 'Build the chain first',
     startLabel: `Sell chain and start run ${nextRun}`,
   }

@@ -144,3 +144,36 @@ describe('session franchiseOut', () => {
     expect(storage.data.size).toBe(0)
   })
 })
+
+describe('session franchiseOut with the blueprint library', () => {
+  it('saves the run kitchen into the chosen slot, buys the perk and starts the next run with it', () => {
+    const storage = fakeStorage()
+    const session = wonSession(storage)
+    const out = session.franchiseOut(['starterKit'], { saveSlot: 2, useSlot: 2 })
+    expect(out).toEqual({ ok: true })
+    expect(session.meta.library?.map((e) => e?.run ?? null)).toEqual([null, null, 1])
+    expect(session.meta.activeKit).toBe(2)
+    expect(session.meta.perks.starterKit).toBe(1)
+    expect(Object.keys(session.store.getState().buildings).length).toBeGreaterThan(2)
+    const stored = readMeta(storage, DEFS).meta
+    expect(stored.library?.[2]?.run).toBe(1)
+  })
+
+  it('without a save slot nothing is saved and the starter kitchen cannot be bought', () => {
+    const session = wonSession(fakeStorage())
+    const out = session.franchiseOut(['starterKit'])
+    expect(out.ok).toBe(false)
+    expect(session.meta.runsCompleted).toBe(0)
+    expect(session.franchiseOut([], { saveSlot: null }).ok).toBe(true)
+    expect(session.meta.library).toBeUndefined()
+  })
+
+  it('refuses a bad slot or a choice of an empty slot without writing anything', () => {
+    const storage = fakeStorage()
+    const session = wonSession(storage)
+    expect(session.franchiseOut([], { saveSlot: 7 }).ok).toBe(false)
+    expect(session.franchiseOut([], { saveSlot: null, useSlot: 1 }).ok).toBe(false)
+    expect(storage.data.has(META_KEY)).toBe(false)
+    expect(session.meta.runsCompleted).toBe(0)
+  })
+})
