@@ -132,7 +132,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
 - Restaurant goal 7 (provisional, 2026-11-23): earn $5,000 profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
 - Chain of branches: **[provisional]**, see 8.1 (user decision 2026-11-24). Franchise comes after it. **[later]**
-- Franchise prestige: sell the chain and restart. **[confirmed as the long-term structure; the first slice (starting-state perks and a free recipe book, no rule perks, no blueprint library) is [provisional], see 8.2]**
+- Franchise prestige: sell the chain and restart. **[confirmed as the long-term structure; the first slice (starting-state perks, a free recipe book and one saved starter kitchen, no rule perks, no multi-slot blueprint library) is [provisional], see 8.2]**
 - The first playable ends at the restaurant tier with a "you're ready to expand" end screen, which is now the midpoint: after "Keep playing" the chain stage (8.1) opens. **[provisional]**
 
 ### 8.1 Chain stage
@@ -162,7 +162,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 ### 8.2 Franchise
 
-**[provisional]**, approved by the user on 2026-11-24 (starting-state perks only, no rule perks; the blueprint library stays **[later]**; recipe book free and automatic; tutorial only in the first ever run, see 13). Numbers live in `sim/constants.ts` (`FRANCHISE_*`) and `content/perks.ts`.
+**[provisional]**, approved by the user on 2026-11-24 (starting-state perks only, no rule perks; recipe book free and automatic; tutorial only in the first ever run, see 13). Starter kitchen perk added 2026-11-24 (one saved kitchen, no library). Numbers live in `sim/constants.ts` (`FRANCHISE_*`) and `content/perks.ts`.
 
 - **Franchise out.** Once `chainWon`, in the build or won phase, the player can sell the chain and start run N+1: a new stall (day 1, new seed). Nothing of the old run carries over except the meta progress below. The Franchise modal is the only place perks are bought (between runs).
 - **Franchise points (FP).** `franchisePoints(state)` is the sum of four parts, each shown in the modal: chain built 10; earnings 1 per $1,000 of (`totals.profit` + `chainProfit`), capped at 25; speed `max(0, 40 - totals.days)`, capped at 10; reputation 2 per full star above 3 (`floor(rep) - 3`, times 2, at least 0). A typical run 1 gives about 36 FP, the maximum is 49. Unspent points carry over.
@@ -173,11 +173,13 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 | Seed money | +$250 start cash per level | 3: 6 / 9 / 12 (start $400 / $650 / $900) |
 | Good name | 4 of the 10 starting virtual ratings are 4 stars (reputation 3.4, then 3.8) | 2: 5 / 8 |
 | Bigger stall | Start with expansion 1 (10 x 8), applied for free | 1: 10 |
+| Starter kitchen | Day 1 starts with your saved stall kitchen already built (see below), free | 1: 14 |
 
+- **Starter kitchen** (user decision 2026-11-24, **[provisional]**, one saved kitchen, no library). When the player upgrades stall to restaurant, `upgradeTier` saves the stall kitchen as it is at that moment (`GameState.stallKit`, a blueprint as in 8.1: grid size and expansion, buildings with buffers emptied, status idle, pantries running, menu with prices, unlocked dishes; stall buildings only). Franchising (`recordFranchise`) copies it to `MetaState.starterKit` and always replaces the previous one with the latest run's kit; a run that never upgraded keeps the old one. With the perk owned and a kit saved, `applyFranchiseStart` installs it on day 1 of the new run: grid, buildings (they replace the pre-placed pass and pantry; ids continue after the highest one), the saved menu with its prices, and the saved stall dishes as unlocked. It is **free**: the start cash is only $150 and could not pay for it, so the FP price is the cost. A Bigger stall grid is kept (the kit is placed in it). Defensive: only stall buildings (`requiresTier` stall, no fast belt, no pro station, at most the one pre-placed pass), stall expansions, tiles that match the footprints and stall dishes survive; a kit that does not fit is not installed and nothing throws. The perk cannot be bought before a kit exists ("Upgrade to a restaurant in a run first"). With an empty meta, or perks but no kit, the run is exactly `createGame`.
 - **Recipe book.** The union of dishes unlocked in franchised runs, counting only dishes without `requiresTier` (stall dishes; `setMenu` does not check the tier, so restaurant dishes would skip the climb). Book dishes start unlocked. It is free and automatic: no points are spent.
 - **Seeds.** Run 1 keeps the seed `kitchen-line`; run N uses `kitchen-line-runN`. `createRun(defs, baseSeed, meta)` is `createGame(defs, runSeed)` plus the starting-state changes (money, ratings, unlocked dishes, grid size and expansion, events cleared). No new `GameState` field and no tick rule: with an empty meta run 1 is exactly the old game (same `stateHash`).
-- **Meta save.** A second key, `kitchen-line.meta.v1` (a bad file is kept under `.corrupt` and an empty meta is used): `{ version: 1, savedAt, meta }`, with `meta` = `runsCompleted`, `points`, `perks` (id to level), `recipeBook` (dish ids) and `history` (last 100 runs: run, seed, days, profit, chainProfit, points). Franchising is refused when the history already holds the current state's seed (so a reloaded tab cannot pay twice).
-- **[later]** Rule perks, a blueprint library across runs, prestige tiers beyond run N.
+- **Meta save.** A second key, `kitchen-line.meta.v1` (a bad file is kept under `.corrupt` and an empty meta is used): `{ version: 1, savedAt, meta }`, with `meta` = `runsCompleted`, `points`, `perks` (id to level), `recipeBook` (dish ids), `history` (last 100 runs: run, seed, days, profit, chainProfit, points) and the optional `starterKit` (a blueprint; absent in older files, so no version bump). Franchising is refused when the history already holds the current state's seed (so a reloaded tab cannot pay twice).
+- **[later]** Rule perks, a multi-slot blueprint library across runs (the single starter kitchen above is the first slice), prestige tiers beyond run N.
 
 ## 9. Demand that moves
 
@@ -239,6 +241,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-24: User decision (starter kitchen, provisional numbers, no **[confirmed]** rule): new franchise perk "Starter kitchen" (14 FP) in 8.2. The upgrade to restaurant saves the stall kitchen (`stallKit`); franchising keeps the latest one as `meta.starterKit`; the perk installs it free on day 1 of the next run. Optional fields only: runs that never upgrade, and all stall layouts, keep identical hashes; old saves and meta files load. The multi-slot blueprint library stays **[later]**. Plan: doc/plans/2026-11-24-starter-kit.md.
 
 - 2026-11-24: User decision (franchise prestige, provisional numbers; touches one **[confirmed]** rule): new section 8.2. After "Chain built" the player can franchise out into run N+1 with franchise points, three starting-state perks (seed money, good name, bigger stall), a free recipe book of stall dishes, and a second save key `kitchen-line.meta.v1`. No rule perks; the blueprint library stays **[later]**. The **[confirmed]** tutorial rule (section 13) is changed by the user's decision: the tutorial is shown only in the first ever run, and later runs get no salad top-up. Run 1 with an empty meta is unchanged (same hashes). Plan: doc/plans/2026-11-24-franchise.md.
 
