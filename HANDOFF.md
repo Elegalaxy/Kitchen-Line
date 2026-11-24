@@ -1,14 +1,17 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, production-line control, 2026-11-22)
-- **Current Goal:** First playable is finished (Steps 1 to 18 `done`). This round added two user-decided controls: pantry pause and overnight cleanup. Remaining work is the user's playtest and the balance decision below.
-- **Recent Changes & Files Touched:**
-  - Pantry pause (commit 1): `configure { paused }` and `setPantriesPaused` (`src/sim/commands.ts`, `grid.ts`, `tick.ts`, `types.ts`), status `paused`, one undo entry for the bulk command (`src/ui/undo.ts`), view helper `src/ui/pantryPause.ts`, Inspector toggle, Build panel "Pause / Resume pantries" button, canvas badge, `blockReason.ts`. The flag exists only while paused, so no hash changed; old saves load (`src/persist/save.ts`). Pause works in every phase.
-  - Overnight cleanup (commit 2): `clearOvernight` in `src/sim/spoil.ts`, called by `endDay` (`day.ts`); new stats `wasteOvernight` / `overnightByItem` (part of `wasteSpoiled`), optional on load; summary row "Waste: left at close"; the bottleneck hint ignores it.
-  - Docs: GAME_DESIGN section 4, 5.3, 6.3 and changelog; plan note "Production-line control" after the Journey simulation.
+- **Last Updated By:** Claude (lead session, chain tier milestone, 2026-11-24)
+- **Current Goal:** First playable plus the content expansion are built. The chain stage (branches) is in and measured. Remaining work: playtesting by the user and the open items below.
+- **Recent Changes & Files Touched (all on `origin/main`, plans in `doc/plans/2026-11-23-restaurant-growth.md`, `2026-11-24-{trends,pro-stations,dish-pack,critics,chain}.md`):**
+  - Pantry pause, overnight cleanup, closing-soon cue (60 s, `CLOSING_SOON_TICKS` 600), summary pause button, scripted player pauses before close.
+  - Restaurant growth: second pass ($400, max 2), 4 upgrades (tables, sign, music, plates), arrival factor 2.0, goal 7 ($5,000 restaurant profit, `tierProfitStart`).
+  - Daily trends (`src/sim/trend.ts`), pro stations (`pro: true` on fryer, stove, assembler), dish pack (fish and chips, cheeseburger, `requiresTier`), food critics (`src/sim/critic.ts`, `tierDay`).
+  - Chain tier: blueprints and branches (`src/sim/{blueprint,branches,nights}.ts`, `src/content/branchAreas.ts`), 3 chain goals, Branches tab, Chain built end screen, harness plays the chain stage (`--no-chain` to stop at the restaurant end screen).
+  - CI perf test: CI limit 8 s and a 60 s test timeout (`src/harness/perf.test.ts`).
 - **Active Decisions / Constraints:**
-  - Re-measure (20 seeds): throttled journey still 20/20 (end screen day 11 -> 12). `--no-throttle` drops from 19/20 to 11/20. Every layout still profits but less: 5-day profit saladLine 112 -> 77, sandwichLine 98 -> 55, friesLine 271 -> 262, friesSaladLine 324 -> 286, burgerLine 76 -> 43, soupLine 105 -> 93, riceBowlLine 214 -> 196. Cause: the pipeline is refilled every morning and binned at close.
-  - No other numbers were changed. The scripted player (`src/harness/player.ts`) never pauses pantries.
-  - Wall-clock perf tests (`src/harness/perf.test.ts`) fail when the machine is loaded (they also failed on the previous commit); run them alone.
-  - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow).
-- **Exact Next Step:** The user decides whether the overnight cost is acceptable (options in the plan note: teach the player to pause pantries before close, cheaper refills, or leave it), then re-run `npm run sim -- --journey --seeds 20` with and without `--no-throttle`. Earlier playtest asks still stand: 2 days of fries then salad, judge money pace, waiting and waste clarity, and try the new pause buttons.
+  - Journey (20 seeds): restaurant end screen median day 19, chain end screen median day 31 (about 2.1 h at 1x), 0 flagship loss days. `--no-throttle` reaches the chain at day 29.
+  - Branches run a stored test-day result with +-10% hash noise minus area rent; no close-branch command; restaurant upgrades do not apply to branches (user decisions 2026-11-24).
+  - Chain goal 3 target was lowered to $1,000 by the harness tuning.
+  - The perf test fails locally under load (1.5 to 2.3 s against 1 s); run it alone.
+  - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow). The main checkout has another chat's uncommitted edits in `Inspector.tsx` and `draw.ts` and lags `origin/main`.
+- **Exact Next Step:** User decides the next slice. Candidates: R6 seasons, R8 franchise prestige, teaching the scripted player to menu trend dishes and build the new dishes, a close-branch command, a pass-value question (blueprint value counts the pre-placed pass), unverified UI checks (chain end screen with real branches at 1024 px, refit flow, day summary lines for trend and critic).
