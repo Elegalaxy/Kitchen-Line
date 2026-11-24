@@ -2,7 +2,7 @@
 
 Living design document. Source of truth for rules, numbers, and first-playable scope. The portfolio brief is [docs/ideas/kitchen-line.md](../../docs/ideas/kitchen-line.md).
 
-Last updated: 2026-11-22
+Last updated: 2026-11-24
 
 Every rule is tagged:
 
@@ -22,7 +22,7 @@ The player never cooks by hand. **[confirmed]**
 1. **The menu drives the factory.** Each dish is a recipe tree; tycoon choices become building problems.
 2. **Readable, cozy automation.** Small kitchens; the whole line fits on screen and bottlenecks are visible.
 3. **Demand moves.** A finished line does not stay optimal; redesign is part of the loop.
-4. **Grow from a stall to a chain.** The first playable covers stall → small restaurant; the chain stage (8.1) follows the restaurant end screen; franchise comes later.
+4. **Grow from a stall to a chain.** The first playable covers stall → small restaurant; the chain stage (8.1) follows the restaurant end screen; after the chain is built the player can franchise out and start a new run with permanent perks (8.2).
 
 ## 3. Core loop
 
@@ -132,7 +132,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Restaurant goal 5 (provisional): sell 5 different dishes, at least 10 of each (`GOAL_DISH_SALES`), in one day. It is checked on the day in progress and on a finished day at day end, so it needs a real production line for each dish; a long menu alone does not complete it. Goal 6 is unchanged.
 - Restaurant goal 7 (provisional, 2026-11-23): earn $5,000 profit at the restaurant tier (profit counted from the moment of the upgrade; an old restaurant save without that mark counts all its profit). The "Ready to expand" end screen comes after goal 7, not after goal 6.
 - Chain of branches: **[provisional]**, see 8.1 (user decision 2026-11-24). Franchise comes after it. **[later]**
-- Franchise prestige: sell the chain and restart with a better recipe book and blueprints. **[later; confirmed as the long-term structure]**
+- Franchise prestige: sell the chain and restart. **[confirmed as the long-term structure; the first slice (starting-state perks and a free recipe book, no rule perks, no blueprint library) is [provisional], see 8.2]**
 - The first playable ends at the restaurant tier with a "you're ready to expand" end screen, which is now the midpoint: after "Keep playing" the chain stage (8.1) opens. **[provisional]**
 
 ### 8.1 Chain stage
@@ -160,6 +160,25 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Without branches nothing changes: a run that never opens a branch has identical hashes and results.
 - **[later]** A branch's own manager, selling a branch, branch-specific menus.
 
+### 8.2 Franchise
+
+**[provisional]**, approved by the user on 2026-11-24 (starting-state perks only, no rule perks; the blueprint library stays **[later]**; recipe book free and automatic; tutorial only in the first ever run, see 13). Numbers live in `sim/constants.ts` (`FRANCHISE_*`) and `content/perks.ts`.
+
+- **Franchise out.** Once `chainWon`, in the build or won phase, the player can sell the chain and start run N+1: a new stall (day 1, new seed). Nothing of the old run carries over except the meta progress below. The Franchise modal is the only place perks are bought (between runs).
+- **Franchise points (FP).** `franchisePoints(state)` is the sum of four parts, each shown in the modal: chain built 10; earnings 1 per $1,000 of (`totals.profit` + `chainProfit`), capped at 25; speed `max(0, 40 - totals.days)`, capped at 10; reputation 2 per full star above 3 (`floor(rep) - 3`, times 2, at least 0). A typical run 1 gives about 36 FP, the maximum is 49. Unspent points carry over.
+- **Perks** (permanent levels, cost in FP per level). They change the starting state only, never a rule.
+
+| Perk | Effect | Levels and cost (FP) |
+| --- | --- | --- |
+| Seed money | +$250 start cash per level | 3: 6 / 9 / 12 (start $400 / $650 / $900) |
+| Good name | 4 of the 10 starting virtual ratings are 4 stars (reputation 3.4, then 3.8) | 2: 5 / 8 |
+| Bigger stall | Start with expansion 1 (10 x 8), applied for free | 1: 10 |
+
+- **Recipe book.** The union of dishes unlocked in franchised runs, counting only dishes without `requiresTier` (stall dishes; `setMenu` does not check the tier, so restaurant dishes would skip the climb). Book dishes start unlocked. It is free and automatic: no points are spent.
+- **Seeds.** Run 1 keeps the seed `kitchen-line`; run N uses `kitchen-line-runN`. `createRun(defs, baseSeed, meta)` is `createGame(defs, runSeed)` plus the starting-state changes (money, ratings, unlocked dishes, grid size and expansion, events cleared). No new `GameState` field and no tick rule: with an empty meta run 1 is exactly the old game (same `stateHash`).
+- **Meta save.** A second key, `kitchen-line.meta.v1` (a bad file is kept under `.corrupt` and an empty meta is used): `{ version: 1, savedAt, meta }`, with `meta` = `runsCompleted`, `points`, `perks` (id to level), `recipeBook` (dish ids) and `history` (last 100 runs: run, seed, days, profit, chainProfit, points). Franchising is refused when the history already holds the current state's seed (so a reloaded tab cannot pay twice).
+- **[later]** Rule perks, a blueprint library across runs, prestige tiers beyond run N.
+
 ## 9. Demand that moves
 
 - Lunch and dinner rushes in every day. **[provisional: first playable]**
@@ -178,13 +197,14 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 
 - Clean flat shapes and icons: colored tiles, simple machine shapes, emoji or icon ingredients. **[confirmed]**
 - The line must make problems visible: backed-up belts, idle stations, and spoiling items are marked (icon plus color, never color alone). **[provisional]**
+- Franchise (8.2, provisional): the "Chain built" end screen gets a "Franchise out" button that opens the Franchise modal: points earned this run broken into the four parts, the points balance, the three perks with level, cost and a buy button (disabled with the reason), the recipe book, and one primary "Start run N" button. The top bar shows "Run N" from run 2 on. The modal is the only place perks are bought. **[provisional]**
 - The tycoon panels (menu, prices, upgrades, summary, goals, and after the restaurant end screen the Branches tab: next site, cost, expected nightly net, open and refit) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt and the pro stations are placed from Build; Upgrades only shows when those tiles are unlocked. The Menu tab lists dishes the player already owns.
 
 ## 11. Tech
 
 - TypeScript, React, and Vite, the same stack as trading-sim. React for menus and panels; a canvas renderer (PixiJS or plain Canvas 2D, planner's choice) for the grid. **[confirmed]**
 - The simulation is a pure, headless module (state + tick → state) with no rendering dependencies, so it can be unit-tested, run faster than real time, and later used for offline catch-up and balance runs. **[provisional]**
-- Save: local browser storage, one save slot, in the first playable. **[provisional]**
+- Save: local browser storage, one save slot, in the first playable. **[provisional]** A second key, `kitchen-line.meta.v1`, holds the franchise meta progress (8.2); it survives "New game" of a run and is validated like the main save.
 
 ## 12. First-playable scope
 
@@ -197,7 +217,7 @@ In:
 - Visible-item belts on a fixed tick, pause and speed controls
 - One local save
 
-Out (later): offline progress, seating layout, staff, décor, flagship rent, franchise prestige. In after the first playable (8.1, user decision 2026-11-24): branches and blueprints across locations. Grid copy/paste stays later.
+Out (later): offline progress, seating layout, staff, décor, flagship rent. In after the first playable (8.1, 8.2, user decisions 2026-11-24): branches and blueprints across locations, and franchise prestige (starting-state perks). Grid copy/paste stays later.
 
 The **[confirmed]** "one location in the first playable" rule ended on 2026-11-24 by user decision: the chain stage may open up to 3 branches after the restaurant end screen. The first-playable path itself (stall to restaurant) is unchanged.
 
@@ -210,7 +230,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 - Building during service: allowed. New non-belt buildings take 30 ticks to come online. The menu and prices are locked during service. **[confirmed]**
 - Spoilage: only fresh produce and finished dishes spoil. **[confirmed]**
 - Undo (last 50 build actions) and drag-to-draw belts are in. Copy/paste is **[later]**. **[confirmed]**
-- Tutorial: partly pre-built start (pass, potato pantry, Fries on the menu). The checklist stays until a Salad is served: build the Fries line and open for service, finish the day and read the summary, add Salad to the menu (its price starts at the reference price), then build a second line into the north side of the pass. Ghost tiles suggest each layout and can be dismissed. If that salad line costs more than the player has when the step starts, the game adds the difference once. **[confirmed]**
+- Tutorial (2026-11-24 user decision, see below): partly pre-built start (pass, potato pantry, Fries on the menu). The checklist stays until a Salad is served: build the Fries line and open for service, finish the day and read the summary, add Salad to the menu (its price starts at the reference price), then build a second line into the north side of the pass. Ghost tiles suggest each layout and can be dismissed. If that salad line costs more than the player has when the step starts, the game adds the difference once. **[confirmed]**
+  - 2026-11-24 user decision (franchise, 8.2): the tutorial is shown only in the first ever run. In a franchised run (run 2 and later) the checklist is hidden and the one-time salad top-up (`tutorialHelp`) is not offered. Run 1 is unchanged.
 - Numbers: the plan's section 2.5 table, tuned with the harness. **[provisional]**
 - Customers still waiting at closing leave without a rating. **[confirmed]**
 - Selling a building refunds 100% in the first playable. **[confirmed]**
@@ -218,6 +239,8 @@ Resolved on 2026-11-19 (confirmed by the user; details in [plans/2026-11-19-firs
 No open questions remain for the first playable.
 
 ## 14. Changelog
+
+- 2026-11-24: User decision (franchise prestige, provisional numbers; touches one **[confirmed]** rule): new section 8.2. After "Chain built" the player can franchise out into run N+1 with franchise points, three starting-state perks (seed money, good name, bigger stall), a free recipe book of stall dishes, and a second save key `kitchen-line.meta.v1`. No rule perks; the blueprint library stays **[later]**. The **[confirmed]** tutorial rule (section 13) is changed by the user's decision: the tutorial is shown only in the first ever run, and later runs get no salad top-up. Run 1 with an empty meta is unchanged (same hashes). Plan: doc/plans/2026-11-24-franchise.md.
 
 - 2026-11-24: User decision (restaurant tier only, no **[confirmed]** rule): seasons replace "Seasonal menus [later]" in section 9 as **[provisional]**. Four 7-day seasons cycle by day number; each shifts pantry prices (7), taste weights (6.2) and branch nights (8.1) and has one seasonal dish (5.4) wanted only in its season; new ingredient pumpkin (5.2). Any-time unlock and menu listing, orders only in season; menu cap stays 6 (6.1). Pure function of the day (no stream, no state field, no save change). Stall runs are unchanged; restaurant hashes change on purpose. Plan: doc/plans/2026-11-24-seasons.md.
 
