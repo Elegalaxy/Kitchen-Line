@@ -23,6 +23,7 @@ import {
 } from './daySummaryView.ts'
 import type { DeltaView } from './daySummaryView.ts'
 import Money from './Money.tsx'
+import { branchSummary, signedMoney } from './branchesView.ts'
 import { clipText } from './format.ts'
 import { handleModalKeys } from './modalKeys.ts'
 import { pantryPauseView } from './pantryPause.ts'
@@ -93,6 +94,7 @@ export default function DaySummary({
   const pantries = pantryPauseView(state)
   const trend = trendSummary(state, defs)
   const critic = criticSummary(state)
+  const chain = branchSummary(state, defs)
   const hint = hintText(sum.bottleneckHint, defs)
   const guide = tutorialView(state)
   const teachingSummary = guide.steps[guide.current]?.id === 'summary'
@@ -228,6 +230,31 @@ export default function DaySummary({
             </table>
           </section>
         </div>
+
+        {chain !== null && (
+          <section aria-labelledby="sum-branches">
+            <h3 id="sum-branches" className="panel-title">
+              Branches (net after rent)
+            </h3>
+            <dl className="sum-kv">
+              {chain.rows.map((r) => (
+                <Row
+                  key={r.id}
+                  k={`${r.emoji} ${r.name}`.trim()}
+                  v={
+                    <>
+                      {signedMoney(r.net)} <span className="sum-rent">(rent <Money cents={r.rent} />)</span>
+                    </>
+                  }
+                />
+              ))}
+              <div className="sum-row total">
+                <dt>Chain total (with flagship)</dt>
+                <dd className="num">{signedMoney(chain.chainTotal)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
 
         <section aria-labelledby="sum-reviews">
           <h3 id="sum-reviews" className="panel-title">

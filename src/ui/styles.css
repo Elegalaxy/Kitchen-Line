@@ -2045,3 +2045,8 @@ kbd {
   font-weight: 700;
   color: var(--text);
 }
+
+.sum-rent {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
