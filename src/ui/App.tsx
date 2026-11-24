@@ -24,6 +24,7 @@ import Toast from './Toast.tsx'
 import TileInfo from './TileInfo.tsx'
 import TopBar from './TopBar.tsx'
 import TutorialCard from './TutorialCard.tsx'
+import type { KitChoices } from './franchiseView.ts'
 import { createUiStore, useUi } from './uiState.ts'
 import type { UiState } from './uiState.ts'
 
@@ -67,8 +68,8 @@ export default function App() {
     uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: !rearm, tab: 'build' })
     setNotice(null)
   }
-  const franchiseOut = (picks: string[]): { ok: true } | { ok: false; reason: string } => {
-    const out = session.franchiseOut(picks)
+  const franchiseOut = (picks: string[], kit: KitChoices): { ok: true } | { ok: false; reason: string } => {
+    const out = session.franchiseOut(picks, kit)
     if (out.ok) {
       uiStore.set({ hintsHidden: false, selectedId: null, tool: null, fast: false, guideDone: true, tab: 'build' })
       setNotice(null)

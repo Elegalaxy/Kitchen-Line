@@ -8,13 +8,25 @@
 
 import { DEFS } from '../content/index.ts'
 import { buyPerk, canFranchise, chooseKit, createRun, emptyMeta, recordFranchise } from '../sim/franchise.ts'
-import type { Defs, MetaState } from '../sim/types.ts'
+import type { Defs, GameState, MetaState } from '../sim/types.ts'
 import { applyCheat, createStore, newGameState } from './store.ts'
 import type { GameStore } from './store.ts'
 import { debugLog } from './debug.ts'
 import { clearSavedGame, createAutosaver, getBrowserStorage, readSavedGame, writeSavedGame } from './persistence.ts'
 import type { Autosaver, StorageLike } from './persistence.ts'
 import { readMeta, writeMeta } from './metaPersistence.ts'
+
+/**
+ * Dev cheat `library` (with any layout): the Chain built end screen plus a meta that already holds two
+ * saved kitchens (runs 1 and 2, slot 3 free) and 40 points, to check the blueprint library UI.
+ */
+function devLibrary(defs: Defs, start: GameState): { state: GameState; meta: MetaState } {
+  const state = applyCheat(defs, start, 'chainwon')
+  const kit = state.stallKit
+  if (kit === undefined) return { state, meta: emptyMeta() }
+  const second = { ...structuredClone(kit), menu: kit.menu.slice(0, 1) }
+  return { state, meta: { ...emptyMeta(), runsCompleted: 2, points: 40, library: [{ run: 1, kit }, { run: 2, kit: second }, null] } }
+}
 
 export type GameSession = {
   store: GameStore
@@ -75,7 +87,11 @@ export function createSession(defs: Defs, options: SessionOptions): GameSession 
 
   if (dev !== null) {
     const start = newGameState(defs, dev.layout)
-    store = createStore(defs, dev.cheat === null ? start : applyCheat(defs, start, dev.cheat))
+    if (dev.cheat === 'library') {
+      const lib = devLibrary(defs, start)
+      meta = lib.meta
+      store = createStore(defs, lib.state)
+    } else store = createStore(defs, dev.cheat === null ? start : applyCheat(defs, start, dev.cheat))
     debugLog('[save]', 'dev params present: not loading or saving')
   } else {
     const outcome = readSavedGame(storage, defs)

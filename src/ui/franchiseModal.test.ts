@@ -27,6 +27,29 @@ describe('franchise markup', () => {
     expect(html).toContain('Saved kitchen')
   })
 
+  it('the blueprint library: save choice with slots, and the start choice once the perk is owned', () => {
+    const entry = { run: 1, kit: won.stallKit! }
+    const props = { state: won, defs: DEFS, onClose: noop, onFranchise: () => ({ ok: true as const }) }
+    const owned = { ...emptyMeta(), runsCompleted: 1, perks: { starterKit: 1 }, library: [entry, null, null] }
+    const html = renderToStaticMarkup(createElement(FranchiseModal, { ...props, meta: owned }))
+    expect(html).toContain("Save this run&#x27;s kitchen")
+    expect(html).toContain('Slot 1')
+    expect(html).toContain('Slot 3')
+    expect(html).toContain('Don&#x27;t save')
+    expect(html).toContain('Start run with')
+    expect(html).toContain('None (start empty)')
+    expect(html).toMatch(/Run 1, [a-z +]+, \d+ buildings, value \$/)
+    // the perk is not owned: no start choice yet
+    const notOwned = renderToStaticMarkup(createElement(FranchiseModal, { ...props, meta: { ...owned, perks: {} } }))
+    expect(notOwned).not.toContain('Start run with')
+    // a run that never upgraded has nothing to save
+    const bare = structuredClone(won)
+    delete bare.stallKit
+    const none = renderToStaticMarkup(createElement(FranchiseModal, { ...props, state: bare, meta: owned }))
+    expect(none).not.toContain('Save this run')
+    expect(none).toContain('Start run with')
+  })
+
   it('the confirm is an alertdialog with the kept text', () => {
     const html = renderToStaticMarkup(createElement(FranchiseConfirm, { run: 2, error: null, onCancel: noop, onConfirm: noop }))
     expect(html).toContain('role="alertdialog"')

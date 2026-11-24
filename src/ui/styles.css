@@ -2190,6 +2190,70 @@ kbd {
   flex: 1 1 auto;
 }
 
+.kit-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.kit-choice legend {
+  padding: 0;
+}
+
+.kit-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.kit-option:has(input:checked) {
+  border-color: var(--info);
+  background: var(--surface-raised);
+}
+
+.kit-option:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.kit-option-off {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.kit-option input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.kit-slot {
+  flex: none;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kit-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kit-empty {
+  color: var(--text-faint);
+}
+
 .franchise-preview {
   display: flex;
   flex-direction: column;

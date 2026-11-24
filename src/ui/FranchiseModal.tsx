@@ -1,13 +1,16 @@
 // Franchise modal (GAME_DESIGN 8.2): the only place perks are bought. Shows the points earned this run
 // in four parts, the balance after the picks, the perk cards (level, next cost, next effect, Buy
-// disabled with its reason), what is kept, and one primary button that opens the confirm dialog.
-// Picks are local until the player confirms; "Back" (or Esc) leaves without changing anything.
+// disabled with its reason), what is kept, the blueprint library (which slot saves this run's kitchen, and
+// once the Starter kitchen perk is owned which saved kitchen starts the next run), and one primary button
+// that opens the confirm dialog. Picks are local until the player confirms; "Back" (or Esc) leaves without
+// changing anything.
 
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import type { Defs, GameState, MetaState } from '../sim/types.ts'
 import FranchiseConfirm from './FranchiseConfirm.tsx'
 import { franchiseView } from './franchiseView.ts'
+import type { KitChoices, SlotView } from './franchiseView.ts'
 import { handleModalKeys } from './modalKeys.ts'
 
 function Row({ k, v, strong }: { k: string; v: ReactNode; strong?: boolean }) {
@@ -16,6 +19,45 @@ function Row({ k, v, strong }: { k: string; v: ReactNode; strong?: boolean }) {
       <dt>{k}</dt>
       <dd className="num">{v}</dd>
     </div>
+  )
+}
+
+/** A radio list: one option per slot plus a last "none" option (value null). */
+function SlotChoice({
+  name,
+  legend,
+  note,
+  slots,
+  selected,
+  noneLabel,
+  onSelect,
+  selectable,
+}: {
+  name: string
+  legend: string
+  note?: string
+  slots: SlotView[]
+  selected: number | null
+  noneLabel: string
+  onSelect: (slot: number | null) => void
+  selectable: (s: SlotView) => boolean
+}) {
+  return (
+    <fieldset className="kit-choice">
+      <legend className="franchise-h">{legend}</legend>
+      {note !== undefined && <p className="franchise-book">{note}</p>}
+      {slots.map((s) => (
+        <label key={s.slot} className={`kit-option${selectable(s) ? '' : ' kit-option-off'}`}>
+          <input type="radio" name={name} checked={selected === s.slot} disabled={!selectable(s)} onChange={() => onSelect(s.slot)} />
+          <span className="kit-slot">{s.name}</span>
+          <span className={`kit-text${s.empty ? ' kit-empty' : ''}`}>{s.text}</span>
+        </label>
+      ))}
+      <label className="kit-option">
+        <input type="radio" name={name} checked={selected === null} onChange={() => onSelect(null)} />
+        <span className="kit-text">{noneLabel}</span>
+      </label>
+    </fieldset>
   )
 }
 
@@ -30,9 +72,12 @@ export default function FranchiseModal({
   meta: MetaState
   defs: Defs
   onClose: () => void
-  onFranchise: (picks: string[]) => { ok: true } | { ok: false; reason: string }
+  onFranchise: (picks: string[], kit: KitChoices) => { ok: true } | { ok: false; reason: string }
 }) {
   const [picks, setPicks] = useState<string[]>([])
+  // undefined = the default (first empty slot to save into, the newest saved kitchen to start with)
+  const [saveSlot, setSaveSlot] = useState<number | null | undefined>(undefined)
+  const [useSlot, setUseSlot] = useState<number | null | undefined>(undefined)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -40,13 +85,13 @@ export default function FranchiseModal({
   useEffect(() => {
     startRef.current?.focus()
   }, [])
-  const view = franchiseView(state, meta, defs, picks)
+  const view = franchiseView(state, meta, defs, picks, { saveSlot, useSlot })
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     handleModalKeys(e, dialogRef.current)
     if (e.key === 'Escape') onClose()
   }
   const confirm = (): void => {
-    const out = onFranchise(picks)
+    const out = onFranchise(picks, { saveSlot: view.saveSelected, useSlot: view.useSelected })
     if (!out.ok) setError(out.reason)
   }
   const undoPick = (id: string): void => {
@@ -157,6 +202,36 @@ export default function FranchiseModal({
               })}
             </ul>
           </section>
+
+          {view.runKitText !== null && (
+            <section aria-label="Blueprint library">
+              <h3 className="franchise-h">Blueprint library</h3>
+              <SlotChoice
+                name="save-slot"
+                legend="Save this run's kitchen"
+                note={`This run's stall kitchen: ${view.runKitText}. Saving into a full slot replaces it.`}
+                slots={view.saveSlots}
+                selected={view.saveSelected}
+                noneLabel="Don't save"
+                onSelect={setSaveSlot}
+                selectable={() => true}
+              />
+            </section>
+          )}
+          {view.kitOwned && view.useSlots.some((x) => !x.empty) && (
+            <section aria-label="Next run's kitchen">
+              <SlotChoice
+                name="use-slot"
+                legend="Start run with"
+                note="The Starter kitchen builds this saved kitchen free on day 1."
+                slots={view.useSlots}
+                selected={view.useSelected}
+                noneLabel="None (start empty)"
+                onSelect={setUseSlot}
+                selectable={(x) => !x.empty}
+              />
+            </section>
+          )}
 
           {view.blocked !== null && (
             <p className="goal-reason">
