@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { createGame } from '../sim/game.ts'
-import { expansionView, goalRows, starsFloor, upgradeView, valueText } from './goalsView.ts'
+import { expansionView, goalRows, goalStage, starsFloor, upgradeView, valueText } from './goalsView.ts'
 import { applyCheat } from './store.ts'
 
 describe('goalsView', () => {
@@ -69,5 +69,17 @@ describe('goalsView', () => {
     expect(won.phase).toBe('won')
     expect(won.goalsDone).toHaveLength(7)
     expect(applyCheat(DEFS, s, 'nope')).toBe(s)
+  })
+
+  it('shows the chain goals once the restaurant end screen was seen', () => {
+    const s = createGame(DEFS, 'v')
+    expect(goalStage(s, DEFS)).toEqual({ tier: 'stall', label: 'stall' })
+    const chain = applyCheat(DEFS, s, 'chain')
+    expect(chain.phase).toBe('build')
+    expect(chain.won).toBe(true)
+    expect(goalStage(chain, DEFS)).toEqual({ tier: 'chain', label: 'chain' })
+    const rows = goalRows(chain, DEFS, 'chain')
+    expect(rows.map((r) => r.id)).toEqual(['branches-3', 'chain-profit', 'chain-day'])
+    expect(rows[0]).toMatchObject({ text: '0 / 3', pct: 0, done: false })
   })
 })

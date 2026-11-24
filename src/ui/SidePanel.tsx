@@ -34,7 +34,7 @@ export default function SidePanel({ ctx, snap, ui }: { ctx: Ctx; snap: Snapshot;
   }
   return (
     <aside className="side">
-      <div className="tabs" role="tablist" aria-label="Side panel">
+      <div className={`tabs${tabs.length > 4 ? ' tabs-many' : ''}`} role="tablist" aria-label="Side panel">
         {tabs.map((t) => (
           <button
             key={t.id}

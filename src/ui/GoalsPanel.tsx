@@ -1,4 +1,4 @@
-// Goals tab: the stall checklist and the restaurant checklist. Buying the tier, a bigger
+// Goals tab: the stall checklist and the restaurant checklist, and the chain checklist once the restaurant end screen was seen. Buying the tier, a bigger
 // kitchen or a recipe happens on the Upgrades tab. A done goal shows a check mark and the
 // word "Done" (never colour alone). Restaurant goals stay greyed until the tier upgrade.
 
@@ -49,6 +49,7 @@ export default function GoalsPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) 
   const isRestaurant = state.tier === 'restaurant'
   const stall = goalRows(state, defs, 'stall')
   const restaurant = goalRows(state, defs, 'restaurant')
+  const chain = goalRows(state, defs, 'chain')
   const doneCount = (rows: GoalRow[]): number => rows.filter((r) => r.done).length
 
   return (
@@ -84,6 +85,19 @@ export default function GoalsPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) 
         </section>
       )}
 
+      {state.won === true && chain.length > 0 && (
+        <section className="panel" aria-label="Chain goals">
+          <h2 className="panel-title goal-title">
+            <span>Chain goals</span>
+            <span className="num goal-total">
+              {doneCount(chain)} / {chain.length}
+            </span>
+          </h2>
+          <GoalList rows={chain} locked={false} />
+          <p className="goal-reason ready">Open branches on the Branches tab. Profit and day goals count in the day summary.</p>
+          {state.chainWon === true && <p className="goal-tier">🏆 Chain built: all goals done.</p>}
+        </section>
+      )}
     </>
   )
 }

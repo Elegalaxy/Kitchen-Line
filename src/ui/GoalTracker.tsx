@@ -3,22 +3,23 @@
 // mark and "Done" colour plus text. Read-only; the full list, the upgrade and the expansion
 // live in the Goals tab. Once every goal of the tier is done it shrinks to one line.
 
-import { goalRows } from './goalsView.ts'
+import { goalRows, goalStage } from './goalsView.ts'
 import type { Snapshot } from './store.ts'
 import type { Defs } from '../sim/types.ts'
 
 export default function GoalTracker({ snap, defs }: { snap: Snapshot; defs: Defs }) {
   const state = snap.state
-  const rows = goalRows(state, defs, state.tier)
+  const stage = goalStage(state, defs)
+  const rows = goalRows(state, defs, stage.tier)
   if (rows.length === 0) return null
   const left = rows.filter((r) => !r.done).length
   return (
     <section className="panel goal-tracker" aria-label="Goals">
       <h2 className="panel-title">
-        Goals <span className="num goal-tracker-count">{rows.length - left} / {rows.length}</span>
+        {stage.tier === 'chain' ? 'Chain goals' : 'Goals'} <span className="num goal-tracker-count">{rows.length - left} / {rows.length}</span>
       </h2>
       {left === 0 ? (
-        <p className="goal-tracker-done">✓ All {state.tier} goals done</p>
+        <p className="goal-tracker-done">✓ All {stage.label} goals done</p>
       ) : (
         <ul className="goal-tracker-list">
           {rows.map((r) => (

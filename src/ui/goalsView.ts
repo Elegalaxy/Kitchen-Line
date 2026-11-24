@@ -5,7 +5,7 @@
 
 import { UPGRADE_COST } from '../sim/constants.ts'
 import { expansionProblem, goalsOfTier, nextExpansion, upgradeProblem } from '../sim/goals.ts'
-import type { Defs, ExpansionDef, GameState, GoalUnit, RejectReason, Tier } from '../sim/types.ts'
+import type { Defs, ExpansionDef, GameState, GoalTier, GoalUnit, RejectReason } from '../sim/types.ts'
 import { formatMoney, reasonText } from './format.ts'
 
 /** Stars cut (not rounded) to one decimal, so "3.96" never reads as a reached "4.0". */
@@ -32,7 +32,7 @@ export type GoalRow = {
 }
 
 /** Rows for the goals of `tier`. `done` is the recorded state (a goal once done stays done). */
-export function goalRows(state: GameState, defs: Defs, tier: Tier): GoalRow[] {
+export function goalRows(state: GameState, defs: Defs, tier: GoalTier): GoalRow[] {
   return goalsOfTier(defs, tier).map((g) => {
     const p = g.check(state)
     const done = state.goalsDone.includes(g.id)
@@ -49,7 +49,13 @@ export function goalRows(state: GameState, defs: Defs, tier: Tier): GoalRow[] {
   })
 }
 
-export function goalsLeft(state: GameState, defs: Defs, tier: Tier): number {
+/** The goal group the tracker shows: the chain goals once the restaurant end screen was seen, else the current tier's. */
+export function goalStage(state: GameState, defs: Defs): { tier: GoalTier; label: string } {
+  if (state.won === true && goalsOfTier(defs, 'chain').length > 0) return { tier: 'chain', label: 'chain' }
+  return { tier: state.tier, label: state.tier }
+}
+
+export function goalsLeft(state: GameState, defs: Defs, tier: GoalTier): number {
   return goalsOfTier(defs, tier).filter((g) => !state.goalsDone.includes(g.id)).length
 }
 

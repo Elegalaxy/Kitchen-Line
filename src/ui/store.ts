@@ -11,6 +11,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
+import { DAY_TICKS } from '../sim/constants.ts'
 import { applyCommand } from '../sim/commands.ts'
 import { createGame } from '../sim/game.ts'
 import { updateGoals } from '../sim/goals.ts'
@@ -204,11 +205,11 @@ export function newGameState(defs: Defs, layout: string | null, seed = 'kitchen-
 /**
  * Dev-only shortcut (`?cheat=<name>`, honoured under `import.meta.env.DEV` only) to reach goal
  * states without playing for days: `progress` (goals part way), `goals` (all stall goals done,
- * $1,000), `restaurant` (upgraded, $1,000), `won` (the end screen). Unknown names are ignored.
+ * $1,000), `restaurant` (upgraded, $1,000), `won` (the end screen), `chain` (the restaurant end screen seen, build phase: the Branches tab opens; combine with `?layout=friesLine`), `chainsummary` (two branches, the day summary), `chainwon` (the Chain built end screen). Unknown names are ignored.
  */
 export function applyCheat(defs: Defs, state: GameState, name: string): GameState {
   const next = structuredClone(state)
-  const ids = (tier: 'stall' | 'restaurant'): string[] => (defs.goals ?? []).filter((g) => g.tier === tier).map((g) => g.id)
+  const ids = (tier: 'stall' | 'restaurant' | 'chain'): string[] => (defs.goals ?? []).filter((g) => g.tier === tier).map((g) => g.id)
   switch (name) {
     case 'progress':
       next.totals = { served: 63, profit: 12500, days: 3 }
@@ -234,6 +235,34 @@ export function applyCheat(defs: Defs, state: GameState, name: string): GameStat
       next.won = true
       next.phase = 'won'
       return next
+    case 'chain': {
+      next.goalsDone = [...ids('stall'), ...ids('restaurant')]
+      next.tier = 'restaurant'
+      next.totals = { served: 640, profit: 98000, days: 12 }
+      next.money = 1_000_000
+      next.won = true
+      if (next.phase === 'service') {
+        // A dev layout is mid-service: play out the day and leave the summary so the kitchen is in the build phase.
+        const ended = runTicks(next, defs, DAY_TICKS)
+        return applyCommand(ended, defs, { type: 'dismissSummary' }).state
+      }
+      next.phase = 'build'
+      return next
+    }
+    case 'chainsummary': {
+      // Chain stage with two branches, one night played: the day summary shows the branch rows.
+      let chain = applyCheat(defs, state, 'chain')
+      for (let i = 0; i < 2; i += 1) chain = applyCommand(chain, defs, { type: 'openBranch' }).state
+      chain = applyCommand(chain, defs, { type: 'openService' }).state
+      return runTicks(chain, defs, DAY_TICKS)
+    }
+    case 'chainwon': {
+      const chain = applyCheat(defs, state, 'chain')
+      chain.chainWon = true
+      chain.chainProfit = 520000
+      chain.phase = 'won'
+      return chain
+    }
     default:
       debugLog('[store]', `unknown cheat ${name}`)
       return state

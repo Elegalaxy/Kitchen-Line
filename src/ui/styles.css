@@ -2050,3 +2050,14 @@ kbd {
   color: var(--text-muted);
   font-size: 0.75rem;
 }
+
+/* Five tabs (chain stage) do not fit in a row: icon above the label, so the row never overflows. */
+.tabs-many .tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
