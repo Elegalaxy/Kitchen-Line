@@ -29,8 +29,8 @@ export const RESTAURANT_TOTAL_PROFIT_TARGET = 500000
 
 /** Chain goals (GAME_DESIGN 8.1, provisional): branches earn this much net in total, in cents ($5,000). */
 export const CHAIN_TOTAL_PROFIT_TARGET = 500000
-/** Cents ($1,200 in one day: flagship profit plus the branch nets of that day). */
-export const CHAIN_DAY_TARGET = 120000
+/** Cents ($1,000 in one day: flagship profit plus the branch nets of that day). Was $1,200: three of 20 journey seeds then needed 40+ days (plan 2026-11-24-chain, steps 7/8). */
+export const CHAIN_DAY_TARGET = 100000
 
 function count(current: number, target: number): GoalProgress {
   return { done: current >= target, current: Math.min(current, target), target }
