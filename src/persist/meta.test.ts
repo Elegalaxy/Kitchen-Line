@@ -2,6 +2,8 @@
 // rejected with a reason and never throws. persist tests may import only src/sim.
 
 import { describe, expect, it } from 'vitest'
+import { blueprintOf } from '../sim/blueprint.ts'
+import { chainReady, DEFS } from '../sim/chainKit.ts'
 import { emptyMeta } from '../sim/franchise.ts'
 import type { MetaState } from '../sim/types.ts'
 import { loadMeta, META_CORRUPT_KEY, META_KEY, serializeMeta } from './meta.ts'
@@ -121,3 +123,27 @@ describe('meta save', () => {
     expect(loadMeta(env({ ...sample(), perks })).ok).toBe(false)
   })
 })
+
+describe('starter kitchen in the meta (optional)', () => {
+  const kit = () => blueprintOf(chainReady(), DEFS)
+
+  it('round-trips with a kit, and a meta without one still loads', () => {
+    const m = { ...sample(), starterKit: kit() }
+    expect(loadMeta(serializeMeta(m, '2026-11-24T00:00:00Z'))).toEqual({ ok: true, meta: m })
+    expect(loadMeta(env(sample())).ok).toBe(true)
+  })
+
+  it('rejects a damaged or hostile kit with a reason', () => {
+    const reason = (starterKit: unknown): string => {
+      const r = loadMeta(env({ ...sample(), starterKit }))
+      return r.ok ? '' : r.reason
+    }
+    expect(reason('kit')).toContain('meta.starterKit')
+    expect(reason({ ...kit(), tiles: [] })).toContain('meta.starterKit.tiles')
+    expect(reason({ ...kit(), width: 100000 })).toContain('meta.starterKit')
+    expect(reason({ ...kit(), buildings: 5 })).toContain('meta.starterKit.buildings')
+    expect(reason({ ...kit(), menu: [{ dish: 'fries', price: 1.5 }] })).toContain('meta.starterKit.menu')
+    expect(reason({ ...kit(), value: -1 })).toContain('meta.starterKit.value')
+  })
+})
+

@@ -42,7 +42,7 @@ const DY = [-1, 0, 1, 0]
 type Obj = Record<string, unknown>
 
 /** Thrown inside the validator only; `loadSave` turns it into a reason string. */
-class Invalid extends Error {}
+export class Invalid extends Error {}
 
 function bad(path: string, why: string): never {
   throw new Invalid(`${path}: ${why}`)
@@ -301,7 +301,7 @@ function validateGrid(o: Obj, path: string): number {
 }
 
 /** A branch's blueprint (GAME_DESIGN 8.1): the same grid checks as the live state, plus its menu and value. */
-function blueprint(v: unknown, path: string): void {
+export function blueprint(v: unknown, path: string): void {
   const o = obj(v, path)
   validateGrid(o, path)
   int(o.expansion, `${path}.expansion`)
@@ -373,6 +373,7 @@ function validateState(v: unknown): GameState {
     const seen = new Set<number>()
     arr(s.branches, 'state.branches', MAX_BRANCHES).forEach((b, i) => branch(b, `state.branches[${i}]`, seen))
   }
+  if (s.stallKit !== undefined) blueprint(s.stallKit, 'state.stallKit')
   if (s.chainProfit !== undefined) int(s.chainProfit, 'state.chainProfit', Number.MIN_SAFE_INTEGER)
   if (s.chainWon !== undefined && s.chainWon !== true) bad('state.chainWon', 'expected true')
   arr(s.events, 'state.events').forEach((e, i) => {

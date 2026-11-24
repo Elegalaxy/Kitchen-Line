@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from '../sim/commands.ts'
 import { chainReady, DEFS as CHAIN_DEFS, must as chainMust } from '../sim/chainKit.ts'
+import { blueprintOf } from '../sim/blueprint.ts'
 import { createGame } from '../sim/game.ts'
 import { stateHash } from '../sim/hash.ts'
 import { runTicks } from '../sim/tick.ts'
@@ -499,3 +500,24 @@ describe('chain stage (branches)', () => {
     expect(reasonOf(edited(s, (st) => (st.lastDay.branches[0].net = 'x')))).toContain('state.lastDay.branches[0].net')
   })
 })
+
+describe('stallKit (starter kitchen, optional)', () => {
+  it('round-trips a restaurant state with its stall kitchen, and rejects a damaged kit', () => {
+    const s = chainReady()
+    s.stallKit = blueprintOf(s, CHAIN_DEFS)
+    const r = loadSave(serializeSave(s, '2026-11-24T00:00:00Z'))
+    expect(r.ok && stateHash(r.state)).toBe(stateHash(s))
+    const bad = JSON.parse(serializeSave(s, 'x')) as { state: { stallKit: { tiles: unknown[] } } }
+    bad.state.stallKit.tiles = []
+    const rejected = loadSave(JSON.stringify(bad))
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) expect(rejected.reason).toContain('state.stallKit.tiles')
+  })
+
+  it('a state without the field loads (older saves)', () => {
+    const s = chainReady()
+    expect('stallKit' in s).toBe(false)
+    expect(loadSave(serializeSave(s, 'x')).ok).toBe(true)
+  })
+})
+

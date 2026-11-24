@@ -15,9 +15,11 @@ import {
   recordFranchise,
   runSeed,
 } from './franchise.ts'
+import { blueprintOf } from './blueprint.ts'
+import { applyCommand } from './commands.ts'
 import { createGame } from './game.ts'
 import { stateHash } from './hash.ts'
-import type { Defs, GameState, MetaState } from './types.ts'
+import type { Blueprint, BuildingKind, Defs, GameState, MetaState } from './types.ts'
 
 const DEFS: Defs = {
   ...BASE,
@@ -34,6 +36,7 @@ const DEFS: Defs = {
     { id: 'seedMoney', name: 'Seed', emoji: '', costs: [6, 9, 12], effect: { startMoney: 25000 } },
     { id: 'goodName', name: 'Name', emoji: '', costs: [5, 8], effect: { goodRatings: 4 } },
     { id: 'biggerStall', name: 'Bigger', emoji: '', costs: [10], effect: { startExpansion: 1 } },
+    { id: 'starterKit', name: 'Starter', emoji: '', costs: [14], effect: { starterKit: true } },
   ],
 }
 
@@ -218,5 +221,166 @@ describe('runSeed / createRun', () => {
     const s = createGame(DEFS, 'k')
     applyFranchiseStart(s, DEFS, meta({ perks: { seedMoney: 9 } }))
     expect(s.money).toBe(15000 + 3 * 25000)
+  })
+})
+
+// ---- Starter kitchen (GAME_DESIGN 8.2) ---------------------------------------------------------------
+
+function place(s: GameState, kind: BuildingKind, x: number, y: number): GameState {
+  const out = applyCommand(s, DEFS, { type: 'place', kind, x, y, dir: 1 })
+  if (!out.result.ok) throw new Error(`place ${kind}: ${out.result.reason}`)
+  return out.state
+}
+
+/** A stall with a small line, one extra dish unlocked and priced, ready to upgrade. */
+function stallWithKitchen(): GameState {
+  let s = createGame(DEFS, 'kit-run')
+  s.money = 1_000_000
+  for (const [kind, x] of [['belt', 1], ['chopper', 2], ['belt', 3], ['fryer', 4], ['belt', 5], ['belt', 6]] as const) s = place(s, kind, x, 2)
+  s.unlocked = [...s.unlocked, 'salad']
+  s.menu = [{ dish: 'fries', price: 350 }, { dish: 'salad', price: 500 }]
+  s.goalsDone = ['served-3', 'money-high']
+  return s
+}
+
+function upgraded(): GameState {
+  const out = applyCommand(stallWithKitchen(), DEFS, { type: 'upgradeTier' })
+  if (!out.result.ok) throw new Error(out.result.reason)
+  return out.state
+}
+
+function kitMeta(kit: Blueprint | undefined, perks: Record<string, number> = { starterKit: 1 }): MetaState {
+  return { ...emptyMeta(), perks, recipeBook: ['fries', 'salad'], ...(kit === undefined ? {} : { starterKit: kit }) }
+}
+
+describe('stallKit (saved at the upgrade)', () => {
+  it('upgradeTier stores the stall kitchen as it was before the upgrade', () => {
+    const before = stallWithKitchen()
+    const after = upgraded()
+    expect(after.stallKit).toEqual(blueprintOf(before, DEFS))
+    expect(after.tier).toBe('restaurant')
+  })
+
+  it('a run that never upgrades has no stallKit key', () => {
+    expect('stallKit' in stallWithKitchen()).toBe(false)
+  })
+})
+
+describe('recordFranchise keeps the starter kitchen', () => {
+  it('copies the latest run kit, replaces an older one, and keeps the old one when the run has none', () => {
+    const first = upgraded()
+    first.chainWon = true
+    first.phase = 'build'
+    const r1 = recordFranchise(emptyMeta(), first, DEFS)
+    expect(r1.ok && r1.meta.starterKit).toEqual(first.stallKit)
+    if (!r1.ok) return
+    const second = createGame(DEFS, 'kit-run-2')
+    second.chainWon = true
+    second.phase = 'build'
+    const r2 = recordFranchise(r1.meta, second, DEFS)
+    expect(r2.ok && r2.meta.starterKit).toEqual(first.stallKit)
+    const third = upgraded()
+    third.seed = 'kit-run-3'
+    third.stallKit = { ...third.stallKit!, menu: [{ dish: 'fries', price: 400 }] }
+    third.chainWon = true
+    third.phase = 'build'
+    const r3 = recordFranchise(r1.meta, third, DEFS)
+    expect(r3.ok && r3.meta.starterKit?.menu).toEqual([{ dish: 'fries', price: 400 }])
+  })
+
+  it('a run with no kit adds no starterKit key to an empty meta', () => {
+    const s = createGame(DEFS, 'plain')
+    s.chainWon = true
+    s.phase = 'build'
+    const r = recordFranchise(emptyMeta(), s, DEFS)
+    expect(r.ok && 'starterKit' in r.meta).toBe(false)
+  })
+})
+
+describe('starterKit perk: createRun', () => {
+  const kit = (): Blueprint => upgraded().stallKit!
+
+  it('installs the kitchen, menu and prices free on day 1', () => {
+    const run = createRun(DEFS, 'kitchen-line', kitMeta(kit()))
+    expect(run.money).toBe(15000)
+    expect(run.tier).toBe('stall')
+    expect(run.day).toBe(1)
+    expect(Object.values(run.buildings).map((b) => b.kind).sort()).toEqual(
+      Object.values(stallWithKitchen().buildings).map((b) => b.kind).sort(),
+    )
+    expect(run.menu).toEqual([{ dish: 'fries', price: 350 }, { dish: 'salad', price: 500 }])
+    expect(run.unlocked).toContain('salad')
+    expect(run.nextId).toBe(Math.max(...Object.keys(run.buildings).map(Number)) + 1)
+    for (const b of Object.values(run.buildings)) {
+      expect(b.status).toBe('idle')
+      if (b.kind === 'pass') expect(b.shelf).toEqual([])
+    }
+    expect(run.tiles.filter((t) => t !== null).every((t) => run.buildings[t as number] !== undefined)).toBe(true)
+    expect(Object.values(run.buildings).filter((b) => b.kind === 'pass')).toHaveLength(1)
+  })
+
+  it('is not installed without the perk, or with the perk but no kit (same hash as createGame)', () => {
+    const plain = stateHash(createGame(DEFS, 'kitchen-line-run2'))
+    expect(stateHash(createRun(DEFS, 'kitchen-line', { ...kitMeta(kit(), {}), recipeBook: [], runsCompleted: 1 }))).toBe(plain)
+    expect(stateHash(createRun(DEFS, 'kitchen-line', { ...kitMeta(undefined), recipeBook: [], runsCompleted: 1 }))).toBe(plain)
+    expect(stateHash(createRun(DEFS, 'kitchen-line', emptyMeta()))).toBe(stateHash(createGame(DEFS, 'kitchen-line')))
+  })
+
+  it('installs nothing for a kit that does not fit (never throws)', () => {
+    const plain = stateHash(createRun(DEFS, 'kitchen-line', { ...kitMeta(undefined), recipeBook: [], runsCompleted: 1 }))
+    const bad: Blueprint[] = []
+    bad.push({ ...kit(), expansion: 3 })
+    bad.push({ ...kit(), expansion: 2, width: 12, height: 9, tiles: new Array<number | null>(108).fill(null) })
+    bad.push({ ...kit(), tiles: kit().tiles.slice(1) })
+    const fast = kit()
+    for (const b of Object.values(fast.buildings)) if (b.kind === 'belt') b.fast = true
+    bad.push(fast)
+    const pro = kit()
+    for (const b of Object.values(pro.buildings)) if (b.kind === 'fryer') b.pro = true
+    bad.push(pro)
+    const far = kit()
+    Object.values(far.buildings)[0].x = 99
+    bad.push(far)
+    const twoPass = kit()
+    const pass = Object.values(twoPass.buildings).find((b) => b.kind === 'pass')!
+    twoPass.buildings[99] = { ...structuredClone(pass), id: 99, x: 0, y: 5 }
+    twoPass.tiles[5 * twoPass.width] = 99
+    bad.push(twoPass)
+    for (const k of bad) {
+      const run = createRun(DEFS, 'kitchen-line', { ...kitMeta(k), recipeBook: [], runsCompleted: 1 })
+      expect(stateHash(run)).toBe(plain)
+    }
+  })
+
+  it('drops restaurant dishes from the saved menu and falls back to a valid price', () => {
+    const k = kit()
+    k.menu = [{ dish: 'fish', price: 800 }, { dish: 'fries', price: 7 }]
+    k.unlocked = ['fries', 'fish']
+    const run = createRun(DEFS, 'kitchen-line', kitMeta(k))
+    expect(run.menu).toEqual([{ dish: 'fries', price: 300 }])
+    expect(run.unlocked).not.toContain('fish')
+  })
+
+  it('works with Bigger stall: the larger grid keeps its size', () => {
+    const run = createRun(DEFS, 'kitchen-line', kitMeta(kit(), { starterKit: 1, biggerStall: 1 }))
+    expect([run.width, run.height, run.expansion]).toEqual([10, 8, 1])
+    expect(run.tiles).toHaveLength(80)
+    expect(Object.values(run.buildings).filter((b) => b.kind === 'belt')).toHaveLength(4)
+    for (const b of Object.values(run.buildings)) expect(run.tiles[b.y * run.width + b.x]).toBe(b.id)
+  })
+
+  it('an expanded stall kit installs as is', () => {
+    const s = applyCommand(stallWithKitchen(), DEFS, { type: 'buyExpansion' }).state
+    expect(s.expansion).toBe(1)
+    const out = applyCommand(s, DEFS, { type: 'upgradeTier' })
+    const run = createRun(DEFS, 'kitchen-line', kitMeta(out.state.stallKit))
+    expect([run.width, run.height, run.expansion]).toEqual([10, 8, 1])
+  })
+
+  it('does not share objects with the meta', () => {
+    const m = kitMeta(kit())
+    const run = createRun(DEFS, 'kitchen-line', m)
+    Object.values(run.buildings)[0].x = 99
+    expect(Object.values(m.starterKit!.buildings)[0].x).not.toBe(99)
   })
 })

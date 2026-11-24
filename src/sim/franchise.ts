@@ -5,10 +5,16 @@
 //   recordFranchise  book the run: points, history, recipe book (stall dishes only)
 //   buyPerk          spend points on the next level of a perk (permanent)
 //   createRun        createGame plus the perks and the recipe book: the starting state only
-// No new GameState field and no tick rule: with an empty meta `createRun` is exactly `createGame`.
+// Starter kitchen (2026-11-24): `recordFranchise` keeps the run's `stallKit` (the stall kitchen at the
+// restaurant upgrade) as `meta.starterKit`; the `starterKit` perk installs it free on day 1.
+// No tick rule: with an empty meta, or perks but no kit, `createRun` is exactly `createGame`.
 
 import {
   FRANCHISE_BASE_SEED,
+  MENU_CAP,
+  PASS_MAX,
+  START_HEIGHT,
+  START_WIDTH,
   FRANCHISE_CHAIN_POINTS,
   FRANCHISE_EARNINGS_CAP,
   FRANCHISE_EARNINGS_STEP,
@@ -20,7 +26,9 @@ import {
 } from './constants.ts'
 import { reputationOf } from './customers.ts'
 import { createGame } from './game.ts'
-import type { Defs, DishId, GameState, MetaState, PerkDef } from './types.ts'
+import { footprint } from './grid.ts'
+import { priceProblem } from './menu.ts'
+import type { Blueprint, Defs, DishId, GameState, MetaState, PerkDef } from './types.ts'
 
 export type PointsPart = { id: 'chain' | 'earnings' | 'speed' | 'reputation'; label: string; points: number }
 export type FranchisePoints = { total: number; parts: PointsPart[] }
@@ -88,10 +96,16 @@ export function recordFranchise(meta: MetaState, state: GameState, defs: Defs): 
       points,
     },
   ].slice(-FRANCHISE_HISTORY_MAX)
-  return {
-    ok: true,
-    meta: { ...meta, runsCompleted: meta.runsCompleted + 1, points: meta.points + points, recipeBook: book, history },
+  const next: MetaState = {
+    ...meta,
+    runsCompleted: meta.runsCompleted + 1,
+    points: meta.points + points,
+    recipeBook: book,
+    history,
   }
+  // The latest run's kitchen always replaces the old one; a run that never upgraded keeps the old one.
+  if (state.stallKit !== undefined) next.starterKit = structuredClone(state.stallKit)
+  return { ok: true, meta: next }
 }
 
 function perkOf(defs: Defs, id: string): PerkDef | undefined {
@@ -119,13 +133,96 @@ export function buyPerk(meta: MetaState, defs: Defs, id: string): FranchiseResul
 }
 
 /** Sum of one effect field over all bought levels. */
-function perkTotal(meta: MetaState, defs: Defs, field: 'startMoney' | 'goodRatings' | 'startExpansion'): number {
+function perkTotal(meta: MetaState, defs: Defs, field: 'startMoney' | 'goodRatings' | 'startExpansion' | 'starterKit'): number {
   let sum = 0
   for (const perk of defs.perks ?? []) {
     const level = Math.min(meta.perks[perk.id] ?? 0, perk.costs.length)
-    sum += level * (perk.effect[field] ?? 0)
+    const v = perk.effect[field]
+    sum += level * (typeof v === 'boolean' ? (v ? 1 : 0) : (v ?? 0))
   }
   return sum
+}
+
+/** Total value (cents) of a starter kitchen's buildings, for the Franchise modal. */
+export function starterKitSummary(kit: Blueprint): { buildings: number; value: number } {
+  return { buildings: Object.keys(kit.buildings).length, value: kit.value }
+}
+
+/** The grid size of expansion step `n` (0 = the start grid of `start`), or null when it is not a stall step. */
+function stallSize(defs: Defs, start: { width: number; height: number }, n: number): { width: number; height: number } | null {
+  if (!Number.isInteger(n) || n < 0) return null
+  if (n === 0) return start
+  const step = defs.expansions?.[n - 1]
+  return step !== undefined && step.requiresTier === 'stall' ? { width: step.width, height: step.height } : null
+}
+
+/**
+ * Why a saved kitchen cannot be installed on a fresh stall of size `start`, or null when it fits. Defensive
+ * (the meta file is data from disk): a stall grid size, tiles consistent with the footprints, stall buildings
+ * only (no fast belt, no pro station, at most the one pre-placed pass).
+ */
+export function starterKitProblem(defs: Defs, kit: Blueprint, start: { width: number; height: number }): string | null {
+  const size = stallSize(defs, start, kit.expansion)
+  if (size === null) return 'expansion is not a stall one'
+  if (kit.width !== size.width || kit.height !== size.height) return 'grid size does not match its expansion'
+  if (!Array.isArray(kit.tiles) || kit.tiles.length !== kit.width * kit.height) return 'tile count mismatch'
+  const expected = new Array<number | null>(kit.tiles.length).fill(null)
+  let passes = 0
+  for (const [key, b] of Object.entries(kit.buildings)) {
+    const def = defs.buildings[b.kind]
+    if (def === undefined || Number(key) !== b.id || !Number.isInteger(b.id) || b.id < 1) return 'unknown building'
+    if (b.kind === 'pass') passes += 1
+    else if (def.requiresTier !== 'stall') return 'not a stall building'
+    if (b.kind === 'belt' && b.fast) return 'not a stall building'
+    if ((b.kind === 'fryer' || b.kind === 'stove' || b.kind === 'assembler') && b.pro === true) return 'not a stall building'
+    for (const t of footprint(b.kind, b.x, b.y, b.dir)) {
+      if (t.x < 0 || t.y < 0 || t.x >= kit.width || t.y >= kit.height) return 'building out of bounds'
+      const at = t.y * kit.width + t.x
+      if (expected[at] !== null) return 'buildings overlap'
+      expected[at] = b.id
+    }
+  }
+  if (passes >= PASS_MAX) return 'too many passes'
+  for (let i = 0; i < expected.length; i += 1) if (expected[i] !== kit.tiles[i]) return 'tiles do not match buildings'
+  return null
+}
+
+/**
+ * Install the saved stall kitchen into a fresh run (free: the points were the price). The kitchen replaces the
+ * pre-placed pass and pantry; the grid is the larger of the kit's and the state's (a bigger-stall perk keeps its
+ * room); the menu keeps the kit's prices for stall dishes; the unlocked stall dishes are added. Installs nothing
+ * (and never throws) when the kit does not fit.
+ */
+function installStarterKit(state: GameState, defs: Defs, kit: Blueprint): void {
+  const start = { width: state.width, height: state.height }
+  const base = { width: START_WIDTH, height: START_HEIGHT }
+  if (starterKitProblem(defs, kit, base) !== null) return
+  const target = Math.max(state.expansion, kit.expansion)
+  const size = stallSize(defs, base, target)
+  if (size === null || size.width < start.width || size.height < start.height) return
+  const tiles = new Array<number | null>(size.width * size.height).fill(null)
+  for (let t = 0; t < kit.tiles.length; t += 1) {
+    const id = kit.tiles[t]
+    if (id !== null) tiles[Math.floor(t / kit.width) * size.width + (t % kit.width)] = id
+  }
+  const buildings = structuredClone(kit.buildings)
+  state.width = size.width
+  state.height = size.height
+  state.expansion = target
+  state.tiles = tiles
+  state.buildings = buildings
+  state.nextId = Math.max(0, ...Object.keys(buildings).map(Number)) + 1
+  for (const id of kit.unlocked) {
+    if (bookable(defs, id) && !state.unlocked.includes(id)) state.unlocked.push(id)
+  }
+  const menu: { dish: DishId; price: number }[] = []
+  for (const m of kit.menu) {
+    const dish = defs.dishes[m.dish]
+    if (dish === undefined || !bookable(defs, m.dish) || !state.unlocked.includes(m.dish)) continue
+    if (menu.some((e) => e.dish === m.dish) || menu.length >= MENU_CAP.stall) continue
+    menu.push({ dish: m.dish, price: priceProblem(dish.refPrice, m.price) === null ? m.price : dish.refPrice })
+  }
+  if (menu.length > 0) state.menu = menu
 }
 
 /**
@@ -156,6 +253,7 @@ export function applyFranchiseStart(state: GameState, defs: Defs, meta: MetaStat
     state.height = step.height
     state.expansion += 1
   }
+  if (meta.starterKit !== undefined && perkTotal(meta, defs, 'starterKit') > 0) installStarterKit(state, defs, meta.starterKit)
   state.events = []
 }
 

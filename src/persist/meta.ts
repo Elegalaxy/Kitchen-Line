@@ -6,9 +6,11 @@
 // `loadMeta` never trusts its input and never throws. Every field is required. Persist cannot see the
 // content defs, so perk ids and dish ids are checked for shape only (the UI ignores ids it does not know);
 // counts are bounded so a hostile file cannot make the loader do unbounded work. The helpers are small
-// copies of the ones in save.ts on purpose (save.ts is not refactored for this).
+// copies of the ones in save.ts on purpose (save.ts is not refactored for this); the optional starter kitchen
+// reuses save.ts's blueprint check.
 
 import type { MetaState } from '../sim/types.ts'
+import { blueprint, Invalid } from './save.ts'
 
 export const META_KEY = 'kitchen-line.meta.v1'
 /** The raw text of a meta file that failed to load is kept here so it is not lost. */
@@ -25,9 +27,6 @@ const MAX_PERK_LEVEL = 99
 const MAX_POINTS = 1_000_000
 
 type Obj = Record<string, unknown>
-
-/** Thrown inside the validator only; `loadMeta` turns it into a reason string. */
-class Invalid extends Error {}
 
 function bad(path: string, why: string): never {
   throw new Invalid(`${path}: ${why}`)
@@ -81,6 +80,8 @@ function validateMeta(v: unknown): MetaState {
   }
   arr(m.recipeBook, 'meta.recipeBook', MAX_BOOK).forEach((x, i) => str(x, `meta.recipeBook[${i}]`))
   history(m.history, 'meta.history')
+  // Optional, so older meta files load. The same grid checks as a branch's blueprint (bounded sizes).
+  if (m.starterKit !== undefined) blueprint(m.starterKit, 'meta.starterKit')
   return m as unknown as MetaState
 }
 

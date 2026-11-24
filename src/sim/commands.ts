@@ -337,6 +337,8 @@ function upgradeTier(state: GameState, defs: Defs, cmd: Command): ApplyOutcome {
   const why = upgradeProblem(state, defs)
   if (why !== null) return reject(state, cmd, why)
   const next = structuredClone(state)
+  // The stall kitchen, saved for the franchise starter kitchen perk (GAME_DESIGN 8.2); taken before the tier changes.
+  next.stallKit = blueprintOf(state, defs)
   next.money -= UPGRADE_COST
   next.tier = 'restaurant'
   next.tierProfitStart = next.totals.profit

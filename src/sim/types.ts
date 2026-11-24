@@ -237,6 +237,11 @@ export type GameState = {
   chainProfit?: number
   /** True once the "Chain built" end screen has been triggered; it never triggers twice. */
   chainWon?: true
+  /**
+   * The stall kitchen as it was when the player upgraded to a restaurant (GAME_DESIGN 8.2, starter kitchen).
+   * Set once by `upgradeTier`; absent in a run that never upgraded and in older saves.
+   */
+  stallKit?: Blueprint
   events: SimEvent[]
 }
 
@@ -382,6 +387,8 @@ export type PerkDef = {
     goodRatings?: number
     /** Expansion steps applied for free at the start, per level. */
     startExpansion?: number
+    /** True: a saved starter kitchen is installed free on day 1 (needs `MetaState.starterKit`). */
+    starterKit?: boolean
   }
 }
 
@@ -395,6 +402,8 @@ export type MetaState = {
   perks: Record<string, number>
   recipeBook: DishId[]
   history: RunRecord[]
+  /** The stall kitchen of the latest run that upgraded to a restaurant (GAME_DESIGN 8.2). Absent until one did. */
+  starterKit?: Blueprint
 }
 
 /** What a goal reports: `current` and `target` are in the goal's unit (count, cents or stars). */
