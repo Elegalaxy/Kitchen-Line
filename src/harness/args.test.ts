@@ -74,19 +74,24 @@ describe('parseArgs', () => {
   it('parses journey mode with defaults and flags', () => {
     expect(parse('--journey')).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, upgrades: true, pass2: true, pro: true, fryer: 'auto', chain: true, maxDays: 60, example: 1, pause: true, meta: false, runs: 2 },
+      options: { mode: 'journey', seeds: 20, cautious: false, throttle: true, upgrades: true, pass2: true, pro: true, fryer: 'auto', chain: true, maxDays: 60, example: 1, pause: true, meta: false, runs: 2, starterKit: true, kitOnly: false },
     })
     expect(
       parse('--journey', '--seeds', '5', '--cautious', '--no-throttle', '--fryer', 'never', '--max-days', '15', '--example', '3'),
     ).toEqual({
       ok: true,
-      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, upgrades: true, pass2: true, pro: true, fryer: 'never', chain: true, maxDays: 15, example: 3, pause: true, meta: false, runs: 2 },
+      options: { mode: 'journey', seeds: 5, cautious: true, throttle: false, upgrades: true, pass2: true, pro: true, fryer: 'never', chain: true, maxDays: 15, example: 3, pause: true, meta: false, runs: 2, starterKit: true, kitOnly: false },
     })
   })
 
   it('--meta implies the journey, --runs takes 2 or 3', () => {
     const r = parse('--meta', '--seeds', '3', '--runs', '3')
     expect(r.ok && r.options.mode === 'journey' && r.options.meta && r.options.runs).toBe(3)
+    expect(r.ok && r.options.mode === 'journey' && r.options.starterKit).toBe(true)
+    const off = parse('--meta', '--no-starterkit')
+    expect(off.ok && off.options.mode === 'journey' && off.options.starterKit).toBe(false)
+    const only = parse('--meta', '--starterkit-only')
+    expect(only.ok && only.options.mode === 'journey' && only.options.kitOnly).toBe(true)
     expect(errorOf('--meta', '--runs', '1')).toContain('--runs')
     expect(errorOf('--meta', '--runs', '4')).toContain('--runs')
     expect(errorOf('--meta', '--no-chain')).toContain('--meta')

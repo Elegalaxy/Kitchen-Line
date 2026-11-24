@@ -345,6 +345,13 @@ function send(run: Run, cmd: Command, why: string): boolean {
   return false
 }
 
+/** A place command whose building of that kind already stands at its tile (a franchise starter kitchen). */
+function placed(state: GameState, cmd: Command): boolean {
+  if (cmd.type !== 'place') return false
+  const id = buildingAt(state, cmd.x, cmd.y)
+  return id !== null && state.buildings[id]?.kind === cmd.kind
+}
+
 function buildProject(run: Run, p: Project, bought: string[]): boolean {
   while (run.state.width < p.minWidth || run.state.height < p.minHeight) {
     if (!send(run, { type: 'buyExpansion' }, p.id)) return false
@@ -353,7 +360,7 @@ function buildProject(run: Run, p: Project, bought: string[]): boolean {
   if (p.dish !== null && !run.state.unlocked.includes(p.dish)) {
     if (!send(run, { type: 'unlockRecipe', dish: p.dish }, p.id)) return false
   }
-  for (const c of p.cmds) if (!send(run, c, p.id)) return false
+  for (const c of p.cmds) if (!placed(run.state, c) && !send(run, c, p.id)) return false
   bought.push(p.id)
   return true
 }
@@ -417,6 +424,11 @@ export function runJourney(defs: Defs, seed: string, opts: PlayerOptions = {}): 
   const run: Run = { state: createRun(defs, seed, opts.meta), defs, failures: [] }
   const built = new Set<string>()
   const failedProjects = new Set<string>()
+  // A starter kitchen (franchise perk) arrives with whole lines built: those projects count as built and cost nothing.
+  for (const p of PRIORITY) {
+    const places = p.cmds.filter((c) => c.type === 'place')
+    if (places.length > 0 && places.every((c) => placed(run.state, c)) && (p.dish === null || run.state.unlocked.includes(p.dish))) built.add(p.id)
+  }
   const goalDay: Record<string, number | null> = {}
   for (const g of defs.goals ?? []) goalDay[g.id] = null
   const days: DayLog[] = []

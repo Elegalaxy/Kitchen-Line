@@ -6,6 +6,8 @@
 // seedMoney, goodName, biggerStall whose next level is affordable (an unaffordable level is skipped, not
 // saved for). With the typical 32 to 37 points that is seed money 3 (27) plus good name 1 (5).
 // (A first try, "cheapest affordable level first", bought good name 2 + seed money 2 and was slower.)
+// With the starter kitchen (`--meta` default, `--no-starterkit` turns it off) the order is starterKit first, then
+// the three above: the kitchen is bought once a run has saved one (buyPerk refuses it before that).
 
 import { buyPerk, emptyMeta, franchisePoints, perkCost, recordFranchise } from '../sim/franchise.ts'
 import type { FranchisePoints } from '../sim/franchise.ts'
@@ -16,15 +18,20 @@ import type { JourneyResult, PlayerOptions } from './player.ts'
 /** Priority order of the spend policy. */
 export const SPEND_ORDER = ['seedMoney', 'goodName', 'biggerStall']
 
+/** The order with the starter kitchen first (the `--meta` default). */
+export const KIT_SPEND_ORDER = ['starterKit', ...SPEND_ORDER]
+/** Only the starter kitchen (to measure what it is worth on its own; the other points stay unspent). */
+export const KIT_ONLY_ORDER = ['starterKit']
+
 /** Spend the points by the policy above; returns the new meta and the perk ids bought, in order. */
-export function spendPoints(meta: MetaState, defs: Defs): { meta: MetaState; bought: string[] } {
+export function spendPoints(meta: MetaState, defs: Defs, order: string[] = SPEND_ORDER): { meta: MetaState; bought: string[] } {
   let current = meta
   const bought: string[] = []
   for (;;) {
     const best =
-      SPEND_ORDER.find((id) => {
+      order.find((id) => {
         const cost = perkCost(current, defs, id)
-        return cost !== null && cost <= current.points
+        return cost !== null && cost <= current.points && buyPerk(current, defs, id).ok
       }) ?? null
     if (best === null) return { meta: current, bought }
     const r = buyPerk(current, defs, best)
@@ -49,10 +56,10 @@ export type MetaSeed = {
   problem: string | null
 }
 
-export type MetaOptions = PlayerOptions & { seeds: number; runs: number; seedPrefix?: string }
+export type MetaOptions = PlayerOptions & { seeds: number; runs: number; seedPrefix?: string; starterKit?: boolean; kitOnly?: boolean }
 
 /** One seed: play run 1 (chain on), franchise, spend, play run 2 (and 3). */
-export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs: number): MetaSeed {
+export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs: number, order: string[] = SPEND_ORDER): MetaSeed {
   let meta = emptyMeta()
   const out: MetaSeed = { base, runs: [], earned: [], bought: [], left: [], problem: null }
   for (let run = 1; run <= runs; run += 1) {
@@ -65,7 +72,7 @@ export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs:
       break
     }
     out.earned.push(franchisePoints(r.state))
-    const spent = spendPoints(rec.meta, defs)
+    const spent = spendPoints(rec.meta, defs, order)
     meta = spent.meta
     out.bought.push(spent.bought)
     out.left.push(meta.points)
@@ -76,7 +83,8 @@ export function runMetaSeed(defs: Defs, base: string, opts: PlayerOptions, runs:
 export function runMetaSet(defs: Defs, opts: MetaOptions): MetaSeed[] {
   const prefix = opts.seedPrefix ?? 'journey'
   const result: MetaSeed[] = []
-  for (let i = 1; i <= opts.seeds; i += 1) result.push(runMetaSeed(defs, `${prefix}-${i}`, opts, opts.runs))
+  const order = opts.kitOnly === true ? KIT_ONLY_ORDER : opts.starterKit === false ? SPEND_ORDER : KIT_SPEND_ORDER
+  for (let i = 1; i <= opts.seeds; i += 1) result.push(runMetaSeed(defs, `${prefix}-${i}`, opts, opts.runs, order))
   return result
 }
 

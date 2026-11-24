@@ -47,8 +47,8 @@ if (options.mode === 'list') {
     for (const line of failures) console.log(line)
   }
   if (options.meta) {
-    const sets = runMetaSet(DEFS, { ...playerOptions, seeds: options.seeds, runs: options.runs })
-    console.log(`${header}, meta: ${options.runs} runs per seed (spend policy: first affordable perk level in the order seedMoney, goodName, biggerStall)`)
+    const sets = runMetaSet(DEFS, { ...playerOptions, seeds: options.seeds, runs: options.runs, starterKit: options.starterKit, kitOnly: options.kitOnly })
+    console.log(`${header}, meta: ${options.runs} runs per seed (spend policy: ${options.kitOnly ? 'only the starterKit perk' : `first affordable perk level in the order ${options.starterKit ? 'starterKit, ' : ''}seedMoney, goodName, biggerStall`})`)
     for (let k = 0; k < options.runs; k += 1) {
       console.log(`=== run ${k + 1}${k === 0 ? '' : ` (seeds journey-N-run${k + 1}, perks from the earlier runs)`}`)
       printBlock(sets.flatMap((s) => (s.runs[k] === undefined ? [] : [s.runs[k]])))

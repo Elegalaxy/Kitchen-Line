@@ -3,7 +3,9 @@
 import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { emptyMeta } from '../sim/franchise.ts'
-import { formatMetaMedians, formatMetaPoints, runMetaSeed, spendPoints } from './franchise.ts'
+import { blueprintOf } from '../sim/blueprint.ts'
+import { createGame } from '../sim/game.ts'
+import { formatMetaMedians, formatMetaPoints, KIT_SPEND_ORDER, runMetaSeed, spendPoints } from './franchise.ts'
 
 describe('spendPoints', () => {
   it('buys by priority order (seed money, good name, bigger stall), skips what it cannot afford, and leaves the rest', () => {
@@ -22,6 +24,18 @@ describe('spendPoints', () => {
   })
 })
 
+describe('spendPoints with the starter kitchen', () => {
+  const kit = blueprintOf(createGame(DEFS, 'k'), DEFS)
+
+  it('buys the kitchen first once one is saved, and skips it (not stops) while none is', () => {
+    const withKit = spendPoints({ ...emptyMeta(), points: 35, starterKit: kit }, DEFS, KIT_SPEND_ORDER)
+    expect(withKit.bought).toEqual(['starterKit', 'seedMoney', 'seedMoney', 'goodName'])
+    expect(withKit.meta.points).toBe(1)
+    const without = spendPoints({ ...emptyMeta(), points: 35 }, DEFS, KIT_SPEND_ORDER)
+    expect(without.bought).toEqual(['seedMoney', 'seedMoney', 'seedMoney', 'goodName'])
+  })
+})
+
 describe('--meta journey', () => {
   it('plays run 2 on the next run seed after franchising run 1', () => {
     const s = runMetaSeed(DEFS, 'journey-1', { maxDays: 60 }, 2)
@@ -34,3 +48,15 @@ describe('--meta journey', () => {
     expect(formatMetaMedians([s], 2)).toHaveLength(2)
   }, 120_000)
 })
+
+describe('--meta journey with the starter kitchen', () => {
+  it('run 2 starts with the saved stall lines built, rejects nothing and upgrades sooner than run 1', () => {
+    const s = runMetaSeed(DEFS, 'journey-1', { maxDays: 60 }, 2, KIT_SPEND_ORDER)
+    expect(s.problem).toBeNull()
+    expect(s.bought[0]).toContain('starterKit')
+    expect(s.runs[1].failures).toEqual([])
+    expect(s.runs[1].wonDay).not.toBeNull()
+    expect(s.runs[1].upgradeDay ?? 99).toBeLessThan(s.runs[0].upgradeDay ?? 0)
+  }, 120_000)
+})
+
