@@ -24,17 +24,20 @@ Working folder: `D:\Coding\project\Kitchen-Line-worktrees\franchise-core`.
 - Files: `doc/GAME_DESIGN.md`, this plan
 
 ### Step 2: Types and content
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `MetaState`, `RunRecord`, `PerkDef`, `Defs.perks`, `FRANCHISE_*` constants, `content/perks.ts` in `DEFS`. 11 layouts byte-identical.
 - Files: `src/sim/types.ts` (`MetaState`, `PerkDef`, `Defs.perks`), `src/sim/constants.ts` (`FRANCHISE_*`), `src/content/perks.ts`, `src/content/index.ts`
 - Acceptance: 11 layouts byte-identical.
 
 ### Step 3: Sim
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `sim/franchise.ts` (+ tests): points with parts, `canFranchise`, `recordFranchise` (duplicate-seed guard, stall-only recipe book, history 100), `buyPerk` / `perkCost`, `runSeed`, `applyFranchiseStart`, `createRun`. Empty meta = same `stateHash` as `createGame`. 11 layouts byte-identical.
 - Files: `src/sim/franchise.ts` (+ test): `emptyMeta`, `franchisePoints`, `canFranchise`, `recordFranchise`, `perkCost`, `buyPerk`, `runSeed`, `applyFranchiseStart`, `createRun`.
 - Acceptance: empty meta gives the `createGame` hash; 11 layouts byte-identical.
 
 ### Step 4: Persist meta
-- Status: `todo`
+- Status: `done`
+- Progress: 2026-11-24: `persist/meta.ts` (+ tests): `META_KEY`, `META_CORRUPT_KEY`, `serializeMeta` / `loadMeta`; all fields required; unknown perk ids kept (shape only), the UI ignores them.
 - Files: `src/persist/meta.ts` (+ test): keys, `serializeMeta` / `loadMeta`.
 
 ### Step 5: Harness `--meta`
