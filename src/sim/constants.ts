@@ -173,6 +173,8 @@ export const BRANCH_MAX = 3
 export const BRANCH_OPEN_FEES: readonly number[] = [100000, 200000, 300000]
 /** GAME_DESIGN 8.1: a refit costs this many cents ($250) plus any increase in blueprint value. */
 export const BRANCH_REFIT_FEE = 25000
+/** GAME_DESIGN 8.1 (user decision 2026-11-25): closing a branch refunds this percent of its blueprint value. */
+export const BRANCH_CLOSE_REFUND_PERCENT = 50
 /** GAME_DESIGN 8.1: a branch's nightly profit is the stored expectation x 90 to 110 percent. */
 export const BRANCH_NOISE_PERCENT = 10
 /** Critic customer ids start here so they never equal a normal customer id (those are the arrival tick). */

@@ -4,10 +4,16 @@
 
 import { describe, expect, it } from 'vitest'
 import { blueprintOf } from './blueprint.ts'
-import { nextArea, openBranchCost, openBranchProblem, refitCost } from './branches.ts'
+import { closeProblem, closeRefund, nextArea, nextBranchId, openBranchCost, openBranchProblem, refitCost } from './branches.ts'
 import { applyCommand } from './commands.ts'
 import { chainReady, DEFS, must } from './chainKit.ts'
-import { BRANCH_MAX, BRANCH_NOISE_PERCENT, BRANCH_OPEN_FEES, BRANCH_REFIT_FEE } from './constants.ts'
+import {
+  BRANCH_CLOSE_REFUND_PERCENT,
+  BRANCH_MAX,
+  BRANCH_NOISE_PERCENT,
+  BRANCH_OPEN_FEES,
+  BRANCH_REFIT_FEE,
+} from './constants.ts'
 import { stateHash } from './hash.ts'
 import { branchNet, nightNoisePercent } from './nights.ts'
 import { runTicks } from './tick.ts'
@@ -258,5 +264,115 @@ describe('chain goals and the chain end screen', () => {
     const day = runTicks(must(chainReady(), { type: 'openService' }, open), open, 2400)
     expect(day.phase).toBe('summary')
     expect(day.chainWon).toBeUndefined()
+  })
+})
+
+describe('closeBranch', () => {
+  const close = (id: number): Command => ({ type: 'closeBranch', id })
+  const three = (): GameState => {
+    let s = chainReady()
+    for (let i = 0; i < BRANCH_MAX; i += 1) s = must(s, OPEN)
+    return s
+  }
+  const oneNight = (s: GameState): GameState => must(runTicks(must(s, { type: 'openService' }), DEFS, 2400), { type: 'dismissSummary' })
+
+  it('is refused while the chain is locked, outside the build phase and for unknown ids, leaving the state as it was', () => {
+    const s = must(chainReady(), OPEN)
+    expect(reasonOf({ ...s, won: false }, close(1))).toBe('chain locked')
+    const service = must(s, { type: 'openService' })
+    expect(reasonOf(service, close(1))).toBe('wrong phase')
+    expect(reasonOf(runTicks(service, DEFS, 2400), close(1))).toBe('wrong phase')
+    expect(reasonOf(s, close(2))).toBe('no such branch')
+    expect(reasonOf(s, { type: 'closeBranch', id: '1' } as unknown as Command)).toBe('no such branch')
+    expect(reasonOf(chainReady(), close(1))).toBe('no such branch')
+    expect(closeProblem(s, 1)).toBeNull()
+    const out = applyCommand(s, DEFS, close(9))
+    expect(out.state).toBe(s)
+  })
+
+  it('pays back the percent of the blueprint value rounded down, in money only', () => {
+    expect(BRANCH_CLOSE_REFUND_PERCENT).toBe(50)
+    const s = oneNight(must(chainReady(), OPEN))
+    const branch = s.branches?.[0]
+    if (branch === undefined) throw new Error('no branch')
+    const refund = closeRefund(branch)
+    expect(refund).toBe(Math.floor(branch.blueprint.value / 2))
+    expect(closeRefund({ blueprint: { ...branch.blueprint, value: 101 } })).toBe(50)
+    const next = must(s, close(branch.id))
+    expect(next.money - s.money).toBe(refund)
+    expect(next.chainProfit).toBe(s.chainProfit)
+    expect(next.totals).toEqual(s.totals)
+    expect(next.today).toEqual(s.today)
+    expect(next.lastDay).toEqual(s.lastDay)
+    expect(next.rng).toEqual(s.rng)
+    expect(next.buildings).toEqual(s.buildings)
+    expect(next.events.at(-1)).toEqual({ type: 'branchClosed', tick: s.tick, id: branch.id, areaId: branch.areaId, refund })
+  })
+
+  it('refunds the value of the kitchen the branch runs now, not of the flagship', () => {
+    let s = must(chainReady(), OPEN)
+    const before = closeRefund(s.branches![0])
+    s = must(s, { type: 'place', kind: 'belt', x: 1, y: 4, dir: 1 })
+    expect(closeRefund(s.branches![0])).toBe(before)
+    s = must(s, { type: 'refitBranch', id: 1 })
+    expect(closeRefund(s.branches![0])).toBe(before + 50)
+  })
+
+  it('removes the branches field with the last branch, and no branch runs that night', () => {
+    const s = must(must(chainReady(), OPEN), close(1))
+    expect('branches' in s).toBe(false)
+    const night = runTicks(must(s, { type: 'openService' }), DEFS, 2400)
+    expect(night.lastDay?.branches).toBeUndefined()
+    expect(night.chainProfit).toBeUndefined()
+  })
+
+  it('frees the slot: the fee follows the open branches and only their areas are excluded', () => {
+    const full = three()
+    const closed = full.branches![1]
+    const s = must(full, close(closed.id))
+    expect(s.branches?.map((b) => b.id)).toEqual([1, 3])
+    expect(openBranchProblem(s, DEFS)).toBeNull()
+    expect(openBranchCost(s, DEFS)).toBe(blueprintOf(s, DEFS).value + BRANCH_OPEN_FEES[2])
+    const site = nextArea(s, DEFS)
+    expect(s.branches?.map((b) => b.areaId)).not.toContain(site?.id)
+    const again = must(s, OPEN)
+    expect(again.branches?.map((b) => b.id)).toEqual([1, 3, 4])
+    expect(new Set(again.branches?.map((b) => b.areaId)).size).toBe(3)
+  })
+
+  it('never gives a new branch an id that is open or still in a day record', () => {
+    // close the last id after a night: the records still name it, so it is skipped
+    const s = must(oneNight(three()), close(3))
+    expect(nextBranchId(s)).toBe(4)
+    const reopened = must(s, OPEN)
+    expect(reopened.branches?.map((b) => b.id)).toEqual([1, 2, 4])
+    // two finished days later no record names 3 or 4 any more; closing 4 lets 3 come back
+    const later = must(oneNight(oneNight(s)), OPEN)
+    expect(later.branches?.map((b) => b.id)).toEqual([1, 2, 3])
+    // closed before its first night: the same id and the same test result come back (no reroll)
+    const first = must(chainReady(), OPEN)
+    const second = must(must(first, close(1)), OPEN)
+    expect(second.branches?.[0]).toEqual(first.branches?.[0])
+  })
+
+  it('keeps done chain goals done and never shows the chain end screen twice', () => {
+    const goals: Defs = {
+      ...DEFS,
+      goals: [{ id: 'three', tier: 'chain', label: 'Open 3', unit: 'count', check: (st) => ({ done: (st.branches?.length ?? 0) >= 3, current: st.branches?.length ?? 0, target: 3 }) }],
+    }
+    let s = chainReady()
+    for (let i = 0; i < BRANCH_MAX; i += 1) s = must(s, OPEN, goals)
+    expect(s.goalsDone).toContain('three')
+    s = runTicks(must(s, { type: 'openService' }, goals), goals, 2400)
+    expect(s.chainWon).toBe(true)
+    s = must(s, { type: 'dismissSummary' }, goals)
+    for (const id of [1, 2, 3]) s = must(s, close(id), goals)
+    s.money = 1_000_000
+    expect(s.goalsDone).toContain('three')
+    expect(s.chainWon).toBe(true)
+    for (let i = 0; i < BRANCH_MAX; i += 1) s = must(s, OPEN, goals)
+    s = runTicks(must(s, { type: 'openService' }, goals), goals, 2400)
+    expect(s.phase).toBe('summary')
+    expect(s.events.some((e) => e.type === 'chainWon')).toBe(false)
   })
 })

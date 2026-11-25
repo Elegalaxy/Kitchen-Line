@@ -475,6 +475,15 @@ describe('chain stage (branches)', () => {
     expect(loadSave(raw).ok).toBe(true)
   })
 
+  it('round-trips a game after closing a branch, including the last one', () => {
+    const build = chainMust(chainState(), { type: 'dismissSummary' })
+    const out = applyCommand(build, CHAIN_DEFS, { type: 'closeBranch', id: build.branches![0].id })
+    expect(out.result.ok).toBe(true)
+    expect('branches' in out.state).toBe(false)
+    const r = loadSave(serializeSave(out.state, '2026-11-25T00:00:00Z'))
+    expect(r.ok && stateHash(r.state)).toBe(stateHash(out.state))
+  })
+
   it('rejects a corrupt blueprint and names where', () => {
     const s = chainState()
     expect(reasonOf(edited(s, (st) => (st.branches[0].blueprint.tiles = [])))).toContain('state.branches[0].blueprint.tiles')

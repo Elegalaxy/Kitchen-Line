@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { chainReady, DEFS, must } from '../sim/chainKit.ts'
 import type { GameState } from '../sim/types.ts'
+import { formatMoney } from './format.ts'
 import { branchCards, branchKpis, branchReason, branchSummary, nextSiteView, signedMoney } from './branchesView.ts'
 
 function withBranch(): GameState {
@@ -62,5 +63,17 @@ describe('branchesView', () => {
     expect(sum?.totalNet).toBe(500)
     expect(sum?.chainTotal).toBe(600 + 500)
     expect(branchKpis(s).lastNightText).toBe('+$5.00')
+  })
+})
+
+describe('branchesView close', () => {
+  it('shows the refund and blocks closing outside the build phase with the refit reason', () => {
+    const s = withBranch()
+    const [card] = branchCards(s, DEFS)
+    expect(card.closeReason).toBeNull()
+    expect(card.closeRefundText).toBe(formatMoney(Math.floor(s.branches![0].blueprint.value / 2)))
+    const [busy] = branchCards({ ...s, phase: 'service' }, DEFS)
+    expect(busy.closeReason).toContain('Only between days')
+    expect(busy.closeReason).toBe(busy.refitReason)
   })
 })

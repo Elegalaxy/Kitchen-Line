@@ -2040,6 +2040,17 @@ kbd {
   justify-content: center;
 }
 
+/* Quieter than Refit: a thin border; the red text and the word Close carry the meaning. */
+.branch-close {
+  width: 100%;
+  border-width: 1px;
+  font-weight: 600;
+}
+
+.branch-close:disabled {
+  background: transparent;
+}
+
 .sum-row.total dt,
 .sum-row.total dd {
   font-weight: 700;

@@ -185,6 +185,7 @@ export type SimEvent =
   | { type: 'won'; tick: number }
   | { type: 'branchOpened'; tick: number; id: number; areaId: string; cost: number }
   | { type: 'branchRefit'; tick: number; id: number; cost: number }
+  | { type: 'branchClosed'; tick: number; id: number; areaId: string; refund: number }
   | { type: 'chainWon'; tick: number }
   | { type: 'commandRejected'; tick: number; command: string; reason: RejectReason }
 
@@ -491,6 +492,8 @@ export type Command =
   | { type: 'openBranch' }
   /** Copy the current flagship kitchen to branch `id` again. */
   | { type: 'refitBranch'; id: number }
+  /** Close branch `id` (build phase): part of its kitchen value comes back, the opening fee does not. */
+  | { type: 'closeBranch'; id: number }
   | { type: 'openService' }
   | { type: 'dismissSummary' }
   /** Add cents once so the suggested salad line can be bought (UI calls this; capped). */

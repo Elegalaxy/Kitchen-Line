@@ -1,21 +1,23 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (lead session, starter kit and blueprint library, 2026-11-25)
-- **Current Goal:** First playable, the content expansion, the chain stage and franchising (with the blueprint library) are built. No planned roadmap item is left; the next slice is the user's choice.
+- **Last Updated By:** Claude (implementer, kit cost and close branch, 2026-11-25)
+- **Current Goal:** First playable, the content expansion, the chain stage and franchising (with the blueprint library) and closing a branch are built. No planned roadmap item is left; the next slice is the user's choice.
 - **Recent Changes & Files Touched (all on `origin/main`, plans in `doc/plans/2026-11-23-restaurant-growth.md` and `2026-11-24-*.md`):**
   - Earlier: pantry pause, overnight cleanup, closing-soon cue; restaurant growth (second pass, 4 upgrades, goal 7); trends, pro stations, dish pack, critics, seasons; chain tier (blueprints, branches, chain goals).
   - Franchise prestige (`src/sim/franchise.ts`, `src/persist/meta.ts`, `src/content/perks.ts`, `src/ui/{franchiseView,FranchiseModal,FranchiseConfirm,metaPersistence}`, harness `--meta`): run N+1 keeps points, starting-state perks and a free recipe book; second save key `kitchen-line.meta.v1`; tutorial only in the first ever run.
   - Starter kit: the stall kitchen is captured at the restaurant upgrade (`GameState.stallKit`); the `starterKit` perk (8 FP, was 14 until 2026-11-25) builds a saved kitchen free on day 1 of a new run.
   - Blueprint library: 3 slots in the meta (`library`, `activeKit`; an old `starterKit` reads as slot 1). At franchise out the player picks a save slot or "Don't save", then which kitchen starts the next run. Harness `--no-starterkit`, `--starterkit-only`; dev cheat `?cheat=library` with a layout.
+  - Close a branch (`doc/plans/2026-11-25-close-branch.md`): command `closeBranch`, 50% of the blueprint value back, confirm dialog (`src/ui/CloseBranchConfirm.tsx`); not undoable.
   - Perf test: the local 1 s limit now scales (up to 4x) with a reference workload timed around each run; CI keeps 8 s (`src/harness/perf.test.ts`).
   - Warnings: unfit saved kitchens are marked and not selectable (`kitFits`); a corrupt meta file shows a dismissible banner (`src/ui/MetaNotice.tsx`).
-- **Measured (harness, 20 seeds, median days to restaurant / chain end screen):** run 1 18 / 32; run 2 with seed money 3 + good name 1: 14 / 27; kit + seed money 2 + good name 1: 14 / 27; kit only: 16 / 29. Restaurant goal 7 puts a floor near day 14.
+- **Measured (harness, 20 seeds, median days to restaurant / chain end screen):** run 1 18 / 32; run 2 with seed money 3 + good name 1: 14 / 27; kit + seed money 2 + good name 1: 14 / 27; kit only: 16 / 29. Restaurant goal 7 puts a floor near day 14. With the kit at 8 FP (2026-11-25) run 2 is still 14 / 27.
 - **Active Decisions / Constraints:**
-  - Branches run a stored test-day result with +-10% hash noise minus area rent; no close-branch command; restaurant upgrades do not apply to branches (user decisions 2026-11-24).
+  - Branches run a stored test-day result with +-10% hash noise minus area rent; closing refunds 50% of the kitchen value, the fee is lost; restaurant upgrades do not apply to branches (user decisions 2026-11-24).
   - Library: manual save, 3 slots, no names; the kit perk stays one purchase (user decisions 2026-11-24/25). Rule perks and prestige tiers stay [later].
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow). The main checkout has another chat's uncommitted edits in `Inspector.tsx` and `draw.ts` and lags `origin/main`; the `coach-notices` worktree also has uncommitted work.
 - **Known gaps:**
+  - At 375 px in the chain stage the page scrolls about 29 px sideways: the `.sr-only` span inside `.goal-chip-label` (goal tracker) escapes its box (found 2026-11-25, not fixed).
   - No full franchise-out was clicked through in the browser, and the two-key save was only tested with fake storage.
   - The scripted player ignores trend and seasonal dishes; some seeds report "soup sold 0 (on the menu)".
   - Chain UI not browser-checked: end screen with real branches at 1024 px, refit flow, day summary lines for trend and critic.
-- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; close-branch command; sound and animation.
+- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; sound and animation.

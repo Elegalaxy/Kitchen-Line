@@ -1,11 +1,19 @@
 // View helper for the Branches tab (GAME_DESIGN 8.1): the KPI row, the next-site card and one card per
-// branch. Disabled reasons come from the sim's own checks (openBranchProblem, refitProblem), so the
-// buttons and the commands cannot disagree. Pure, unit-tested.
+// branch. Disabled reasons come from the sim's own checks (openBranchProblem, refitProblem, closeProblem), so
+// the buttons and the commands cannot disagree. Pure, unit-tested.
 
 import { BRANCH_MAX, BRANCH_OPEN_FEES } from '../sim/constants.ts'
 import { blueprintOf, sameBlueprint } from '../sim/blueprint.ts'
 import { profitOf } from '../sim/economy.ts'
-import { nextArea, openBranchCost, openBranchProblem, refitCost, refitProblem } from '../sim/branches.ts'
+import {
+  closeProblem,
+  closeRefund,
+  nextArea,
+  openBranchCost,
+  openBranchProblem,
+  refitCost,
+  refitProblem,
+} from '../sim/branches.ts'
 import type { Defs, GameState, RejectReason } from '../sim/types.ts'
 import { formatMoney, reasonText } from './format.ts'
 import { moneyDelta } from './daySummaryView.ts'
@@ -102,6 +110,9 @@ export type BranchCardView = {
   badge: string
   refitCostText: string
   refitReason: string | null
+  /** What closing pays back. */
+  closeRefundText: string
+  closeReason: string | null
 }
 
 export function branchCards(state: GameState, defs: Defs): BranchCardView[] {
@@ -126,6 +137,8 @@ export function branchCards(state: GameState, defs: Defs): BranchCardView[] {
       badge: upToDate ? 'Up to date' : 'Flagship changed',
       refitCostText: formatMoney(cost),
       refitReason: branchReason(refitProblem(state, defs, b.id), cost),
+      closeRefundText: formatMoney(closeRefund(b)),
+      closeReason: branchReason(closeProblem(state, b.id), 0),
     }
   })
 }

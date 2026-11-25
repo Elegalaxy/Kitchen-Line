@@ -7,12 +7,20 @@
 // the upgrade effects: one synthetic upgrade adds `demandPercent - 100` to the arrival chance, so customers.ts
 // needs no change. The flagship's own upgrades do not carry over (kitchen only). Like the harness player, the
 // pantries are paused for the last `CLOSING_SOON_TICKS` so the overnight cleanup throws little away.
-// The rest of the file is the chain-stage rules the commands share with the UI: the fixed next site, the costs
-// and the reasons `openBranch` / `refitBranch` would be rejected (the cheap ones; the test day adds
-// 'branch would lose money'). The nightly booking is in nights.ts.
+// The rest of the file is the chain-stage rules the commands share with the UI: the fixed next site, the costs,
+// the refund for closing and the reasons `openBranch` / `refitBranch` / `closeBranch` would be rejected (the
+// cheap ones; the test day adds 'branch would lose money'). The opening fee and the next site follow the OPEN
+// branches only, so closing one frees its slot and its area. The nightly booking is in nights.ts.
 
 import { blueprintOf, sameBlueprint } from './blueprint.ts'
-import { BRANCH_MAX, BRANCH_OPEN_FEES, BRANCH_REFIT_FEE, CLOSING_SOON_TICKS, DAY_TICKS } from './constants.ts'
+import {
+  BRANCH_CLOSE_REFUND_PERCENT,
+  BRANCH_MAX,
+  BRANCH_OPEN_FEES,
+  BRANCH_REFIT_FEE,
+  CLOSING_SOON_TICKS,
+  DAY_TICKS,
+} from './constants.ts'
 import { profitOf } from './economy.ts'
 import { createGame, emptyDayStats } from './game.ts'
 import { reputationOf } from './customers.ts'
@@ -110,9 +118,16 @@ export function branchById(state: Pick<GameState, 'branches'>, id: unknown): Bra
   return state.branches?.find((b) => b.id === id)
 }
 
-/** The id the next branch gets (ids count up and are never reused: there is no close command). */
-export function nextBranchId(state: Pick<GameState, 'branches'>): number {
-  return Math.max(0, ...(state.branches ?? []).map((b) => b.id)) + 1
+/**
+ * The id the next branch gets: one above every id of an open branch and of a branch night still in the day
+ * records (today, lastDay, prevDay), so a new branch never shows a closed branch's night. No state field: an id
+ * can come back once no record mentions it (closed before its first night, or two finished days later). That is
+ * harmless: the id only seeds the test day and the night noise (which also hashes the day), and the same id
+ * giving the same test day means closing and reopening cannot reroll a result.
+ */
+export function nextBranchId(state: Pick<GameState, 'branches' | 'today' | 'lastDay' | 'prevDay'>): number {
+  const recorded = [state.today, state.lastDay, state.prevDay].flatMap((d) => d?.branches ?? [])
+  return Math.max(0, ...(state.branches ?? []).map((b) => b.id), ...recorded.map((r) => r.id)) + 1
 }
 
 /** Cents to open the next branch: the blueprint's value plus the fee for this branch number. */
@@ -124,6 +139,11 @@ export function openBranchCost(state: GameState, defs: Defs): number {
 /** Cents to refit: the fee plus any increase in blueprint value over the one the branch runs now. */
 export function refitCost(state: GameState, defs: Defs, branch: Branch): number {
   return BRANCH_REFIT_FEE + Math.max(0, blueprintOf(state, defs).value - branch.blueprint.value)
+}
+
+/** Cents paid back for closing `branch`: a percent of the value of the kitchen it runs now, rounded down. */
+export function closeRefund(branch: Pick<Branch, 'blueprint'>): number {
+  return Math.floor((branch.blueprint.value * BRANCH_CLOSE_REFUND_PERCENT) / 100)
 }
 
 function chainProblem(state: GameState): RejectReason | null {
@@ -151,6 +171,13 @@ export function refitProblem(state: GameState, defs: Defs, id: unknown): RejectR
   if (sameBlueprint(branch.blueprint, blueprintOf(state, defs))) return 'blueprint unchanged'
   if (state.money < refitCost(state, defs, branch)) return 'cannot afford'
   return null
+}
+
+/** Why `closeBranch` of `id` would be rejected right now, or null. */
+export function closeProblem(state: GameState, id: unknown): RejectReason | null {
+  const why = chainProblem(state)
+  if (why !== null) return why
+  return branchById(state, id) === undefined ? 'no such branch' : null
 }
 
 /** The test day of `bp` at `area` for branch `id` with the flagship's current day and ratings. */

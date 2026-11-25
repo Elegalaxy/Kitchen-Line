@@ -8,7 +8,7 @@
 // destroyed waste. A building placed during service warms up for WARMUP_TICKS (belts
 // do not). setMenu, setPrice and unlockRecipe work in the build phase only ('Menu is locked
 // during service' during service, 'wrong phase' in summary / won). upgradeTier, buyExpansion
-// (Step 16), buyUpgrade (restaurant upgrades), openBranch and refitBranch (chain stage, branches.ts) are build phase only too; dismissSummary also leaves the `won` end screen
+// (Step 16), buyUpgrade (restaurant upgrades), openBranch, refitBranch and closeBranch (chain stage, branches.ts) are build phase only too; dismissSummary also leaves the `won` end screen
 // ("Keep playing"). After every accepted command the goals are re-checked (goals.ts).
 
 import { MENU_CAP, START_INGREDIENT, TIER_RANK, TUTORIAL_HELP_CAP, UPGRADE_COST, WARMUP_TICKS } from './constants.ts'
@@ -29,6 +29,8 @@ import type { PlaceCommand } from './grid.ts'
 import { blueprintOf } from './blueprint.ts'
 import {
   branchById,
+  closeProblem,
+  closeRefund,
   nextArea,
   nextBranchId,
   openBranchCost,
@@ -402,6 +404,25 @@ function refitBranch(state: GameState, defs: Defs, cmd: Extract<Command, { type:
 }
 
 /**
+ * Close branch `id` (GAME_DESIGN 8.1): part of its kitchen value comes back (the opening fee is lost). Like
+ * selling a building the refund only raises the money: it is no day's profit and `chainProfit` is unchanged.
+ * Closing the last branch removes `branches` (absent, as before the first opening). Done goals stay done.
+ */
+function closeBranch(state: GameState, cmd: Extract<Command, { type: 'closeBranch' }>): ApplyOutcome {
+  const why = closeProblem(state, cmd.id)
+  const branch = branchById(state, cmd.id)
+  if (why !== null || branch === undefined) return reject(state, cmd, why ?? 'no such branch')
+  const refund = closeRefund(branch)
+  const next = structuredClone(state)
+  const left = (next.branches ?? []).filter((b) => b.id !== branch.id)
+  if (left.length === 0) delete next.branches
+  else next.branches = left
+  next.money += refund
+  next.events.push({ type: 'branchClosed', tick: next.tick, id: branch.id, areaId: branch.areaId, refund })
+  return { state: next, result: { ok: true } }
+}
+
+/**
  * Buy the next grid size (`defs.expansions[state.expansion]`). Buildings and the items inside
  * them stay at their coordinates; only the tile index is rebuilt for the new width.
  */
@@ -483,6 +504,8 @@ function dispatchCommand(state: GameState, defs: Defs, cmd: Command): ApplyOutco
       return openBranch(state, defs, cmd)
     case 'refitBranch':
       return refitBranch(state, defs, cmd)
+    case 'closeBranch':
+      return closeBranch(state, cmd)
     default:
       return reject(state, cmd, 'invalid command')
   }

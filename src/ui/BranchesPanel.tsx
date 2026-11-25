@@ -1,20 +1,31 @@
 // Branches tab (GAME_DESIGN 8.1, chain stage): KPI row, the next site with its cost and one primary
-// "Open branch" button, and one card per branch with a secondary "Refit" button. The test day that opens
-// or refits a branch takes about half a second, so the panel first shows a busy state, yields one frame so
-// it paints, and only then dispatches the command. Reasons are shown under the buttons.
+// "Open branch" button, and one card per branch with a secondary "Refit" button and a "Close" button that asks
+// first (CloseBranchConfirm). The test day that opens or refits a branch takes about half a second, so the
+// panel first shows a busy state, yields one frame so it paints, and only then dispatches the command. Reasons
+// are shown under the buttons; closing is only blocked for reasons that also block refitting (not between days,
+// chain locked), so the Close button points at the same reason line.
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { report } from './actions.ts'
 import type { Ctx } from './actions.ts'
 import { branchCards, branchKpis, nextSiteView } from './branchesView.ts'
 import type { BranchCardView } from './branchesView.ts'
 import { canFranchise } from '../sim/franchise.ts'
+import CloseBranchConfirm from './CloseBranchConfirm.tsx'
 import { debugLog } from './debug.ts'
 import type { Snapshot } from './store.ts'
 
 type Pending = 'open' | number | null
 
-function BranchCard({ card, busy, pending, onRefit }: { card: BranchCardView; busy: boolean; pending: Pending; onRefit: () => void }) {
+type CardProps = {
+  card: BranchCardView
+  busy: boolean
+  pending: Pending
+  onRefit: () => void
+  onClose: (button: HTMLButtonElement) => void
+}
+
+function BranchCard({ card, busy, pending, onRefit, onClose }: CardProps) {
   const disabled = busy || card.refitReason !== null
   const reasonId = `refit-reason-${card.id}`
   return (
@@ -57,6 +68,16 @@ function BranchCard({ card, busy, pending, onRefit }: { card: BranchCardView; bu
       <p id={reasonId} className="pal-reason">
         {card.refitReason === null ? '' : `⚠ ${card.refitReason}`}
       </p>
+      <button
+        type="button"
+        className="btn-danger branch-close"
+        disabled={busy || card.closeReason !== null}
+        aria-describedby={card.closeReason === null ? undefined : reasonId}
+        aria-haspopup="dialog"
+        onClick={(e) => onClose(e.currentTarget)}
+      >
+        Close · refunds <span className="num">{card.closeRefundText}</span>
+      </button>
     </li>
   )
 }
@@ -69,6 +90,10 @@ export default function BranchesPanel({ ctx, snap, onFranchise }: { ctx: Ctx; sn
   const kpis = branchKpis(state)
   const site = nextSiteView(state, store.defs)
   const cards = branchCards(state, store.defs)
+  const [closingId, setClosingId] = useState<number | null>(null)
+  const closing = cards.find((c) => c.id === closingId)
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const listHeadingRef = useRef<HTMLHeadingElement>(null)
 
   // Paint the busy label first, then run the test day (it blocks the main thread for a moment).
   const run = (what: Pending, fn: () => void): void => {
@@ -92,6 +117,23 @@ export default function BranchesPanel({ ctx, snap, onFranchise }: { ctx: Ctx; sn
     run(card.id, () => {
       if (report(ctx, store.dispatch({ type: 'refitBranch', id: card.id }))) ctx.ui.showToast(`${card.name} refitted`, 'info')
     })
+  }
+
+  const askClose = (card: BranchCardView, button: HTMLButtonElement): void => {
+    closeButtonRef.current = button
+    setClosingId(card.id)
+  }
+  const cancelClose = (): void => {
+    setClosingId(null)
+    closeButtonRef.current?.focus()
+  }
+  const confirmClose = (card: BranchCardView): void => {
+    debugLog('[ui]', 'close branch', card.id)
+    setClosingId(null)
+    if (report(ctx, store.dispatch({ type: 'closeBranch', id: card.id }))) {
+      ctx.ui.showToast(`${card.name} closed: +${card.closeRefundText}`, 'info')
+      listHeadingRef.current?.focus() // the card and its button are gone
+    } else closeButtonRef.current?.focus()
   }
 
   return (
@@ -173,13 +215,22 @@ export default function BranchesPanel({ ctx, snap, onFranchise }: { ctx: Ctx; sn
       </section>
 
       <section className="panel" aria-label="Your branches">
-        <h2 className="panel-title">Your branches</h2>
+        <h2 ref={listHeadingRef} className="panel-title" tabIndex={-1}>
+          Your branches
+        </h2>
         {cards.length === 0 ? (
-          <p className="empty">No branches yet. Open the first one above.</p>
+          <p className="empty">No branches open. Open one above.</p>
         ) : (
           <ul className="upgrade-list">
             {cards.map((c) => (
-              <BranchCard key={c.id} card={c} busy={busy} pending={pending} onRefit={() => refit(c)} />
+              <BranchCard
+                key={c.id}
+                card={c}
+                busy={busy}
+                pending={pending}
+                onRefit={() => refit(c)}
+                onClose={(button) => askClose(c, button)}
+              />
             ))}
           </ul>
         )}
@@ -193,6 +244,15 @@ export default function BranchesPanel({ ctx, snap, onFranchise }: { ctx: Ctx; sn
             Franchise out…
           </button>
         </section>
+      )}
+
+      {closing !== undefined && (
+        <CloseBranchConfirm
+          name={closing.name}
+          refundText={closing.closeRefundText}
+          onCancel={cancelClose}
+          onConfirm={() => confirmClose(closing)}
+        />
       )}
     </>
   )
