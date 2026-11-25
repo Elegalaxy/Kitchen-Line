@@ -8,15 +8,14 @@
   - Starter kit: the stall kitchen is captured at the restaurant upgrade (`GameState.stallKit`); the `starterKit` perk (14 FP) builds a saved kitchen free on day 1 of a new run.
   - Blueprint library: 3 slots in the meta (`library`, `activeKit`; an old `starterKit` reads as slot 1). At franchise out the player picks a save slot or "Don't save", then which kitchen starts the next run. Harness `--no-starterkit`, `--starterkit-only`; dev cheat `?cheat=library` with a layout.
   - Perf test: the local 1 s limit now scales (up to 4x) with a reference workload timed around each run; CI keeps 8 s (`src/harness/perf.test.ts`).
+  - Warnings: unfit saved kitchens are marked and not selectable (`kitFits`); a corrupt meta file shows a dismissible banner (`src/ui/MetaNotice.tsx`).
 - **Measured (harness, 20 seeds, median days to restaurant / chain end screen):** run 1 18 / 32; run 2 with seed money 3 + good name 1: 14 / 27; kit + seed money 2 + good name 1: 14 / 27; kit only: 16 / 29. Restaurant goal 7 puts a floor near day 14.
 - **Active Decisions / Constraints:**
   - Branches run a stored test-day result with +-10% hash noise minus area rent; no close-branch command; restaurant upgrades do not apply to branches (user decisions 2026-11-24).
   - Library: manual save, 3 slots, no names; the kit perk stays one purchase (user decisions 2026-11-24/25). Rule perks and prestige tiers stay [later].
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow). The main checkout has another chat's uncommitted edits in `Inspector.tsx` and `draw.ts` and lags `origin/main`; the `coach-notices` worktree also has uncommitted work.
 - **Known gaps:**
-  - A saved kitchen that no longer fits installs nothing, with no warning in the modal.
-  - A corrupt meta file only logs to the console.
   - No full franchise-out was clicked through in the browser, and the two-key save was only tested with fake storage.
   - The scripted player ignores trend and seasonal dishes; some seeds report "soup sold 0 (on the menu)".
   - Chain UI not browser-checked: end screen with real branches at 1024 px, refit flow, day summary lines for trend and critic.
-- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; the stale-kitchen warning and corrupt-meta notice; kit cost (14 FP buys about 2 days); close-branch command; sound and animation.
+- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; kit cost (14 FP buys about 2 days); close-branch command; sound and animation.

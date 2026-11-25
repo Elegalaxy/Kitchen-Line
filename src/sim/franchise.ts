@@ -247,6 +247,11 @@ export function starterKitProblem(defs: Defs, kit: Blueprint, start: { width: nu
   return null
 }
 
+/** Whether a saved kitchen can be installed on a new run's stall (the check `createRun` itself makes). */
+export function kitFits(defs: Defs, kit: Blueprint): boolean {
+  return starterKitProblem(defs, kit, { width: START_WIDTH, height: START_HEIGHT }) === null
+}
+
 /**
  * Install the saved stall kitchen into a fresh run (free: the points were the price). The kitchen replaces the
  * pre-placed pass and pantry; the grid is the larger of the kit's and the state's (a bigger-stall perk keeps its

@@ -2254,6 +2254,35 @@ kbd {
   color: var(--text-faint);
 }
 
+.kit-warning {
+  display: block;
+  color: var(--warn);
+  font-size: 0.875rem;
+}
+
+/* A corrupt franchise-progress file (MetaNotice.tsx): a banner, not a dialog; the game stays usable. */
+.meta-notice {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border: 2px solid var(--warn);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.meta-notice-body {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.meta-notice-title {
+  margin: 0;
+  font-weight: 700;
+}
+
 .franchise-preview {
   display: flex;
   flex-direction: column;

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { emptyMeta, franchisePoints } from '../sim/franchise.ts'
 import type { MetaState } from '../sim/types.ts'
-import { franchiseView, kitLabel } from './franchiseView.ts'
+import { franchiseView, kitLabel, STALE_KIT_WARNING } from './franchiseView.ts'
 import { applyCheat, newGameState } from './store.ts'
 
 const won = applyCheat(DEFS, newGameState(DEFS, 'friesSaladLine'), 'chainwon')
@@ -122,5 +122,23 @@ describe('franchiseView blueprint library', () => {
     const label = kitLabel({ run: 2, kit: { ...kit, menu: [{ dish: 'fries', price: 300 }, { dish: 'salad', price: 450 }] } }, DEFS)
     expect(label).toMatch(/^Run 2, fries \+ salad, \d+ buildings, value \$\d/)
     expect(kitLabel({ run: 1, kit: { ...kit, menu: [], unlocked: [] } }, DEFS)).toContain('no dishes')
+  })
+
+  it('warns about a saved kitchen that no longer fits and never starts a run with it', () => {
+    const stale = { run: 5, kit: { ...kit, width: kit.width + 1 } }
+    const meta = { ...emptyMeta(), points: 40, perks: { starterKit: 1 }, library: [entry(1), stale, null] }
+    const v = franchiseView(won, meta, DEFS, [], { saveSlot: null })
+    expect(v.useSlots.map((s) => s.warning)).toEqual([null, STALE_KIT_WARNING, null])
+    // the newest kitchen is the stale one, so the default is the newest that fits
+    expect(v.useSelected).toBe(0)
+    expect(franchiseView(won, meta, DEFS, [], { saveSlot: null, useSlot: 1 }).useSelected).toBeNull()
+  })
+
+  it('does not sell the perk when no saved kitchen fits', () => {
+    const stale = { run: 1, kit: { ...kit, width: kit.width + 1 } }
+    const meta = { ...emptyMeta(), points: 40, library: [stale, null, null] }
+    const card = franchiseView(won, meta, DEFS, [], { saveSlot: null }).cards.find((c) => c.id === 'starterKit')
+    expect(card?.canBuy).toBe(false)
+    expect(card?.reason).toBe('No saved kitchen fits this version')
   })
 })

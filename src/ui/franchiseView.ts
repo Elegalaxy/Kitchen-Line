@@ -4,7 +4,7 @@
 // run). `picks` is the list of perk ids chosen in the modal (one id per level, in order); nothing is
 // bought or saved until the player confirms (session.franchiseOut). Pure and unit-tested.
 
-import { buyPerk, canFranchise, franchisePoints, latestSlot, libraryOf, perkCost, recordFranchise, starterKitSummary } from '../sim/franchise.ts'
+import { buyPerk, canFranchise, franchisePoints, kitFits, latestSlot, libraryOf, perkCost, recordFranchise, starterKitSummary } from '../sim/franchise.ts'
 import type { Blueprint, Defs, GameState, LibraryEntry, MetaState, PerkDef } from '../sim/types.ts'
 import { formatMoney } from './format.ts'
 
@@ -43,7 +43,17 @@ export type KitChoices = {
 }
 
 /** One library slot as the modal shows it. */
-export type SlotView = { slot: number; name: string; text: string; empty: boolean }
+export type SlotView = {
+  slot: number
+  name: string
+  text: string
+  empty: boolean
+  /** The saved kitchen cannot be built in this version (it would start the run empty), else null. */
+  warning: string | null
+}
+
+export const STALE_KIT_WARNING = "Doesn't fit this version, so it can't start a run"
+
 
 export type FranchiseView = {
   /** The number of the run that starts next. */
@@ -107,7 +117,13 @@ function kitText(kit: Blueprint): string {
 }
 
 function slotViews(library: (LibraryEntry | null)[], defs: Defs): SlotView[] {
-  return library.map((e, slot) => ({ slot, name: `Slot ${slot + 1}`, text: e === null ? 'Empty' : kitLabel(e, defs), empty: e === null }))
+  return library.map((e, slot) => ({
+    slot,
+    name: `Slot ${slot + 1}`,
+    text: e === null ? 'Empty' : kitLabel(e, defs),
+    empty: e === null,
+    warning: e === null || kitFits(defs, e.kit) ? null : STALE_KIT_WARNING,
+  }))
 }
 
 function projected(
@@ -139,8 +155,9 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
   const booked = projected(meta, state, defs, [], saveSelected)
   const after = projected(meta, state, defs, picks, saveSelected)
   const library = libraryOf(after.meta)
-  const useWanted = choices.useSlot === undefined ? latestSlot(library) : choices.useSlot
-  const useSelected = useWanted === null || library[useWanted] == null ? null : useWanted
+  const usable = library.map((e) => (e !== null && kitFits(defs, e.kit) ? e : null))
+  const useWanted = choices.useSlot === undefined ? latestSlot(usable) : choices.useSlot
+  const useSelected = useWanted === null || usable[useWanted] == null ? null : useWanted
   const spent = booked.meta.points - after.meta.points
   const perks = defs.perks ?? []
   const cards: PerkCardView[] = perks.map((perk) => {
@@ -153,6 +170,7 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
     const needsKit = perk.effect.starterKit === true
     const saved = library.filter((e) => e !== null).length
     const noKit = needsKit && saved === 0
+    const noFit = needsKit && saved > 0 && usable.every((e) => e === null)
     return {
       id: perk.id,
       name: perk.name,
@@ -166,11 +184,13 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
       nextEffect: maxed ? null : effectText(perk, level + 1, defs),
       currentEffect: level === 0 ? 'None yet' : effectText(perk, level, defs),
       kitText: !needsKit ? null : saved === 0 ? 'None saved yet' : `${saved} of ${library.length} slots used`,
-      canBuy: !maxed && !short && !noKit,
+      canBuy: !maxed && !short && !noKit && !noFit,
       reason: maxed
         ? 'Top level reached'
         : noKit
           ? 'Upgrade to a restaurant in a run first'
+          : noFit
+            ? 'No saved kitchen fits this version'
           : short
             ? `Needs ${nextCost - after.meta.points} more points`
             : null,

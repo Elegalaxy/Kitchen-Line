@@ -50,7 +50,15 @@ function SlotChoice({
         <label key={s.slot} className={`kit-option${selectable(s) ? '' : ' kit-option-off'}`}>
           <input type="radio" name={name} checked={selected === s.slot} disabled={!selectable(s)} onChange={() => onSelect(s.slot)} />
           <span className="kit-slot">{s.name}</span>
-          <span className={`kit-text${s.empty ? ' kit-empty' : ''}`}>{s.text}</span>
+          <span className={`kit-text${s.empty ? ' kit-empty' : ''}`}>
+            {s.text}
+            {s.warning !== null && (
+              <span className="kit-warning">
+                <span aria-hidden="true">⚠ </span>
+                {s.warning}
+              </span>
+            )}
+          </span>
         </label>
       ))}
       <label className="kit-option">
@@ -228,7 +236,7 @@ export default function FranchiseModal({
                 selected={view.useSelected}
                 noneLabel="None (start empty)"
                 onSelect={setUseSlot}
-                selectable={(x) => !x.empty}
+                selectable={(x) => !x.empty && x.warning === null}
               />
             </section>
           )}

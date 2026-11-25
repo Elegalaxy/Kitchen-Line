@@ -16,6 +16,7 @@ import { startLoop } from './loop.ts'
 import OrdersStrip from './OrdersStrip.tsx'
 import SidePanel from './SidePanel.tsx'
 import { getBrowserStorage } from './persistence.ts'
+import MetaNotice from './MetaNotice.tsx'
 import SaveNotice from './SaveNotice.tsx'
 import { getGameSession } from './session.ts'
 import { clearTutorialDone, clearTutorialHelp, guideHiddenForRun, newGameRearmsGuide, readTutorialDone } from './tutorialLatch.ts'
@@ -58,6 +59,7 @@ export default function App() {
     return ui
   })
   const [franchiseOpen, setFranchiseOpen] = useState(false)
+  const [metaNotice, setMetaNotice] = useState(session.metaNotice)
   const newGame = (): void => {
     session.newGame()
     const rearm = newGameRearmsGuide(session.meta.runsCompleted)
@@ -114,6 +116,7 @@ export default function App() {
   return (
     <main className="app">
       <TopBar ctx={ctx} store={store} snap={snap} run={session.meta.runsCompleted + 1} onNewGame={newGame} />
+      {metaNotice !== null && <MetaNotice reason={metaNotice} onDismiss={() => setMetaNotice(null)} />}
       {snap.state.phase === 'summary' && (
         <DaySummary state={snap.state} defs={store.defs} onDismiss={() => store.dispatch({ type: 'dismissSummary' })}
           onTogglePantries={() => togglePantriesAction(ctx)}
