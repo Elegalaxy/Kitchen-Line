@@ -2,7 +2,8 @@
 // real content layouts and sim tests may import only src/sim, so it lives in the harness).
 // Each scenario runs 7 days (16,800 ticks) and must finish in under 1 s. Wall-clock time is
 // allowed here (not in src/sim). To keep a loaded machine from failing the test, each
-// scenario is timed 3 times and the best time counts.
+// scenario is timed 3 times and the best time counts, and locally the limit grows with how
+// slow the machine is right now (a fixed reference workload is timed before and after every run).
 //
 // The big-grid scenario is a 16 x 12 grid completely filled with belts in concentric
 // clockwise rings, each belt holding items, so every belt is loopable and busy. The grid
@@ -22,8 +23,14 @@ import { buildLayoutState, runDaysFrom } from './run.ts'
 const DAYS = 7
 // The 1 s target is for a normal machine. Shared CI runners are about 2x slower and noisy
 // (over 3 s seen on GitHub Actions for the big-grid scenario), so CI gets 8 s: still catches a real (several-fold) slowdown.
-const LIMIT_MS = process.env.CI === undefined ? 1000 : 8000
+const ON_CI = process.env.CI !== undefined
+const LIMIT_MS = ON_CI ? 8000 : 1000
 const RUNS = 3
+// What `referenceMs` takes on a fast core of the development machine (measured 32 to 40 ms; 90 to 220 ms
+// on a slow core or under load). A slower reading scales the local limit by the same factor, never below 1
+// and never above MAX_SLOWDOWN, so a several-fold slowdown of the sim still fails.
+const REFERENCE_BASELINE_MS = 35
+const MAX_SLOWDOWN = 4
 // Each scenario runs RUNS times; the default 5 s test timeout failed CI before LIMIT_MS was even checked.
 const TEST_TIMEOUT_MS = 60_000
 
@@ -71,14 +78,42 @@ function bigLoopGrid(): GameState {
   return state
 }
 
-function bestMs(make: () => GameState): number {
+/** A fixed workload that does not touch the sim: object reads and writes plus small allocations. */
+function referenceMs(): number {
+  const t0 = performance.now()
+  const cells = Array.from({ length: 1000 }, (_, i) => ({ id: i, slots: [i, i + 1], n: 0 }))
+  let sum = 0
+  for (let round = 0; round < 4000; round += 1) {
+    for (const c of cells) {
+      c.slots = [c.slots[1] ?? 0, round]
+      c.n += c.slots[0] ?? 0
+      sum += c.n % 7
+    }
+  }
+  expect(sum).toBeGreaterThan(0) // keeps the loop from being optimised away
+  return performance.now() - t0
+}
+
+/** How many times slower than the baseline a reference reading is (1 on CI, which has its own limit). */
+function slowdown(refMs: number): number {
+  if (ON_CI) return 1
+  return Math.min(MAX_SLOWDOWN, Math.max(1, refMs / REFERENCE_BASELINE_MS))
+}
+
+/** Best of RUNS, each run divided by the larger slowdown measured just before and just after it. */
+function bestMs(label: string, make: () => GameState): number {
   let best = Infinity
   for (let i = 0; i < RUNS; i += 1) {
     const start = make()
+    const before = referenceMs()
     const t0 = performance.now()
     runDaysFrom(start, DEFS, DAYS)
-    best = Math.min(best, performance.now() - t0)
+    const raw = performance.now() - t0
+    const factor = slowdown(Math.max(before, referenceMs()))
+    best = Math.min(best, raw / factor)
+    debug(`${label} run ${i + 1}: ${raw.toFixed(1)} ms, slowdown ${factor.toFixed(2)}`)
   }
+  debug(`${label} best of ${RUNS}: ${best.toFixed(1)} ms (limit ${LIMIT_MS} ms)`)
   return best
 }
 
@@ -90,15 +125,13 @@ describe('performance: 7 days (16,800 ticks) under 1 s', () => {
   })
 
   it('16 x 12 grid of looping belts with items', () => {
-    const ms = bestMs(bigLoopGrid)
-    debug(`bigLoopGrid best of ${RUNS}: ${ms.toFixed(1)} ms`)
+    const ms = bestMs('bigLoopGrid', bigLoopGrid)
     expect(ms).toBeLessThan(LIMIT_MS)
   }, TEST_TIMEOUT_MS)
 
   for (const layout of ['saladLine', 'burgerLine', 'soupLine', 'sandwichLine', 'riceBowlLine']) {
     it(`${layout}`, () => {
-      const ms = bestMs(() => buildLayoutState(DEFS, layout, 'perf'))
-      debug(`${layout} best of ${RUNS}: ${ms.toFixed(1)} ms`)
+      const ms = bestMs(layout, () => buildLayoutState(DEFS, layout, 'perf'))
       expect(ms).toBeLessThan(LIMIT_MS)
     }, TEST_TIMEOUT_MS)
   }
