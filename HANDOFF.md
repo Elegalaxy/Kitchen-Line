@@ -5,7 +5,7 @@
 - **Recent Changes & Files Touched (all on `origin/main`, plans in `doc/plans/2026-11-23-restaurant-growth.md` and `2026-11-24-*.md`):**
   - Earlier: pantry pause, overnight cleanup, closing-soon cue; restaurant growth (second pass, 4 upgrades, goal 7); trends, pro stations, dish pack, critics, seasons; chain tier (blueprints, branches, chain goals).
   - Franchise prestige (`src/sim/franchise.ts`, `src/persist/meta.ts`, `src/content/perks.ts`, `src/ui/{franchiseView,FranchiseModal,FranchiseConfirm,metaPersistence}`, harness `--meta`): run N+1 keeps points, starting-state perks and a free recipe book; second save key `kitchen-line.meta.v1`; tutorial only in the first ever run.
-  - Starter kit: the stall kitchen is captured at the restaurant upgrade (`GameState.stallKit`); the `starterKit` perk (14 FP) builds a saved kitchen free on day 1 of a new run.
+  - Starter kit: the stall kitchen is captured at the restaurant upgrade (`GameState.stallKit`); the `starterKit` perk (8 FP, was 14 until 2026-11-25) builds a saved kitchen free on day 1 of a new run.
   - Blueprint library: 3 slots in the meta (`library`, `activeKit`; an old `starterKit` reads as slot 1). At franchise out the player picks a save slot or "Don't save", then which kitchen starts the next run. Harness `--no-starterkit`, `--starterkit-only`; dev cheat `?cheat=library` with a layout.
   - Perf test: the local 1 s limit now scales (up to 4x) with a reference workload timed around each run; CI keeps 8 s (`src/harness/perf.test.ts`).
   - Warnings: unfit saved kitchens are marked and not selectable (`kitFits`); a corrupt meta file shows a dismissible banner (`src/ui/MetaNotice.tsx`).
@@ -18,4 +18,4 @@
   - No full franchise-out was clicked through in the browser, and the two-key save was only tested with fake storage.
   - The scripted player ignores trend and seasonal dishes; some seeds report "soup sold 0 (on the menu)".
   - Chain UI not browser-checked: end screen with real branches at 1024 px, refit flow, day summary lines for trend and critic.
-- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; kit cost (14 FP buys about 2 days); close-branch command; sound and animation.
+- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; close-branch command; sound and animation.

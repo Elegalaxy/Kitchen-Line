@@ -465,7 +465,7 @@ describe('buyPerk starterKit', () => {
     const run = wonUpgraded('lib-buy')
     const booked = recordFranchise(meta({ points: 5 }), run, DEFS, { saveSlot: 0 })
     if (!booked.ok) throw new Error(booked.reason)
-    expect(booked.meta.points).toBeGreaterThanOrEqual(14)
+    expect(booked.meta.points).toBeGreaterThanOrEqual(8)
     expect(buyPerk(booked.meta, DEFS, 'starterKit').ok).toBe(true)
     const dropped = recordFranchise(meta({ points: 5 }), run, DEFS)
     if (!dropped.ok) throw new Error(dropped.reason)

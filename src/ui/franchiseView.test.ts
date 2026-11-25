@@ -66,7 +66,7 @@ describe('franchiseView', () => {
   it('starter kitchen card: counts saved slots, and says a restaurant upgrade is needed when nothing can be saved', () => {
     const card = franchiseView(won, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')
     expect(card?.kitText).toBe('1 of 3 slots used')
-    expect(card).toMatchObject({ nextCost: 14, canBuy: true, reason: null })
+    expect(card).toMatchObject({ nextCost: 8, canBuy: true, reason: null })
     const bare = structuredClone(won)
     delete bare.stallKit
     const none = franchiseView(bare, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')

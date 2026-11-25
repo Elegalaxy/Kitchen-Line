@@ -29,8 +29,8 @@ describe('spendPoints with the starter kitchen', () => {
 
   it('buys the kitchen first once one is saved, and skips it (not stops) while none is', () => {
     const withKit = spendPoints({ ...emptyMeta(), points: 35, starterKit: kit }, DEFS, KIT_SPEND_ORDER)
-    expect(withKit.bought).toEqual(['starterKit', 'seedMoney', 'seedMoney', 'goodName'])
-    expect(withKit.meta.points).toBe(1)
+    expect(withKit.bought).toEqual(['starterKit', 'seedMoney', 'seedMoney', 'seedMoney'])
+    expect(withKit.meta.points).toBe(0)
     const without = spendPoints({ ...emptyMeta(), points: 35 }, DEFS, KIT_SPEND_ORDER)
     expect(without.bought).toEqual(['seedMoney', 'seedMoney', 'seedMoney', 'goodName'])
   })

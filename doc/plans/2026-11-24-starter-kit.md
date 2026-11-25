@@ -36,6 +36,11 @@ Rules: one commit per part after `npm run typecheck`, `npm run lint`, `npx vites
 - Status: `done`
 - Progress: 2026-11-24: GAME_DESIGN 8, 8.2 (perk table, rule, [later] split), 14; this plan.
 
+### Step 5: Cost 14 to 8 FP
+- Status: `done`
+- Progress: 2026-11-25: user decision. `content/perks.ts` and GAME_DESIGN 8.2 now say 8 FP; the measurements below are the 14 FP ones. `npm run sim -- --journey --seeds 20 --meta --runs 2` at 8 FP: run 2 median restaurant end screen day 14 (min 13, max 16), chain end screen day 27 (21 / 32), upgrade day 3; the same medians as at 14 FP. FP earned after run 1 median 35 (32 / 37); points spent median 35 (min 28, max 35). The cheaper kit lets the policy afford one more perk level: 12 seeds bought kit + seed money 3 (35 FP; the policy order puts seed money level 3 before good name), 8 seeds kit + seed money 2 + good name 1 (28 FP, 5 to 6 points left over). Every run reached both end screens (20/20); the only issue line is "soup sold 0 (on the menu)" in 2 seeds of run 2. 11 layouts and the 8-seed journey byte-identical to origin/main.
+- Files: `src/content/perks.ts`, `doc/GAME_DESIGN.md`, tests in `src/{sim,ui,harness}`
+
 ## Measurements (20 seeds, `npm run sim -- --journey --seeds 20 --meta --runs 2 [flag]`)
 
 | 20 seeds | upgrade day (median) | restaurant end screen (median / min / max) | chain end screen (median / min / max) | FP spent |
