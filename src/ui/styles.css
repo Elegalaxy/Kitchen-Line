@@ -1572,6 +1572,23 @@ kbd {
   cursor: pointer;
 }
 
+.menu-item-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.menu-item-state {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.menu-item-switch[aria-checked='true'] .menu-item-state {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .confirm-modal,
 .save-notice {
   max-width: 440px;

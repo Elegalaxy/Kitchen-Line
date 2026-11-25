@@ -8,6 +8,9 @@
 //   (used by drag-to-draw belts).
 // - `state.events` only holds the last tick's events after `advance(n)`; nothing here
 //   relies on event history.
+// - `onFeedback` tells sound and effects what just happened: the events of one `advance` call
+//   (every tick's, in order) or of one accepted command, and `reset` when the state is
+//   replaced. A replaced (loaded or new) state never replays its events.
 
 import { useSyncExternalStore } from 'react'
 import { LAYOUTS, LAYOUT_SETUP } from '../content/layouts.ts'
@@ -18,7 +21,7 @@ import { createGame } from '../sim/game.ts'
 import { updateGoals } from '../sim/goals.ts'
 import { applyLayout } from '../sim/layout.ts'
 import { runTicks } from '../sim/tick.ts'
-import type { Command, CommandResult, Defs, GameState, RejectReason } from '../sim/types.ts'
+import type { Command, CommandResult, Defs, GameState, RejectReason, SimEvent } from '../sim/types.ts'
 import { debugLog } from './debug.ts'
 import { applyGroup, isUndoable, labelFor, pushUndo, undoLast } from './undo.ts'
 import type { UndoEntry } from './undo.ts'
@@ -32,6 +35,12 @@ const MAX_PENDING_SPOILS = 200
 export type UndoInfo = { count: number; label: string | null }
 export type Snapshot = { state: GameState; speed: Speed; undo: UndoInfo }
 export type UndoResult = { ok: true; label: string } | { ok: false; reason: RejectReason | 'empty'; label: string }
+
+/** What just happened, for sound and effects. `before` is the state the ticks started from. */
+export type Feedback =
+  | { type: 'ticks'; before: GameState; events: SimEvent[]; dayEnded: boolean }
+  | { type: 'command'; events: SimEvent[] }
+  | { type: 'reset' }
 
 export type GameStore = {
   defs: Defs
@@ -57,6 +66,8 @@ export type GameStore = {
    * holds the last tick's events, so `advance` collects these per tick while it runs.
    */
   takeSpoils(): { x: number; y: number }[]
+  /** Called at once (not throttled) for every Feedback; returns a remover. */
+  onFeedback(listener: (feedback: Feedback) => void): () => void
 }
 
 export type ThrottleDeps = {
@@ -102,6 +113,15 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
   let snapshot: Snapshot = { state, speed, undo: undoInfo() }
   let spoils: { x: number; y: number }[] = []
   const listeners = new Set<() => void>()
+  const feedbackListeners = new Set<(feedback: Feedback) => void>()
+  const tell = (feedback: Feedback): void => {
+    for (const l of [...feedbackListeners]) l(feedback)
+  }
+  /** Commands append to `state.events` (only a tick or a new run clears them). */
+  const tellCommand = (before: GameState, after: GameState): void => {
+    const events = after.events.slice(before.events.length)
+    if (events.length > 0) tell({ type: 'command', events })
+  }
   const publish = (): void => {
     snapshot = { state, speed, undo: undoInfo() }
     for (const l of [...listeners]) l()
@@ -124,6 +144,7 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
       if (isUndoable(cmd)) return store.dispatchGroup([cmd], labelFor(state, defs, cmd))
       const { state: next, result } = applyCommand(state, defs, cmd)
       if (result.ok) {
+        tellCommand(state, next)
         state = next
         debugLog('[store]', `dispatch ${cmd.type} -> ok`)
         throttle.flush()
@@ -138,6 +159,7 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
         debugLog('[store]', `dispatch ${label} (${cmds.length}) -> rejected ${out.reason}`)
         return { ok: false, reason: out.reason, event: out.event }
       }
+      tellCommand(state, out.state)
       state = out.state
       if (out.inverse.length > 0) undoStack = pushUndo(undoStack, { label, inverse: out.inverse })
       debugLog('[store]', `dispatch ${label} (${cmds.length}) -> ok, undo depth ${undoStack.length}`)
@@ -169,19 +191,31 @@ export function createStore(defs: Defs, initial: GameState, deps?: Partial<Throt
       speed = nextSpeed
       if (nextSpeed !== 0) resumeSpeed = nextSpeed
       debugLog('[store]', `state replaced (day ${next.day}, tick ${next.tick}), speed ${nextSpeed}x`)
+      tell({ type: 'reset' })
       throttle.flush()
     },
     advance(n) {
       if (n <= 0) return
+      const before = state
+      const happened: SimEvent[] = []
       state = runTicks(state, defs, n, (events) => {
-        for (const e of events) if (e.type === 'spoiled' && spoils.length < MAX_PENDING_SPOILS) spoils.push({ x: e.x, y: e.y })
+        for (const e of events) {
+          if (e.type === 'spoiled' && spoils.length < MAX_PENDING_SPOILS) spoils.push({ x: e.x, y: e.y })
+          happened.push(e)
+        }
       })
+      const dayEnded = before.phase === 'service' && state.phase !== 'service'
+      if (happened.length > 0 || dayEnded) tell({ type: 'ticks', before, events: happened, dayEnded })
       throttle.fire()
     },
     takeSpoils() {
       const out = spoils
       spoils = []
       return out
+    },
+    onFeedback(listener) {
+      feedbackListeners.add(listener)
+      return () => feedbackListeners.delete(listener)
     },
   }
   return store

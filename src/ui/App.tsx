@@ -13,6 +13,7 @@ import { DIR_NAME } from './format.ts'
 import { interpretKey } from './hotkeys.ts'
 import { hasVariant, variantName } from './palette.ts'
 import { startLoop } from './loop.ts'
+import { attachSound } from './sound/controller.ts'
 import OrdersStrip from './OrdersStrip.tsx'
 import SidePanel from './SidePanel.tsx'
 import { getBrowserStorage } from './persistence.ts'
@@ -86,6 +87,7 @@ export default function App() {
   useEffect(() => {
     debugLog('[ui]', 'app mounted')
     const stop = startLoop(store)
+    const stopSound = attachSound(store)
     const actions: Ctx = { store, ui: uiStore }
     // Space toggles pause. Default is prevented on keydown and keyup so a focused
     // button does not also "click". Other hotkeys come from hotkeys.ts.
@@ -108,6 +110,7 @@ export default function App() {
     window.addEventListener('keyup', onKeyUp)
     return () => {
       stop()
+      stopSound()
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
