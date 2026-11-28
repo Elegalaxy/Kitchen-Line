@@ -440,7 +440,14 @@ kbd {
   border-color: var(--bad);
 }
 
+/* Stacked layout: the page is the only vertical scroller. */
 @media (max-width: 1023px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    padding-bottom: 32px;
+  }
+
   .workspace {
     flex-direction: column;
   }
@@ -449,13 +456,18 @@ kbd {
     flex-direction: column;
   }
 
+  /* The height follows the kitchen (rows at the smallest tile, plus a horizontal scrollbar
+     where one takes room), never the canvas itself, so the tile size cannot feed back into it.
+     GridCanvas sets the two variables. */
   .grid-wrap {
+    flex: none;
+    height: calc(var(--grid-rows, 6) * 32px + 2px + var(--grid-scrollbar, 0px));
     min-height: 200px;
   }
 
   .side {
     width: auto;
-    max-height: 46dvh;
+    overflow: visible;
   }
 }
 

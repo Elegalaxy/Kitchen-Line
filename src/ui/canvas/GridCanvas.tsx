@@ -45,6 +45,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
     })
     const box = { w: wrap.clientWidth, h: wrap.clientHeight }
     const ro = new ResizeObserver(() => {
+      // Height a horizontal scrollbar takes (0 with overlay scrollbars), used by the stacked layout.
+      wrap.style.setProperty('--grid-scrollbar', `${wrap.offsetHeight - wrap.clientHeight}px`)
       box.w = wrap.clientWidth
       box.h = wrap.clientHeight
     })
@@ -62,6 +64,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       const dpr = window.devicePixelRatio || 1
       if (applied.tile !== tile || applied.cols !== state.width || applied.rows !== state.height || applied.dpr !== dpr) {
         applied = { tile, cols: state.width, rows: state.height, dpr }
+        wrap.style.setProperty('--grid-cols', String(state.width))
+        wrap.style.setProperty('--grid-rows', String(state.height))
         canvas.width = Math.round(state.width * tile * dpr)
         canvas.height = Math.round(state.height * tile * dpr)
         canvas.style.width = `${state.width * tile}px`
