@@ -2,13 +2,15 @@
 // Capacity is shown as empty slots, so the strip never changes size while customers come
 // and go. A chip shows the dish glyph, a patience bar and the seconds left. The bar is
 // green from 50%, yellow from 25 to 50% and red below 25%, and under 25% the chip also
-// shows an alarm icon (colour is never the only cue). Read-only: nothing here is clickable.
+// shows an alarm icon (colour is never the only cue). On narrow screens the chips shrink so ten
+// slots fit one row, and the critic tag keeps only its star. Read-only: nothing here is clickable.
 
+import type { CSSProperties } from 'react'
 import type { Customer, Defs, GameState } from '../sim/types.ts'
 import { waitingCap } from '../sim/upgrades.ts'
 import { formatMoney } from './format.ts'
 import { criticBadge } from './criticView.ts'
-import { ordersNote, patienceLeft, patienceLevel } from './orders.ts'
+import { orderColumns, ordersNote, patienceLeft, patienceLevel } from './orders.ts'
 
 const TICKS_PER_SECOND = 10
 
@@ -28,7 +30,7 @@ function Chip({ c, tick, defs }: { c: Customer; tick: number; defs: Defs }) {
     <li className={`order-chip order-${level}${badge === null ? '' : ' order-critic'}`} aria-label={label} title={label}>
       {badge !== null && (
         <span className="order-critic-badge" aria-hidden="true">
-          ★ {badge}
+          ★<span className="order-critic-word"> {badge}</span>
         </span>
       )}
       <span className="order-glyph" aria-hidden="true">
@@ -38,7 +40,7 @@ function Chip({ c, tick, defs }: { c: Customer; tick: number; defs: Defs }) {
         <span className="order-bar-fill" style={{ width: `${Math.round(frac * 100)}%` }} />
       </span>
       <span className="order-time num" aria-hidden="true">
-        {level === 'bad' ? '⏰' : ''}
+        {level === 'bad' && <span className="order-time-alarm">⏰</span>}
         {secs}s
       </span>
     </li>
@@ -54,7 +56,7 @@ export default function OrdersStrip({ state, defs }: { state: GameState; defs: D
         Orders <span className="num">{state.waiting.length} / {cap}</span>
       </h2>
       <p className="orders-empty">{ordersNote(state)}</p>
-      <ul className="orders-list">
+      <ul className="orders-list" style={{ '--order-cols': orderColumns(cap) } as CSSProperties}>
         {slots.map((c, i) =>
           c === null ? (
             <li key={`empty-${i}`} className="order-chip order-empty" aria-label="Empty slot" />

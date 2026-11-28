@@ -39,6 +39,11 @@ export function criticNotice(state: GameState, defs: Defs): CriticNotice | null 
   return isCriticDay(state, state.day + 1) ? { kind: 'tomorrow', text: `A critic visits tomorrow: ${weight}.` } : null
 }
 
+/** Identifies one notice on one day: a closed cue stays closed until the day or the message changes. */
+export function criticCueKey(day: number, notice: CriticNotice): string {
+  return `${day}:${notice.kind}:${notice.text}`
+}
+
 /** Strip badge for one waiting customer: "Critic" or null. */
 export function criticBadge(c: Pick<Customer, 'critic'>): string | null {
   return c.critic === true ? 'Critic' : null

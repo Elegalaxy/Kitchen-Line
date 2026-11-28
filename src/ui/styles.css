@@ -2023,6 +2023,39 @@ kbd {
   white-space: nowrap;
 }
 
+/* Narrow screens: ten slots fit one row (about 31px a chip at 375px). The chips are read-only, so
+   no touch target is needed; the alarm icon and the seconds still carry patience without colour. */
+@media (max-width: 620px) {
+  .orders-list {
+    grid-template-columns: repeat(var(--order-cols, 10), minmax(0, 52px));
+    gap: 3px;
+  }
+
+  .order-chip {
+    width: auto;
+    min-width: 0;
+    height: 52px;
+    padding: 2px 1px;
+  }
+
+  .order-glyph {
+    font-size: 1.1rem;
+  }
+
+  .order-time {
+    font-size: 0.65rem;
+    letter-spacing: -0.02em;
+  }
+
+  .order-time-alarm {
+    font-size: 0.55rem;
+  }
+
+  .order-critic-word {
+    display: none;
+  }
+}
+
 /* Branches tab (chain stage, GAME_DESIGN 8.1) */
 .branch-kpis {
   display: grid;
@@ -2449,9 +2482,52 @@ kbd {
   }
 }
 
-/* On phones the cue wraps to three lines; reserve that height so the grid does not jump. */
+/* Closing the cue is only offered where it covers content (phones). */
+.btn-quiet.cue-dismiss {
+  display: none;
+}
+
+/* Phones: no reserved row. The slot takes no height and its cue lies over the content below the
+   day bar (read-only goals), so nothing shifts when it appears and the speed buttons and the grid
+   tools stay free. The slot stays mounted, so the live region still announces the cue. */
 @media (max-width: 600px) {
   .closing-slot {
-    min-height: 104px;
+    order: 1;
+    position: relative;
+    z-index: 5;
+    height: 0;
+    min-height: 0;
+    /* Cancels the top bar's row gap. */
+    margin-top: -8px;
+    align-items: flex-start;
+  }
+
+  .closing-slot > div {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    background: var(--surface-raised);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  }
+
+  .closing-slot > .critic-cue {
+    min-height: 52px;
+    padding-right: 56px;
+  }
+
+  .closing-slot > .cue-hidden {
+    display: none;
+  }
+
+  .btn-quiet.cue-dismiss {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
   }
 }

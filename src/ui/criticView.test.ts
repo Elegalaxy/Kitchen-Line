@@ -3,7 +3,7 @@ import { DEFS } from '../content/index.ts'
 import { criticArrivalTick, criticDay } from '../sim/critic.ts'
 import { createGame } from '../sim/game.ts'
 import type { GameState } from '../sim/types.ts'
-import { criticBadge, criticNotice, criticSummary } from './criticView.ts'
+import { criticBadge, criticCueKey, criticNotice, criticSummary } from './criticView.ts'
 
 function criticDayOf(): number {
   for (let d = 2; d < 200; d += 1) if (criticDay('demo', d)) return d
@@ -49,6 +49,15 @@ describe('criticNotice', () => {
     const s = restaurant(day + 1)
     s.phase = 'build'
     expect(criticNotice(s, DEFS)).toBeNull()
+  })
+})
+
+describe('criticCueKey', () => {
+  it('changes with the day and the message, so a closed cue returns when there is something new', () => {
+    const notice = { kind: 'tomorrow', text: 'A critic visits tomorrow.' } as const
+    expect(criticCueKey(4, notice)).toBe(criticCueKey(4, { ...notice }))
+    expect(criticCueKey(5, notice)).not.toBe(criticCueKey(4, notice))
+    expect(criticCueKey(4, { kind: 'waiting', text: 'The critic is waiting.' })).not.toBe(criticCueKey(4, notice))
   })
 })
 

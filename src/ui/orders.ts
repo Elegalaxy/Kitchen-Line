@@ -17,6 +17,13 @@ export function patienceLevel(fraction: number): PatienceLevel {
   return 'ok'
 }
 
+/** Chips per row on narrow screens: one row for up to 10 slots, then a second row (13 with more tables). */
+export const MAX_ORDER_COLUMNS = 10
+
+export function orderColumns(cap: number): number {
+  return Math.min(Math.max(cap, 1), MAX_ORDER_COLUMNS)
+}
+
 /** One line under the orders title; empty text keeps the line's height so nothing shifts. */
 export function ordersNote(state: Pick<GameState, 'phase' | 'today' | 'waiting'>): string {
   if (state.waiting.length > 0) return ''

@@ -1,6 +1,8 @@
 // Top bar: day, money, reputation (4.2★ with a change arrow since the day started), clock, phase badge, day bar, the "Open for service" button (build
-// phase only) and the speed segmented control (pause / 1x / 2x / 4x).
+// phase only) and the speed segmented control (pause / 1x / 2x / 4x). The closing and critic cues share a
+// live region: a reserved row on wide screens, an overlay below the day bar on phones.
 
+import { useState } from 'react'
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { togglePantriesAction } from './actions.ts'
@@ -11,7 +13,7 @@ import Money from './Money.tsx'
 import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
-import { criticNotice } from './criticView.ts'
+import { criticCueKey, criticNotice } from './criticView.ts'
 import { seasonView } from './seasonView.ts'
 import { trendView } from './trendView.ts'
 
@@ -35,6 +37,9 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
   const trend = trendView(s, ctx.store.defs)
   const season = seasonView(s, ctx.store.defs)
   const critic = criticNotice(s, ctx.store.defs)
+  // Phones only (CSS): the cue lies over the content below the day bar, so the critic notice can be closed.
+  const [hiddenCue, setHiddenCue] = useState<string | null>(null)
+  const criticKey = critic === null ? null : criticCueKey(s.day, critic)
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
@@ -130,11 +135,24 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
           </div>
         )}
         {!closing.active && critic !== null && (
-          <div className={`critic-cue critic-${critic.kind}`}>
+          <div className={`critic-cue critic-${critic.kind}${hiddenCue === criticKey ? ' cue-hidden' : ''}`}>
             <span className="critic-badge">
               <span aria-hidden="true">★</span> CRITIC
             </span>
             <span className="critic-text">{critic.text}</span>
+            <button
+              type="button"
+              className="btn-quiet cue-dismiss"
+              aria-label="Hide critic notice"
+              onClick={(e) => {
+                // The button disappears with the cue: keep keyboard focus in the top bar.
+                const bar = e.currentTarget.closest('.topbar')
+                setHiddenCue(criticKey)
+                bar?.querySelector<HTMLButtonElement>('.seg-btn[aria-pressed="true"]')?.focus({ preventScroll: true })
+              }}
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
           </div>
         )}
       </div>

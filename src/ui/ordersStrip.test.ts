@@ -2,7 +2,16 @@
 // that picks the colour (and the alarm icon under 25%).
 
 import { describe, expect, it } from 'vitest'
-import { patienceLeft, patienceLevel } from './orders.ts'
+import { orderColumns, patienceLeft, patienceLevel } from './orders.ts'
+
+describe('orders strip columns on narrow screens', () => {
+  it('keeps the stall and restaurant slots in one row and wraps beyond ten', () => {
+    expect(orderColumns(6)).toBe(6)
+    expect(orderColumns(10)).toBe(10)
+    expect(orderColumns(13)).toBe(10)
+    expect(orderColumns(0)).toBe(1)
+  })
+})
 
 describe('orders strip patience', () => {
   const c = { arriveTick: 100, patience: 400 }
