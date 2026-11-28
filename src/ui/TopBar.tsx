@@ -94,21 +94,23 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
           <span aria-hidden="true">▶</span> Open for service
         </button>
       )}
-      <div className="segmented" role="group" aria-label="Game speed">
-        {SPEEDS.map((sp) => (
-          <button
-            key={sp}
-            type="button"
-            className="seg-btn"
-            aria-pressed={snap.speed === sp}
-            onClick={() => store.setSpeed(sp)}
-          >
-            <span aria-hidden="true">{sp === 0 ? '⏸' : ''}</span>
-            {SPEED_LABEL[sp]}
-          </button>
-        ))}
+      <div className="topbar-controls">
+        <div className="segmented" role="group" aria-label="Game speed">
+          {SPEEDS.map((sp) => (
+            <button
+              key={sp}
+              type="button"
+              className="seg-btn"
+              aria-pressed={snap.speed === sp}
+              onClick={() => store.setSpeed(sp)}
+            >
+              <span aria-hidden="true">{sp === 0 ? '⏸' : ''}</span>
+              {SPEED_LABEL[sp]}
+            </button>
+          ))}
+        </div>
+        <SettingsMenu run={run} onNewGame={onNewGame} />
       </div>
-      <SettingsMenu run={run} onNewGame={onNewGame} />
       <div className="closing-slot" role="status" aria-live="polite">
         {closing.active && (
           <div className="closing-cue">

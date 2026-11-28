@@ -54,7 +54,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       const dt = last === null ? 0 : Math.min(t - last, 100)
       last = t
       const state = store.getState()
-      const tile = fitTile(box.w, box.h, state.width, state.height)
+      // Leave room for the canvas border (1px a side), or an exact fit shows a scrollbar.
+      const tile = fitTile(box.w - 2, box.h - 2, state.width, state.height)
       const dpr = window.devicePixelRatio || 1
       if (applied.tile !== tile || applied.cols !== state.width || applied.rows !== state.height || applied.dpr !== dpr) {
         applied = { tile, cols: state.width, rows: state.height, dpr }

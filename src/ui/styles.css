@@ -63,9 +63,16 @@ body {
   min-width: 9ch;
 }
 
+/* Speed and settings wrap as one block, so the gear never lands alone on a row. */
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
 .segmented {
   display: inline-flex;
-  margin-left: auto;
   border: 1px solid var(--text-faint);
   border-radius: 8px;
   overflow: hidden;
@@ -989,13 +996,13 @@ kbd {
   min-width: 0;
   min-height: 44px;
   padding: 0 2px;
-  font-size: 0.75rem;
   border: 0;
   border-bottom: 3px solid transparent;
   border-radius: 8px 8px 0 0;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
@@ -1324,6 +1331,11 @@ kbd {
   align-items: center;
 }
 
+.unlock-btn .btn-main,
+.branch-btn .btn-main {
+  justify-content: center;
+}
+
 .cell-stat {
   grid-row: 2;
   display: flex;
@@ -1465,7 +1477,8 @@ kbd {
 }
 
 .goal-list.locked {
-  opacity: 0.6;
+  /* Muted text stays at 4.5:1 or better. */
+  opacity: 0.8;
 }
 
 .goal-tier {
@@ -1834,8 +1847,7 @@ kbd {
   position: relative;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .goal-chip-count {
@@ -1853,7 +1865,12 @@ kbd {
 }
 
 .goal-chip .goal-bar {
-  margin-top: 0;
+  /* Bars line up along the bottom when one label in a row wraps. */
+  margin-top: auto;
+}
+
+.goal-chip.done .goal-bar-fill {
+  background: var(--good);
 }
 
 /* Inspector "Why" line: the plain-language reason a building is blocked or not working. */
@@ -1970,7 +1987,7 @@ kbd {
 /* Branches tab (chain stage, GAME_DESIGN 8.1) */
 .branch-kpis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -1981,6 +1998,11 @@ kbd {
   border: 1px solid var(--text-faint);
   border-radius: 8px;
   background: var(--surface);
+}
+
+/* The count takes the first row; the two money values get half the panel each, so they do not break. */
+.branch-kpi:first-child {
+  grid-column: 1 / -1;
 }
 
 .branch-kpi dt {
@@ -2091,8 +2113,9 @@ kbd {
   font-size: 0.75rem;
 }
 
-/* Five tabs (chain stage) do not fit in a row: icon above the label, so the row never overflows. */
-.tabs-many .tab {
+/* Icon above the label in every tab: four or five do not fit side by side, and a label wrapped under
+   its own icon in one tab only. */
+.tabs .tab {
   display: flex;
   flex-direction: column;
   align-items: center;
