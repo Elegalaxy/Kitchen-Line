@@ -1,7 +1,7 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, kit cost and close branch, 2026-11-25)
-- **Current Goal:** First playable, the content expansion, the chain stage and franchising (with the blueprint library) and closing a branch are built. No planned roadmap item is left; the next slice is the user's choice.
+- **Last Updated By:** Claude (implementer, sound and feedback animation, 2026-11-28)
+- **Current Goal:** First playable, the content expansion, the chain stage and franchising (with the blueprint library), closing a branch, and sound plus feedback animation are built. No planned roadmap item is left; the next slice is the user's choice.
 - **Recent Changes & Files Touched (all on `origin/main`, plans in `doc/plans/2026-11-23-restaurant-growth.md` and `2026-11-24-*.md`):**
   - Earlier: pantry pause, overnight cleanup, closing-soon cue; restaurant growth (second pass, 4 upgrades, goal 7); trends, pro stations, dish pack, critics, seasons; chain tier (blueprints, branches, chain goals).
   - Franchise prestige (`src/sim/franchise.ts`, `src/persist/meta.ts`, `src/content/perks.ts`, `src/ui/{franchiseView,FranchiseModal,FranchiseConfirm,metaPersistence}`, harness `--meta`): run N+1 keeps points, starting-state perks and a free recipe book; second save key `kitchen-line.meta.v1`; tutorial only in the first ever run.
@@ -9,6 +9,7 @@
   - Blueprint library: 3 slots in the meta (`library`, `activeKit`; an old `starterKit` reads as slot 1). At franchise out the player picks a save slot or "Don't save", then which kitchen starts the next run. Harness `--no-starterkit`, `--starterkit-only`; dev cheat `?cheat=library` with a layout.
   - Close a branch (`doc/plans/2026-11-25-close-branch.md`): command `closeBranch`, 50% of the blueprint value back, confirm dialog (`src/ui/CloseBranchConfirm.tsx`); not undoable.
   - Perf test: the local 1 s limit now scales (up to 4x) with a reference workload timed around each run; CI keeps 8 s (`src/harness/perf.test.ts`).
+  - Sound and feedback (`doc/plans/2026-11-25-feedback.md`): `src/ui/sound/` (Web Audio blips, off by default, switch in settings, key `kitchen-line.sound.v1`) and `src/ui/canvas/{effects,drawEffects}.ts` (sale label, flashes, working pulse; off under reduced motion), both fed by `store.onFeedback`. No `src/sim` change. Audibility not checked by ear.
   - Warnings: unfit saved kitchens are marked and not selectable (`kitFits`); a corrupt meta file shows a dismissible banner (`src/ui/MetaNotice.tsx`).
 - **Measured (harness, 20 seeds, median days to restaurant / chain end screen):** run 1 18 / 32; run 2 with seed money 3 + good name 1: 14 / 27; kit + seed money 2 + good name 1: 14 / 27; kit only: 16 / 29. Restaurant goal 7 puts a floor near day 14. With the kit at 8 FP (2026-11-25) run 2 is still 14 / 27.
 - **Active Decisions / Constraints:**
@@ -20,4 +21,4 @@
   - No full franchise-out was clicked through in the browser, and the two-key save was only tested with fake storage.
   - The scripted player ignores trend and seasonal dishes; some seeds report "soup sold 0 (on the menu)".
   - Chain UI not browser-checked: end screen with real branches at 1024 px, refit flow, day summary lines for trend and critic.
-- **Exact Next Step:** User decides the next slice. Candidates: playtest-driven polish pass; sound and animation.
+- **Exact Next Step:** User decides the next slice. Candidate: playtest-driven polish pass.

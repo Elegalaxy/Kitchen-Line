@@ -204,6 +204,7 @@ Bought once each in the build phase, restaurant tier only. **[provisional]** Thi
 - Franchise (8.2, provisional): the "Chain built" end screen gets a "Franchise out" button that opens the Franchise modal: points earned this run broken into the four parts, the points balance, the three perks with level, cost and a buy button (disabled with the reason), the recipe book, and one primary "Start run N" button. The top bar shows "Run N" from run 2 on. The modal is the only place perks are bought, and where the run's kitchen is saved into the blueprint library and the kitchen for the next run is chosen (see below). **[provisional]**
 - The tycoon panels (menu, prices, upgrades, summary, goals, and after the restaurant end screen the Branches tab: next site, cost, expected nightly net, open and refit) are regular UI beside or over the grid, following the global UI/UX guide (tabular figures, key-value rows, one primary action). **[provisional]** The Upgrades tab is the shop: the restaurant tier, kitchen size, and recipe unlocks. The fast belt and the pro stations are placed from Build; Upgrades only shows when those tiles are unlocked. The Menu tab lists dishes the player already owns.
 - Sound (user decision 2026-11-25): short synthesized blips, **off by default**, switched in the settings menu ("Sound: On / Off", remembered per browser, not part of the save). Cues: sale, customer lost, spoiled or binned food (throttled), day end, goal or end screen, and the tier, kitchen size, upgrade and branch purchases. Repeats are spaced out and at most 3 cues sound at once, so 4x speed stays calm; silent while the page is hidden. No information is given by sound alone. **[provisional]**
+- Feedback animation (user decision 2026-11-25): a rising "+$X.XX" and a short flash at the pass that sells, a flash on the tile where food spoils, and a breathing outline around stations that are processing. All of it is extra: progress bars, status badges and the bin mark stay. With the system's reduced-motion setting none of these four is drawn (checked live). While paused no outline pulses and no new effect starts; a label or flash already showing finishes its short life. Belt movement is not changed. **[provisional]**
 
 ## 11. Tech
 
@@ -245,6 +246,7 @@ No open questions remain for the first playable.
 
 ## 14. Changelog
 
+- 2026-11-28: Feedback animation built (section 10, provisional, user decision 2026-11-25). Drawing only, no `src/sim` change. Plan: doc/plans/2026-11-25-feedback.md.
 - 2026-11-25: User decision (sound, provisional, no **[confirmed]** rule): section 10 gains generated sound cues, off by default. No `src/sim` change. Plan: doc/plans/2026-11-25-feedback.md.
 - 2026-11-25: User decision (close a branch, provisional numbers, no **[confirmed]** rule): 8.1 gains "Closing a branch" (refund 50% of the blueprint value, opening fee lost, slot freed); "selling a branch" leaves [later]. Runs that never close a branch are unchanged.
 - 2026-11-25: User decision (provisional number, no **[confirmed]** rule): the Starter kitchen perk costs 8 FP instead of 14 (8.2). Franchise runs only; run 1 and every layout are unchanged.

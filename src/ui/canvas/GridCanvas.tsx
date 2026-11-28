@@ -2,7 +2,8 @@
 // imperative: each animation frame reads store.getState(), eases item positions and
 // redraws, so ticks never trigger React renders. The tile size is derived from the
 // container size (ResizeObserver) and applied in the frame, so a resize cannot make
-// items jump (item positions are in tile units).
+// items jump (item positions are in tile units). Feedback effects (effects.ts) come from
+// store.onFeedback and run on the wall clock; reduced motion is read live and turns them off.
 
 import { useEffect, useRef } from 'react'
 import { beginDrag, cancelAction, endDrag, primaryAt } from '../actions.ts'
@@ -12,6 +13,8 @@ import type { UiStore } from '../uiState.ts'
 import { tutorialHints } from '../tutorial.ts'
 import { drawHints, drawOverlay, drawScene, fitTile, PUFF_MS, readPalette } from './draw.ts'
 import type { Puff } from './draw.ts'
+import { drawEffects, drawWorkPulses } from './drawEffects.ts'
+import { createEffects } from './effects.ts'
 import { computeOverlay, tileAt } from './input.ts'
 import { createItemMotion } from './itemMotion.ts'
 
@@ -32,6 +35,11 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
     const motion = createItemMotion()
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     let puffs: Puff[] = []
+    const effects = createEffects()
+    const stopFeedback = store.onFeedback((f) => {
+      if (f.type === 'reset') puffs = []
+      effects.ingest(f, performance.now(), !motionQuery.matches)
+    })
     const box = { w: wrap.clientWidth, h: wrap.clientHeight }
     const ro = new ResizeObserver(() => {
       box.w = wrap.clientWidth
@@ -61,6 +69,13 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       for (const s of store.takeSpoils()) puffs.push({ x: s.x, y: s.y, start: t })
       puffs = puffs.filter((pf) => t - pf.start < PUFF_MS)
       drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, puffs })
+      if (motionQuery.matches) effects.clear()
+      else {
+        const now = performance.now()
+        if (state.phase === 'service' && store.getSpeed() !== 0) drawWorkPulses(ctx, state, tile, palette, now)
+        effects.prune(now)
+        drawEffects(ctx, effects.list(), tile, state.width, palette, now)
+      }
       const uiState = ui.get()
       if (!uiState.hintsHidden && !uiState.guideDone) drawHints(ctx, tutorialHints(state), store.defs, tile, palette, t, motionQuery.matches)
       const overlay = computeOverlay(state, store.defs, uiState)
@@ -120,6 +135,7 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
     canvas.addEventListener('contextmenu', onContextMenu)
     return () => {
       cancelAnimationFrame(raf)
+      stopFeedback()
       ro.disconnect()
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
