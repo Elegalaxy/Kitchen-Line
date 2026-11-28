@@ -17,7 +17,7 @@ import { ordersNote } from './orders.ts'
 import { hasFastVariant, paletteCost, paletteReason } from './palette.ts'
 import { createStore } from './store.ts'
 import { freshnessSeconds, tileItems, tileSummary, tileTooltip } from './tileInfo.ts'
-import { lineReachesPass, saladShortfall, tutorialHints, tutorialView } from './tutorial.ts'
+import { lineReachesPass, saladShortfall, tutorialHints, tutorialSections, tutorialView } from './tutorial.ts'
 import { clearTutorialDone, clearTutorialHelp, readTutorialDone, readTutorialHelp, writeTutorialDone, writeTutorialHelp } from './tutorialLatch.ts'
 import { createUiStore } from './uiState.ts'
 
@@ -227,6 +227,27 @@ describe('tutorial checklist', () => {
     expect(readTutorialHelp(box)).toBe(true)
     clearTutorialHelp(box)
     expect(readTutorialHelp(box)).toBe(false)
+  })
+})
+
+describe('tutorial card sections', () => {
+  const step = (id: 'chopper' | 'fryer' | 'connect', done: boolean) => ({ id, label: id, hint: id, done })
+
+  it('has nothing folded on a new game', () => {
+    const s = tutorialSections(tutorialView(createGame(DEFS, 'tut')))
+    expect(s.done).toEqual([])
+    expect(s.current?.id).toBe('chopper')
+    expect(s.upcoming).toHaveLength(7)
+  })
+
+  it('folds finished steps, even one finished out of order, and keeps the current step apart', () => {
+    const steps = [step('chopper', true), step('fryer', false), step('connect', true)]
+    const s = tutorialSections({ steps, current: 1 })
+    expect(s.done.map((x) => x.id)).toEqual(['chopper', 'connect'])
+    expect(s.current?.id).toBe('fryer')
+    expect(s.upcoming).toEqual([])
+    expect(s.doneLabel).toBe('2 steps done')
+    expect(tutorialSections({ steps: [step('chopper', true), step('fryer', false)], current: 1 }).doneLabel).toBe('1 step done')
   })
 })
 

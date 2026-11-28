@@ -31,6 +31,24 @@ export type TutorialView = {
   coach: TutorialCoach | null
 }
 
+export type TutorialSections = {
+  /** Finished steps (folded into one line on the card). */
+  done: TutorialStep[]
+  current: TutorialStep | null
+  /** Steps still to do after the current one (listed under its hint and button). */
+  upcoming: TutorialStep[]
+  /** "1 step done" / "4 steps done". */
+  doneLabel: string
+}
+
+/** The card's three parts, so the current hint and its button sit near the top of the card. */
+export function tutorialSections(view: Pick<TutorialView, 'steps' | 'current'>): TutorialSections {
+  const done = view.steps.filter((s) => s.done)
+  const current = view.current === -1 ? null : (view.steps[view.current] ?? null)
+  const upcoming = view.steps.filter((s) => !s.done && s !== current)
+  return { done, current, upcoming, doneLabel: `${done.length} ${done.length === 1 ? 'step' : 'steps'} done` }
+}
+
 export type HintTile = {
   kind: BuildingKind
   x: number
