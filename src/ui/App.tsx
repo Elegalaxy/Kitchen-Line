@@ -152,7 +152,10 @@ export default function App() {
             <div className="play-main">
               <GridCanvas store={store} ui={uiStore} />
               <TileInfo state={snap.state} defs={store.defs} ui={ui} />
-              <p className="hint">{hintFor(store.defs, ui)}</p>
+              <p className="hint">
+                {hintFor(store.defs, ui)}
+                {ui.tool === 'belt' && <span className="touch-hint"> Touch: drag with two fingers to pan.</span>}
+              </p>
             </div>
           </div>
         </div>

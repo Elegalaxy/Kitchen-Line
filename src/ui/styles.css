@@ -166,12 +166,27 @@ body {
   font-size: 0.875rem;
 }
 
+/* Touch pans the grid and the page natively; only the belt tool takes every touch, to draw. */
 .grid-canvas {
-  touch-action: none;
+  touch-action: manipulation;
   margin: auto;
   flex: none;
   border-radius: 8px;
   border: 1px solid var(--text-faint);
+}
+
+.grid-canvas[data-draw='true'] {
+  touch-action: none;
+}
+
+.touch-hint {
+  display: none;
+}
+
+@media (any-pointer: coarse) {
+  .touch-hint {
+    display: inline;
+  }
 }
 
 :focus-visible {

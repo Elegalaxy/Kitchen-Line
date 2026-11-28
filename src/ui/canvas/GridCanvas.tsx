@@ -4,6 +4,7 @@
 // container size (ResizeObserver) and applied in the frame, so a resize cannot make
 // items jump (item positions are in tile units). Feedback effects (effects.ts) come from
 // store.onFeedback and run on the wall clock; reduced motion is read live and turns them off.
+// Mouse and pen act on pointer down; touch goes through touchGesture.ts (pan, tap, draw).
 
 import { useEffect, useRef } from 'react'
 import { beginDrag, cancelAction, endDrag, primaryAt } from '../actions.ts'
@@ -17,6 +18,8 @@ import { drawEffects, drawWorkPulses } from './drawEffects.ts'
 import { createEffects } from './effects.ts'
 import { computeOverlay, tileAt } from './input.ts'
 import { createItemMotion } from './itemMotion.ts'
+import { IDLE_TOUCH, SCROLL_GRACE_MS, splitPan, touchStep } from './touchGesture.ts'
+import type { ScreenPoint, TouchEffect, TouchInput } from './touchGesture.ts'
 
 export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStore }) {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -89,15 +92,98 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
 
     // Pointer input. The canvas is exactly the grid, so a tile is floor(offset / tile).
     const ctxActions = { store, ui }
-    const tileOf = (e: PointerEvent) => {
+    const tileOf = (at: ScreenPoint) => {
       const rect = canvas.getBoundingClientRect()
       const s = store.getState()
-      const px = e.clientX - rect.left - canvas.clientLeft
-      const py = e.clientY - rect.top - canvas.clientTop
+      const px = at.x - rect.left - canvas.clientLeft
+      const py = at.y - rect.top - canvas.clientTop
       return tileAt(px, py, applied.tile, s.width, s.height)
     }
+    const screenPoint = (e: PointerEvent): ScreenPoint => ({ x: e.clientX, y: e.clientY })
+
+    // Only the belt tool turns native touch panning off (styles.css, data-draw).
+    const syncTouchAction = (): void => {
+      canvas.dataset.draw = String(ui.get().tool === 'belt')
+    }
+    syncTouchAction()
+    const stopToolWatch = ui.subscribe(syncTouchAction)
+
+    let touch = IDLE_TOUCH
+    let pressed: ReturnType<typeof tileOf> = null
+    let panBase = { left: 0, top: 0, pageX: 0, pageY: 0 }
+    let lastScroll = -Infinity
+    const onScroll = (e: Event): void => {
+      if (e.target === document || (e.target instanceof Node && e.target.contains(canvas))) lastScroll = performance.now()
+    }
+    const runTouchEffect = (effect: TouchEffect): void => {
+      switch (effect.type) {
+        case 'press':
+          pressed = tileOf(effect.at)
+          if (pressed !== null) ui.setCursor(pressed, false)
+          return
+        case 'tap':
+          if (pressed === null) return
+          ui.setCursor(pressed, false)
+          primaryAt(ctxActions, pressed)
+          return
+        case 'drawStart': {
+          const at = tileOf(effect.at)
+          if (at === null) return
+          ui.setCursor(at, false)
+          beginDrag(ctxActions, at)
+          return
+        }
+        case 'drawMove': {
+          const at = tileOf(effect.at)
+          if (at !== null) ui.setCursor(at, false)
+          return
+        }
+        case 'drawEnd':
+          if (ui.get().drag !== null) endDrag(ctxActions)
+          return
+        case 'drawAbort':
+          ui.set({ drag: null })
+          ui.setCursor(null, false)
+          return
+        case 'panStart':
+          panBase = { left: wrap.scrollLeft, top: wrap.scrollTop, pageX: window.scrollX, pageY: window.scrollY }
+          return
+        case 'pan': {
+          // The grid scrolls first; what it cannot take goes to the page.
+          const x = splitPan(effect.dx, panBase.left, wrap.scrollWidth - wrap.clientWidth)
+          const y = splitPan(effect.dy, panBase.top, wrap.scrollHeight - wrap.clientHeight)
+          wrap.scrollLeft = x.inner
+          wrap.scrollTop = y.inner
+          window.scrollTo(panBase.pageX + x.rest, panBase.pageY + y.rest)
+          return
+        }
+      }
+    }
+    const feedTouch = (input: TouchInput): void => {
+      const out = touchStep(touch, input)
+      touch = out.state
+      out.effects.forEach(runTouchEffect)
+    }
+    const touchInput = (type: 'move' | 'up', e: PointerEvent): TouchInput => {
+      const { tool, fast } = ui.get()
+      return { type, id: e.pointerId, at: screenPoint(e), tool, fast }
+    }
+
+    // A pen keeps drawing and placing as a mouse does: its movement must not scroll.
+    let penDown = false
+    const onTouchMove = (e: TouchEvent): void => {
+      if (penDown) e.preventDefault()
+    }
+
     const onPointerDown = (e: PointerEvent): void => {
-      const at = tileOf(e)
+      if (e.pointerType === 'touch') {
+        const { tool, fast } = ui.get()
+        const scrolling = performance.now() - lastScroll < SCROLL_GRACE_MS
+        feedTouch({ type: 'down', id: e.pointerId, at: screenPoint(e), tool, fast, isPrimary: e.isPrimary, scrolling })
+        return
+      }
+      if (e.pointerType === 'pen') penDown = true
+      const at = tileOf(screenPoint(e))
       if (at === null) return
       ui.setCursor(at, false)
       if (e.button === 2) {
@@ -114,14 +200,19 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       }
     }
     const onPointerMove = (e: PointerEvent): void => {
-      const at = tileOf(e)
+      if (e.pointerType === 'touch') return feedTouch(touchInput('move', e))
+      const at = tileOf(screenPoint(e))
       if (at !== null) ui.setCursor(at, false)
       else if (ui.get().drag === null) ui.setCursor(null, false)
     }
     const onPointerUp = (e: PointerEvent): void => {
+      if (e.pointerType === 'touch') return feedTouch(touchInput('up', e))
+      if (e.pointerType === 'pen') penDown = false
       if (e.button === 0 && ui.get().drag !== null) endDrag(ctxActions)
     }
-    const onPointerCancel = (): void => {
+    const onPointerCancel = (e: PointerEvent): void => {
+      if (e.pointerType === 'touch') return feedTouch({ type: 'cancel', id: e.pointerId })
+      if (e.pointerType === 'pen') penDown = false
       if (ui.get().drag !== null) ui.set({ drag: null })
     }
     const onPointerLeave = (): void => {
@@ -135,6 +226,8 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
     canvas.addEventListener('pointercancel', onPointerCancel)
     canvas.addEventListener('pointerleave', onPointerLeave)
     canvas.addEventListener('contextmenu', onContextMenu)
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true })
     return () => {
       cancelAnimationFrame(raf)
       stopFeedback()
@@ -145,6 +238,9 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       canvas.removeEventListener('pointercancel', onPointerCancel)
       canvas.removeEventListener('pointerleave', onPointerLeave)
       canvas.removeEventListener('contextmenu', onContextMenu)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('scroll', onScroll, { capture: true })
+      stopToolWatch()
     }
   }, [store, ui])
 
