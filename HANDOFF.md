@@ -1,6 +1,6 @@
 # Project Handoff State
 
-- **Last Updated By:** Claude (implementer, UI audit, 2026-11-28)
+- **Last Updated By:** Claude (implementer, phone and tablet fixes, 2026-11-28)
 - **Current Goal:** First playable, the content expansion, the chain stage and franchising (with the blueprint library), closing a branch, and sound plus feedback animation are built. No planned roadmap item is left; the next slice is the user's choice.
 - **Recent Changes & Files Touched (all on `origin/main`, plans in `doc/plans/2026-11-23-restaurant-growth.md` and `2026-11-24-*.md`):**
   - Earlier: pantry pause, overnight cleanup, closing-soon cue; restaurant growth (second pass, 4 upgrades, goal 7); trends, pro stations, dish pack, critics, seasons; chain tier (blueprints, branches, chain goals).
@@ -17,7 +17,9 @@
   - Library: manual save, 3 slots, no names; the kit perk stays one purchase (user decisions 2026-11-24/25). Rule perks and prestige tiers stay [later].
   - Work in a worktree; commit and push each finished piece (CLAUDE.md Workflow). The main checkout has another chat's uncommitted edits in `Inspector.tsx` and `draw.ts` and lags `origin/main`; the `coach-notices` worktree also has uncommitted work.
   - UI audit (`doc/plans/2026-11-25-ui-audit.md`): layout and readability fixes at 375 to 1280 px (CSS, small `src/ui` edits); a full franchise-out with real storage was clicked through and reloads correctly.
+  - Phone and tablet (audit calls 1-3): touch pans the grid, taps act on release, belt tools pan with two fingers (`src/ui/canvas/touchGesture.ts`, `GridCanvas.tsx`); below 1024 px the page is the only scroller; tablets (600-1023 px) get larger tiles (`styles.css`).
 - **Known gaps:**
+  - Touch behaviour was only simulated with synthetic events; no real device or pen.
   - The scripted player ignores trend and seasonal dishes; some seeds report "soup sold 0 (on the menu)".
   - Not browser-checked: a successful refit and the chain end screen with real branches.
-- **Exact Next Step:** User decides the audit judgement calls (first: touch panning of large kitchens on phones) and the next slice.
+- **Exact Next Step:** User decides the remaining audit judgement calls (4 to 14) and the next slice.
