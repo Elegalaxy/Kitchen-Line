@@ -471,6 +471,25 @@ kbd {
   }
 }
 
+/* Tablets: tiles grow into the width, up to the largest tile (64px) and 60% of the screen
+   height, and never below the smallest one. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .play-main {
+    container-type: inline-size;
+  }
+
+  .grid-wrap {
+    height: max(
+      calc(var(--grid-rows, 6) * 32px + 2px + var(--grid-scrollbar, 0px)),
+      min(
+        calc(var(--grid-rows, 6) * 64px + 2px),
+        calc(100cqw * var(--grid-rows, 6) / var(--grid-cols, 8) + 2px),
+        60dvh
+      )
+    );
+  }
+}
+
 /* Reputation (Step 12): fixed width so the arrow never shifts the bar */
 .stat .rep {
   min-width: 7ch;
