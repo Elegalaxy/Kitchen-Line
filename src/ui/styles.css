@@ -924,6 +924,44 @@ kbd {
   align-self: flex-end;
 }
 
+.sum-nodishes {
+  margin-bottom: 8px;
+}
+
+.btn-quiet.sum-idle-toggle {
+  width: 100%;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.sum-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Phones: the day summary's button stays at the bottom while the results scroll behind it. The
+   scroll padding keeps a focused control clear of the footer. */
+@media (max-width: 600px) {
+  .summary-modal {
+    scroll-padding-bottom: 80px;
+  }
+
+  .sum-footer {
+    position: sticky;
+    bottom: -16px;
+    z-index: 1;
+    margin: 0 -16px -16px;
+    padding: 10px 16px 16px;
+    border-top: 1px solid var(--text-faint);
+    background: var(--surface-raised);
+  }
+
+  .sum-footer .sum-button {
+    flex: 1;
+  }
+}
+
 @media (max-width: 560px) {
   .sum-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));

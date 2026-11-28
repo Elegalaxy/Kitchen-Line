@@ -4,12 +4,35 @@
 
 import { describe, expect, it } from 'vitest'
 import type { Defs, Review } from '../sim/types.ts'
-import { countDelta, hintText, moneyDelta, pickReviews, secondsDelta, starsDelta, starsText } from './daySummaryView.ts'
+import { countDelta, hintText, idleDishesLabel, moneyDelta, pickReviews, secondsDelta, splitDishRows, starsDelta, starsText } from './daySummaryView.ts'
 
 const DEFS = {
   dishes: { fries: { name: 'Fries' } },
   items: { tomato: { name: 'Tomato' } },
 } as unknown as Defs
+
+describe('dish rows', () => {
+  const none = { served: 0, lost: 0, sales: 0 }
+
+  it('lists dishes with any non-zero stat and folds the rest, keeping the order', () => {
+    const stats = new Map([
+      ['a', none],
+      ['b', { ...none, lost: 2 }],
+      ['d', { ...none, served: 1, sales: 300 }],
+      ['e', { ...none, sales: 100 }],
+    ])
+    expect(splitDishRows(['a', 'b', 'c', 'd', 'e'], stats)).toEqual({ active: ['b', 'd', 'e'], idle: ['a', 'c'] })
+  })
+
+  it('folds everything on a day with no activity', () => {
+    expect(splitDishRows(['a', 'b'], new Map())).toEqual({ active: [], idle: ['a', 'b'] })
+  })
+
+  it('words the disclosure button', () => {
+    expect(idleDishesLabel(1, false)).toBe('Show 1 dish with no activity')
+    expect(idleDishesLabel(3, true)).toBe('Hide 3 dishes with no activity')
+  })
+})
 
 describe('deltas', () => {
   it('shows arrow, sign and tone', () => {

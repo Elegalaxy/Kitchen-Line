@@ -56,6 +56,25 @@ export function starsText(stars: number): string {
   return '★'.repeat(n) + '☆'.repeat(5 - n)
 }
 
+export type DishActivity = { served: number; lost: number; sales: number }
+
+/**
+ * Splits the by-dish rows into dishes where something happened (any non-zero stat) and the rest,
+ * which the summary folds behind a button. Both keep the given order.
+ */
+export function splitDishRows(ids: readonly string[], stats: ReadonlyMap<string, DishActivity>): { active: string[]; idle: string[] } {
+  const busy = (id: string): boolean => {
+    const r = stats.get(id)
+    return r !== undefined && (r.served !== 0 || r.lost !== 0 || r.sales !== 0)
+  }
+  return { active: ids.filter(busy), idle: ids.filter((id) => !busy(id)) }
+}
+
+/** The disclosure button under the dish table. */
+export function idleDishesLabel(count: number, open: boolean): string {
+  return `${open ? 'Hide' : 'Show'} ${count} ${count === 1 ? 'dish' : 'dishes'} with no activity`
+}
+
 export const MAX_REVIEWS = 3
 
 /** Up to 3 reviews, lowest-rated first (stable for equal stars). */

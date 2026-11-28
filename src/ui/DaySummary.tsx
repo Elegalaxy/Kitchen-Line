@@ -1,10 +1,11 @@
 // End-of-day summary modal (plan Step 15), shown when the phase is `summary`. KPI cards,
 // a key-value block, a per-dish table, up to 3 reviews (lowest first), the bottleneck hint
 // and one primary button. Esc does not dismiss; focus starts on the button and is trapped.
-// Layout is fixed from day to day: all dishes always get a row, there are always 3 review
-// slots and the delta lines are always reserved, so the dialog does not change size.
+// The dish table lists dishes with any activity; the all-zero ones are folded behind a button.
+// There are always 3 review slots and the delta lines are always reserved. On narrow screens the
+// primary button sits in a footer that stays at the bottom of the dialog while it scrolls.
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { TIER_RANK } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
@@ -13,11 +14,13 @@ import type { Defs, GameState, Tier } from '../sim/types.ts'
 import {
   countDelta,
   hintText,
+  idleDishesLabel,
   MAX_REVIEWS,
   moneyDelta,
   pickReviews,
   pointsDelta,
   secondsDelta,
+  splitDishRows,
   starsDelta,
   starsText,
 } from './daySummaryView.ts'
@@ -85,6 +88,7 @@ export default function DaySummary({
   )
   const dialogRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [showIdle, setShowIdle] = useState(false)
 
   useEffect(() => {
     // Open at the top: the results come first, the button is at the end.
@@ -108,6 +112,7 @@ export default function DaySummary({
   // Dishes of a higher tier (dish pack) get no row until the restaurant tier.
   const inTier = (d: { requiresTier?: Tier }): boolean => d.requiresTier === undefined || TIER_RANK[d.requiresTier] <= TIER_RANK[state.tier]
   const dishIds = [...Object.values(defs.dishes).filter(inTier).map((d) => d.id), ...sum.dishes.map((r) => r.dish).filter((id) => defs.dishes[id] === undefined)]
+  const { active, idle } = splitDishRows(dishIds, stats)
 
   return (
     <div className="modal-backdrop">
@@ -200,43 +205,56 @@ export default function DaySummary({
             <h3 id="sum-dishes" className="panel-title">
               By dish
             </h3>
-            <table className="sum-table">
-              <thead>
-                <tr>
-                  <th scope="col">Dish</th>
-                  <th scope="col" className="num">
-                    Served
-                  </th>
-                  <th scope="col" className="num">
-                    Lost
-                  </th>
-                  <th scope="col" className="num">
-                    Sales
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {dishIds.map((id) => {
-                  const r = stats.get(id)
-                  return (
-                    <tr key={id} className={r === undefined ? 'idle' : ''}>
-                      <th scope="row" title={dishName(id)}>
-                        <span className="sum-dishname">{dishName(id)}</span>
-                        {sum.worstDish === id && (
-                          <span title="Most customers lost on this dish">
-                            <span aria-hidden="true"> ⚠</span>
-                            <span className="sr-only"> most lost</span>
-                          </span>
-                        )}
-                      </th>
-                      <td className="num">{r?.served ?? 0}</td>
-                      <td className="num">{r?.lost ?? 0}</td>
-                      <td className="num"><Money cents={r?.sales ?? 0} /></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            {active.length === 0 && <p className="empty sum-nodishes">No dish was served or lost today.</p>}
+            {(active.length > 0 || showIdle) && (
+              <table id="sum-dishtable" className="sum-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Dish</th>
+                    <th scope="col" className="num">
+                      Served
+                    </th>
+                    <th scope="col" className="num">
+                      Lost
+                    </th>
+                    <th scope="col" className="num">
+                      Sales
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(showIdle ? [...active, ...idle] : active).map((id) => {
+                    const r = stats.get(id)
+                    return (
+                      <tr key={id} className={idle.includes(id) ? 'idle' : ''}>
+                        <th scope="row" title={dishName(id)}>
+                          <span className="sum-dishname">{dishName(id)}</span>
+                          {sum.worstDish === id && (
+                            <span title="Most customers lost on this dish">
+                              <span aria-hidden="true"> ⚠</span>
+                              <span className="sr-only"> most lost</span>
+                            </span>
+                          )}
+                        </th>
+                        <td className="num">{r?.served ?? 0}</td>
+                        <td className="num">{r?.lost ?? 0}</td>
+                        <td className="num"><Money cents={r?.sales ?? 0} /></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+            {idle.length > 0 && (
+              <button
+                type="button"
+                className="btn-quiet sum-idle-toggle"
+                aria-expanded={showIdle}
+                onClick={() => setShowIdle((o) => !o)}
+              >
+                <span aria-hidden="true">{showIdle ? '▾' : '▸'}</span> {idleDishesLabel(idle.length, showIdle)}
+              </button>
+            )}
           </section>
         </div>
 
@@ -326,9 +344,11 @@ export default function DaySummary({
           <span className="sum-pantries-note">Paused pantries buy nothing. Resume them before the next day starts.</span>
         </div>
 
-        <button ref={buttonRef} type="button" className="btn-primary sum-button" onClick={onDismiss}>
-          Back to kitchen
-        </button>
+        <div className="sum-footer">
+          <button ref={buttonRef} type="button" className="btn-primary sum-button" onClick={onDismiss}>
+            Back to kitchen
+          </button>
+        </div>
       </div>
     </div>
   )
