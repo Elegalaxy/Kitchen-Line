@@ -248,7 +248,7 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
         </span>
       </h2>
       <p className={`menu-note${view.readOnly ? ' menu-note-locked' : ''}`} role="status">
-        {view.note === null ? 'Edit the menu and prices, then open for service.' : `🔒 ${view.note}`}
+        {view.note === null ? 'Edit the menu and prices, then open for service.' : `🔒 ${view.note}.`}
         {lockedLeft ? ' Locked dishes are on the Upgrades tab.' : ''}
       </p>
       {trend !== null && (

@@ -516,13 +516,6 @@ kbd {
   font-weight: 600;
 }
 
-/* On phones the cue wraps to three lines; reserve that height so the grid does not jump. */
-@media (max-width: 600px) {
-  .closing-slot {
-    min-height: 104px;
-  }
-}
-
 .closing-cue .closing-note {
   color: var(--text);
   font-weight: 400;
@@ -1548,8 +1541,8 @@ kbd {
   font-size: 1.25rem;
 }
 
-.btn-quiet:hover,
-.menu-item:hover {
+.btn-quiet:hover:not(:disabled),
+.menu-item:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
@@ -2380,5 +2373,39 @@ kbd {
   .confirm-actions .btn-quiet,
   .confirm-actions .btn-primary {
     flex: 1 1 100%;
+  }
+}
+
+/* Phone width: the two lines under the grid wrap instead of being cut, with their height reserved
+   so that picking a tool or pointing at a tile does not move the panel below. */
+@media (max-width: 600px) {
+  .hint {
+    min-height: 4.4em;
+  }
+
+  .tile-info {
+    height: 4.2em;
+    line-height: 1.4;
+    white-space: normal;
+  }
+}
+
+/* Touch: the two controls that are smaller on desktop get the full 44px hit target. */
+@media (max-width: 600px), (pointer: coarse) {
+  .btn-quiet.recipe-btn,
+  .btn-closing {
+    min-height: 44px;
+  }
+
+  /* Room for the taller cue button, so the cue does not move the grid when it appears. */
+  .closing-slot {
+    min-height: 56px;
+  }
+}
+
+/* On phones the cue wraps to three lines; reserve that height so the grid does not jump. */
+@media (max-width: 600px) {
+  .closing-slot {
+    min-height: 104px;
   }
 }
