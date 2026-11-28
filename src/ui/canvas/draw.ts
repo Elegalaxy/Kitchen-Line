@@ -448,14 +448,17 @@ function isSpoiling(def: ItemDef | undefined, tick: number, bornTick: number): b
   return tick - bornTick > (def.spoilTicks * 2) / 3
 }
 
-/** Per-frame effects state (UI only). `now` is a millisecond clock; puffs are brief 🗑 marks. */
-export type Fx = { now: number; reducedMotion: boolean; puffs: Puff[] }
+/**
+ * Per-frame effects state (UI only). `now` is a millisecond clock; puffs are brief 🗑 marks.
+ * `frozen`: paused or outside service, so nothing may loop on the still kitchen.
+ */
+export type Fx = { now: number; reducedMotion: boolean; frozen: boolean; puffs: Puff[] }
 export type Puff = { x: number; y: number; start: number }
 export const PUFF_MS = 600
 
-/** Warn outline alpha: pulses unless the user prefers reduced motion (then steady). */
+/** Warn outline alpha: pulses, but steady with reduced motion or on a frozen kitchen. */
 function pulseAlpha(fx: Fx | undefined): number {
-  if (fx === undefined || fx.reducedMotion) return 1
+  if (fx === undefined || fx.reducedMotion || fx.frozen) return 1
   return 0.55 + 0.45 * Math.sin((fx.now / 1000) * Math.PI * 2 * 1.2)
 }
 

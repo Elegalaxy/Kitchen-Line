@@ -1813,6 +1813,8 @@ kbd {
 }
 
 .goal-chip-head {
+  /* Contains the .sr-only count, which would otherwise widen the page at 375 px. */
+  position: relative;
   display: flex;
   gap: 4px;
   min-width: 0;

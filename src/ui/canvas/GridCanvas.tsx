@@ -68,11 +68,12 @@ export default function GridCanvas({ store, ui }: { store: GameStore; ui: UiStor
       const items = motion.update(state, dt, store.getSpeed())
       for (const s of store.takeSpoils()) puffs.push({ x: s.x, y: s.y, start: t })
       puffs = puffs.filter((pf) => t - pf.start < PUFF_MS)
-      drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, puffs })
+      const frozen = state.phase !== 'service' || store.getSpeed() === 0
+      drawScene(ctx, state, store.defs, items, tile, palette, { now: t, reducedMotion: motionQuery.matches, frozen, puffs })
       if (motionQuery.matches) effects.clear()
       else {
         const now = performance.now()
-        if (state.phase === 'service' && store.getSpeed() !== 0) drawWorkPulses(ctx, state, tile, palette, now)
+        if (!frozen) drawWorkPulses(ctx, state, tile, palette, now)
         effects.prune(now)
         drawEffects(ctx, effects.list(), tile, state.width, palette, now)
       }
