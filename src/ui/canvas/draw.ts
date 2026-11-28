@@ -12,6 +12,7 @@ import type { Building, BuildingKind, Defs, Dir, GameState, ItemDef } from '../.
 import type { HintTile } from '../tutorial.ts'
 import type { Overlay } from './input.ts'
 import type { MotionItem } from './itemMotion.ts'
+import { shownStatus } from '../shownStatus.ts'
 
 export const MIN_TILE = 32
 export const MAX_TILE = 64
@@ -422,7 +423,7 @@ function drawStation(ctx: CanvasRenderingContext2D, state: GameState, defs: Defs
   if (b.kind !== 'splitter') drawArrow(ctx, cx, cy, b.dir, tile, tint, true)
   drawRouting(ctx, b, defs, cx, cy, tile, tint)
   // The pass and bin flip status every tick (idle between deliveries), so they get no badge.
-  if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, b.status, b.x, b.y, tile, p)
+  if (b.kind !== 'pass' && b.kind !== 'bin') drawStatusBadge(ctx, shownStatus(state.phase, b), b.x, b.y, tile, p)
   drawProgress(ctx, b, defs, tile, p)
   drawAssemblerPips(ctx, b, defs, tile, p)
   // Items inside stations are a count, not moving shapes.

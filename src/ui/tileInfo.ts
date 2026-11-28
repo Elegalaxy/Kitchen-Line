@@ -10,6 +10,7 @@ import { isPro } from '../sim/stations.ts'
 import type { Defs, GameState, Item } from '../sim/types.ts'
 import { STATUS_TEXT } from './format.ts'
 import { variantName } from './palette.ts'
+import { shownStatus } from './shownStatus.ts'
 
 export const TICKS_PER_SECOND = 10
 
@@ -51,6 +52,6 @@ export function tileSummary(state: GameState, defs: Defs, x: number, y: number):
   const b = state.buildings[id]
   const items = tileItems(state, defs, x, y)
   const name = isPro(b) ? variantName(defs, b.kind) : defs.buildings[b.kind].name
-  const where = `${name} at ${b.x}, ${b.y} (${STATUS_TEXT[b.status].word})`
+  const where = `${name} at ${b.x}, ${b.y} (${STATUS_TEXT[shownStatus(state.phase, b)].word})`
   return items.length === 0 ? `${where}: no items.` : `${where}: ${items.map((i) => i.text).join('; ')}.`
 }

@@ -8,6 +8,7 @@ import { buildingAt, inBounds, neighbor } from '../sim/grid.ts'
 import { findStationRecipe, opposite, tryInsert } from '../sim/transfer.ts'
 import type { Building, Defs, Dir, GameState, Item } from '../sim/types.ts'
 import { dirName } from './format.ts'
+import { shownStatus } from './shownStatus.ts'
 
 type Stuck = { item: Item; dir: Dir; what: string }
 
@@ -114,6 +115,8 @@ const BACKED_UP = /is full|already has enough|already holds|holding another item
 
 /** The text for the Inspector "Why" row, or null. */
 export function blockReason(state: GameState, defs: Defs, b: Building): string | null {
+  // A pantry shown as "Ready" (build phase) has nothing to explain.
+  if (shownStatus(state.phase, b) === 'ready') return null
   if (b.status === 'warming') return 'Just placed: it starts working in a moment.'
   if (b.status === 'paused') return "Paused by you. Resume it in the Inspector or with 'Resume pantries'."
   if (b.status === 'noCash') {

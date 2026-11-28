@@ -89,7 +89,7 @@ export function dirName(dir: Dir): string {
 }
 
 /** Status as icon plus word (never colour alone). */
-export const STATUS_TEXT: Record<BuildingStatus, { icon: string; word: string }> = {
+export const STATUS_TEXT: Record<BuildingStatus | 'ready', { icon: string; word: string }> = {
   ok: { icon: '✅', word: 'Working' },
   idle: { icon: '💤', word: 'Idle' },
   blocked: { icon: '⛔', word: 'Blocked' },
@@ -97,6 +97,8 @@ export const STATUS_TEXT: Record<BuildingStatus, { icon: string; word: string }>
   noCash: { icon: '💸', word: 'No cash' },
   noRecipe: { icon: '❓', word: 'No recipe set' },
   paused: { icon: '⏸', word: 'Paused' },
+  // Shown only (shownStatus.ts): a pantry in the build phase.
+  ready: { icon: '✔', word: 'Ready' },
 }
 
 /** Day clock "HH:MM": 11:00 at dayTick 0 to 22:00 at DAY_TICKS (11 hours over the day). */

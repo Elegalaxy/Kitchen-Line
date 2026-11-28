@@ -16,6 +16,7 @@ import { blockReason } from './blockReason.ts'
 import { BUILDING_INFO } from './buildingInfo.ts'
 import type { PaletteHover } from './BuildPalette.tsx'
 import { hasVariant, paletteKinds, speedText, variantName, variantOf } from './palette.ts'
+import { shownStatus } from './shownStatus.ts'
 import type { Snapshot } from './store.ts'
 
 const FAST_WHAT = 'A faster belt: items move through it quicker. Same rules as the belt.'
@@ -166,8 +167,10 @@ export default function Inspector({
     )
   }
   const def = defs.buildings[b.kind]
-  const status = STATUS_TEXT[b.status]
-  const pct = progressPct(defs, b)
+  const shown = shownStatus(snap.state.phase, b)
+  const status = STATUS_TEXT[shown]
+  // A pantry that is only "Ready" has no running timer to show.
+  const pct = shown === 'ready' ? null : progressPct(defs, b)
   const speed = speedText(defs, b.kind, isPro(b))
   const baseSpeed = speedText(defs, b.kind, false)
   const why = blockReason(snap.state, defs, b)
@@ -226,7 +229,7 @@ export default function Inspector({
           >
             <span className="btn-main">
               <span aria-hidden="true">{b.paused === true ? '▶' : '⏸'}</span>{' '}
-              {b.paused === true ? 'Paused: click to resume' : 'Running: click to pause'}
+              {b.paused === true ? 'Paused: click to resume' : `${shown === 'ready' ? 'Ready' : 'Running'}: click to pause`}
             </span>
             <span className="btn-sub">
               {b.paused === true ? 'Buys and emits nothing until resumed.' : 'Pausing stops buying and emitting.'}
