@@ -51,9 +51,11 @@ describe('franchise markup', () => {
   })
 
   it('the confirm is an alertdialog with the kept text', () => {
-    const html = renderToStaticMarkup(createElement(FranchiseConfirm, { run: 2, error: null, onCancel: noop, onConfirm: noop }))
+    const rows = [{ label: 'Points left', value: '12' }]
+    const html = renderToStaticMarkup(createElement(FranchiseConfirm, { run: 2, rows, error: null, onCancel: noop, onConfirm: noop }))
     expect(html).toContain('role="alertdialog"')
     expect(html).toContain('Your current game is replaced. Points, perks and recipe book are kept.')
+    expect(html).toContain('<dt>Points left</dt><dd class="num">12</dd>')
   })
 
   it('the chain end screen makes Franchise out the primary action and keeps a quiet Keep playing', () => {

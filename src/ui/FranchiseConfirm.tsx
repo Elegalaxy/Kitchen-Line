@@ -1,17 +1,20 @@
 // Confirm dialog for "Sell chain and start run N" (GAME_DESIGN 8.2). The current game is replaced, so it
 // is an alertdialog like NewGameConfirm: Cancel has focus, Esc cancels, Tab stays inside, and the confirm
-// button names what it does. A refused franchise (duplicate seed, storage) is shown here.
+// button names what it does. It repeats the choices (points left, perks, kitchens) as key-value rows.
+// A refused franchise (duplicate seed, storage) is shown here.
 
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 
 export default function FranchiseConfirm({
   run,
+  rows,
   error,
   onCancel,
   onConfirm,
 }: {
   run: number
+  rows: { label: string; value: string }[]
   error: string | null
   onCancel: () => void
   onConfirm: () => void
@@ -49,7 +52,7 @@ export default function FranchiseConfirm({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="franchise-confirm-title"
-        aria-describedby="franchise-confirm-text"
+        aria-describedby="franchise-confirm-text franchise-confirm-rows"
         onKeyDown={onKeyDown}
         onKeyUp={(e) => e.stopPropagation()}
       >
@@ -59,6 +62,14 @@ export default function FranchiseConfirm({
         <p id="franchise-confirm-text" className="notice-help">
           Your current game is replaced. Points, perks and recipe book are kept.
         </p>
+        <dl id="franchise-confirm-rows" className="sum-kv">
+          {rows.map((r) => (
+            <div key={r.label} className="sum-row">
+              <dt>{r.label}</dt>
+              <dd className="num">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
         {error !== null && (
           <p className="goal-reason" role="alert">
             <span aria-hidden="true">⚠</span> {error}

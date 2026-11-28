@@ -65,8 +65,11 @@ describe('franchiseView', () => {
 
   it('starter kitchen card: counts saved slots, and says a restaurant upgrade is needed when nothing can be saved', () => {
     const card = franchiseView(won, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')
-    expect(card?.kitText).toBe('1 of 3 slots used')
+    expect(card?.kitText).toBe('1 of 3 slots used after saving')
     expect(card).toMatchObject({ nextCost: 8, canBuy: true, reason: null })
+    // with nothing waiting to be saved the count is what the slots hold now
+    const held = franchiseView(won, { ...emptyMeta(), library: [{ run: 1, kit: won.stallKit! }, null, null] }, DEFS, [], { saveSlot: null })
+    expect(held.cards.find((c) => c.id === 'starterKit')?.kitText).toBe('1 of 3 slots used')
     const bare = structuredClone(won)
     delete bare.stallKit
     const none = franchiseView(bare, emptyMeta(), DEFS, []).cards.find((c) => c.id === 'starterKit')
@@ -122,6 +125,22 @@ describe('franchiseView blueprint library', () => {
     const label = kitLabel({ run: 2, kit: { ...kit, menu: [{ dish: 'fries', price: 300 }, { dish: 'salad', price: 450 }] } }, DEFS)
     expect(label).toMatch(/^Run 2, fries \+ salad, \d+ buildings, value \$\d/)
     expect(kitLabel({ run: 1, kit: { ...kit, menu: [], unlocked: [] } }, DEFS)).toContain('no dishes')
+  })
+
+  it('repeats the decision for the confirm dialog', () => {
+    const rows = (meta: MetaState, picks: string[], choices = {}) =>
+      Object.fromEntries(franchiseView(won, meta, DEFS, picks, choices).confirmRows.map((r) => [r.label, r.value]))
+    expect(rows(emptyMeta(), [], { saveSlot: null })).toEqual({
+      'Points left': String(fp),
+      'Perks bought now': 'None',
+      'This kitchen saved to': 'Not saved',
+      'Next run starts with': 'No saved kitchen',
+    })
+    const bought = rows({ ...emptyMeta(), points: 20, library: [entry(1), null, null] }, ['starterKit', 'seedMoney'], { saveSlot: 0, useSlot: 0 })
+    expect(bought['Perks bought now']).toBe('Seed money level 1, Starter kitchen level 1')
+    expect(bought['This kitchen saved to']).toBe('Slot 1 (replaces its kitchen)')
+    expect(bought['Next run starts with']).toBe('Kitchen in slot 1')
+    expect(rows(emptyMeta(), [])['This kitchen saved to']).toBe('Slot 1')
   })
 
   it('warns about a saved kitchen that no longer fits and never starts a run with it', () => {

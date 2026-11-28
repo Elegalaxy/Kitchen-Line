@@ -82,6 +82,8 @@ export type FranchiseView = {
   useSelected: number | null
   /** The Starter kitchen perk is owned after the picks, so the player chooses which kitchen starts the next run. */
   kitOwned: boolean
+  /** What is being decided, repeated in the confirm dialog. */
+  confirmRows: { label: string; value: string }[]
   /** Why franchising is not possible now, or null. */
   blocked: string | null
   startLabel: string
@@ -183,7 +185,8 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
       costText: maxed ? '–' : `${nextCost} points`,
       nextEffect: maxed ? null : effectText(perk, level + 1, defs),
       currentEffect: level === 0 ? 'None yet' : effectText(perk, level, defs),
-      kitText: !needsKit ? null : saved === 0 ? 'None saved yet' : `${saved} of ${library.length} slots used`,
+      // `saved` counts the kitchen waiting to be saved, so say so while the slot lists still show it as empty.
+      kitText: !needsKit ? null : saved === 0 ? 'None saved yet' : `${saved} of ${library.length} slots used${saveSelected === null ? '' : ' after saving'}`,
       canBuy: !maxed && !short && !noKit && !noFit,
       reason: maxed
         ? 'Top level reached'
@@ -202,6 +205,7 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
   const nextRun = meta.runsCompleted + 2
   const dup = meta.history.some((h) => h.seed === state.seed)
   const kitOwned = cards.some((c) => c.id === 'starterKit' && c.level > 0)
+  const chosen = cards.filter((c) => c.pending > 0).map((c) => `${c.name} level ${c.level}`)
   return {
     nextRun,
     rows,
@@ -220,6 +224,15 @@ export function franchiseView(state: GameState, meta: MetaState, defs: Defs, pic
     useSlots: slotViews(library, defs),
     useSelected,
     kitOwned,
+    confirmRows: [
+      { label: 'Points left', value: String(after.meta.points) },
+      { label: 'Perks bought now', value: chosen.length === 0 ? 'None' : chosen.join(', ') },
+      {
+        label: 'This kitchen saved to',
+        value: saveSelected === null ? 'Not saved' : `Slot ${saveSelected + 1}${before[saveSelected] === null ? '' : ' (replaces its kitchen)'}`,
+      },
+      { label: 'Next run starts with', value: kitOwned && useSelected !== null ? `Kitchen in slot ${useSelected + 1}` : 'No saved kitchen' },
+    ],
     blocked: dup ? 'This run is already franchised' : canFranchise(state) ? null : 'Build the chain first',
     startLabel: `Sell chain and start run ${nextRun}`,
   }

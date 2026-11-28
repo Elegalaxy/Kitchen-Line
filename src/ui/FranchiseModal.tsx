@@ -260,6 +260,7 @@ export default function FranchiseModal({
       {confirming && (
         <FranchiseConfirm
           run={view.nextRun}
+          rows={view.confirmRows}
           error={error}
           onCancel={() => {
             setConfirming(false)
