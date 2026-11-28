@@ -91,7 +91,8 @@ export default function FranchiseModal({
   const dialogRef = useRef<HTMLDivElement>(null)
   const startRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    startRef.current?.focus()
+    // Open at the top: points and perks come before the button at the end.
+    startRef.current?.focus({ preventScroll: true })
   }, [])
   const view = franchiseView(state, meta, defs, picks, { saveSlot, useSlot })
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -189,7 +190,7 @@ export default function FranchiseModal({
                     <div className="perk-actions">
                       <button
                         type="button"
-                        className="btn-primary perk-buy"
+                        className="btn goal-btn perk-buy"
                         disabled={!c.canBuy}
                         aria-describedby={reasonId}
                         onClick={() => setPicks([...picks, c.id])}

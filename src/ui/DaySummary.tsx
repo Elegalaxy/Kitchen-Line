@@ -87,7 +87,8 @@ export default function DaySummary({
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    buttonRef.current?.focus()
+    // Open at the top: the results come first, the button is at the end.
+    buttonRef.current?.focus({ preventScroll: true })
   }, [])
 
   if (last === null || sum === null) return null

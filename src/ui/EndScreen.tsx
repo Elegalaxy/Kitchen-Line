@@ -42,7 +42,8 @@ export default function EndScreen({
   const dialogRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    buttonRef.current?.focus()
+    // Open at the top, also when the dialog is taller than the screen.
+    buttonRef.current?.focus({ preventScroll: true })
   }, [])
   const last = state.lastDay
   const chain = state.chainWon === true

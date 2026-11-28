@@ -646,6 +646,11 @@ kbd {
   gap: 12px;
 }
 
+/* A tall dialog scrolls; its parts must never be squeezed (that made boxed text overflow). */
+.modal > * {
+  flex-shrink: 0;
+}
+
 .sum-title {
   margin: 0;
   font-size: 1.25rem;
@@ -884,6 +889,10 @@ kbd {
 
   .sum-button {
     align-self: stretch;
+  }
+
+  .sum-pantries .pause-all-btn {
+    width: 100%;
   }
 }
 
@@ -1622,6 +1631,7 @@ kbd {
 }
 
 .btn-danger:disabled {
+  background: transparent;
   border-style: dashed;
   color: var(--text-faint);
   border-color: var(--text-faint);
@@ -1813,8 +1823,6 @@ kbd {
 }
 
 .goal-chip-head {
-  /* Contains the .sr-only count, which would otherwise widen the page at 375 px. */
-  position: relative;
   display: flex;
   gap: 4px;
   min-width: 0;
@@ -1822,6 +1830,8 @@ kbd {
 }
 
 .goal-chip-label {
+  /* Contains and clips the .sr-only count, which would otherwise widen the page at 375 px. */
+  position: relative;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
