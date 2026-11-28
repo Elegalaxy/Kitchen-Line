@@ -19,6 +19,8 @@ export type SeasonView = {
   progress: string
   /** Top bar form: "Summer 3/7". */
   short: string
+  /** The part of `short` that stays on a crowded top bar: "3/7". */
+  count: string
   /** Pantry price changes, e.g. "Tomato -25%". */
   costChanges: string[]
   /** Taste changes, e.g. "Salad more popular". */
@@ -54,6 +56,7 @@ export function seasonView(state: SeasonState, defs: Defs): SeasonView | null {
     dayInSeason,
     progress: `Day ${dayInSeason} of ${SEASON_DAYS}`,
     short: `${season.name} ${dayInSeason}/${SEASON_DAYS}`,
+    count: `${dayInSeason}/${SEASON_DAYS}`,
     costChanges: costChanges(season, defs),
     tasteChanges: tasteChanges(season, defs),
   }

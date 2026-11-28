@@ -129,6 +129,63 @@ body {
   }
 }
 
+/* Desktop windows too narrow for the full restaurant top bar (about 1500px): tighter spacing, and
+   the season name, trend factor, those two labels and the word "Pause" leave the screen (all
+   still read out; the full season and trend text is in the Menu tab and in each stat's details).
+   From 1260px the widest bar then fits one row. Narrower windows keep the full texts on two rows:
+   the widest bar needs about 1220px, and one that fitted only on some days would jump. */
+@media (min-width: 1260px) and (max-width: 1535px) {
+  .topbar {
+    column-gap: 12px;
+  }
+
+  .topbar .compact-hide,
+  .topbar .stat-season .stat-label,
+  .topbar .stat-trend .stat-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Containing boxes for the hidden text, so it cannot widen the page. */
+  .topbar .stat-btn,
+  .topbar .seg-btn {
+    position: relative;
+  }
+
+  /* The hidden labels carried the "pressable" underline; the values carry it here. */
+  .stat-season .stat-value,
+  .stat-trend .stat-value {
+    text-decoration: underline dotted var(--text-muted);
+    text-underline-offset: 3px;
+  }
+
+  .topbar .stat dd,
+  .topbar .stat-value {
+    font-size: 1rem;
+  }
+
+  .topbar .stat {
+    column-gap: 6px;
+  }
+
+  .topbar .seg-btn {
+    min-width: 44px;
+    padding: 0 8px;
+  }
+
+  .topbar .open-btn {
+    padding: 0 10px;
+  }
+
+  .topbar-controls {
+    gap: 8px;
+  }
+}
+
 /* Speed and settings wrap as one block, so the gear never lands alone on a row. */
 .topbar-controls {
   display: flex;

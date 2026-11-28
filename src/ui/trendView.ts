@@ -13,6 +13,8 @@ export type TrendView = {
   text: string
   /** Short form for the top bar: "Fries ×2". */
   short: string
+  /** "×2", the part of `short` a crowded top bar leaves out. */
+  factor: string
   onMenu: boolean
   /** What to do about it while the dish is off the menu (it can only be added in the build phase), else null. */
   hint: string | null
@@ -36,6 +38,7 @@ export function trendView(state: GameState, defs: Defs): TrendView | null {
     emoji: def?.emoji ?? '',
     text: `Today's trend: ${name}, ${TREND_WEIGHT_FACTOR}x demand`,
     short: `${name} ×${TREND_WEIGHT_FACTOR}`,
+    factor: `×${TREND_WEIGHT_FACTOR}`,
     onMenu,
     hint: onMenu
       ? null

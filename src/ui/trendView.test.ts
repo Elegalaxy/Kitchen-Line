@@ -25,6 +25,7 @@ describe('trendView', () => {
     const v = trendView(s, DEFS)
     expect(v?.text).toBe(`Today's trend: ${DEFS.dishes[dish].name}, 2x demand`)
     expect(v?.onMenu).toBe(false)
+    expect(v?.short).toBe(`${DEFS.dishes[dish].name} ${v?.factor}`)
     expect(v?.hint).toContain('add')
     s.menu.push({ dish, price: DEFS.dishes[dish].refPrice })
     expect(trendView(s, DEFS)?.hint).toBeNull()

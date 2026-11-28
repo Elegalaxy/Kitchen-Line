@@ -26,6 +26,7 @@ describe('seasonView', () => {
     const v = seasonView(at(17), DEFS)!
     expect(v.name).toBe('Autumn')
     expect(v.short).toBe('Autumn 3/7')
+    expect(v.count).toBe('3/7')
     expect(v.progress).toBe('Day 3 of 7')
     expect(v.costChanges).toContain('Potato -25%')
     expect(v.costChanges).toContain('Tomato +25%')

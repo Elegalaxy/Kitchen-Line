@@ -1,6 +1,7 @@
 // Top bar: day, money, reputation (4.2★ with a change arrow since the day started), clock, phase badge, day bar, the "Open for service" button (build
 // phase only) and the speed segmented control (pause / 1x / 2x / 4x). The closing and critic cues share a
-// live region: a reserved row on wide screens, an overlay below the day bar on phones.
+// live region: a reserved row on wide screens, an overlay below the day bar on phones. On narrow
+// desktop windows the season, trend and pause texts shorten (CSS `.compact-hide`, still read out).
 
 import { useCallback, useState } from 'react'
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
@@ -82,13 +83,13 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
       </dl>
       {season !== null && (
         <StatDisclosure {...disclosure('season')} label="Season" lines={seasonDetails(season)} className="stat-season">
-          <span aria-hidden="true">{season.emoji}</span> {season.short}
+          <span aria-hidden="true">{season.emoji}</span> <span className="compact-hide">{season.name}</span> {season.count}
           <span className="sr-only">: {season.progress}</span>
         </StatDisclosure>
       )}
       {trend !== null && (
         <StatDisclosure {...disclosure('trend')} label="Trend" lines={trendDetails(trend)} className="stat-trend">
-          <span aria-hidden="true">🔥</span> {trend.short}
+          <span aria-hidden="true">🔥</span> {trend.name} <span className="compact-hide">{trend.factor}</span>
           <span className="sr-only">: {trend.text}</span>
         </StatDisclosure>
       )}
@@ -96,7 +97,7 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
         <span aria-hidden="true">{phase.icon}</span> {phase.word}
       </span>
       {s.phase === 'build' && (
-        <button type="button" className="btn-primary" onClick={() => store.dispatch({ type: 'openService' })}>
+        <button type="button" className="btn-primary open-btn" onClick={() => store.dispatch({ type: 'openService' })}>
           <span aria-hidden="true">▶</span> Open for service
         </button>
       )}
@@ -111,7 +112,7 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
               onClick={() => store.setSpeed(sp)}
             >
               <span aria-hidden="true">{sp === 0 ? '⏸' : ''}</span>
-              {SPEED_LABEL[sp]}
+              <span className={sp === 0 ? 'compact-hide' : undefined}>{SPEED_LABEL[sp]}</span>
             </button>
           ))}
         </div>
