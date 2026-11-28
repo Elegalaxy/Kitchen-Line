@@ -3,7 +3,8 @@
 // today. Locked dishes are bought on the Upgrades tab and are not listed here. Each row has
 // a Recipe button that opens that dish's steps (pantry ingredients and stations). The panel
 // is read-only outside the build phase. Rows are laid out as small cards (the side panel is
-// narrow) with the table roles kept for assistive tech.
+// narrow) with the table roles kept for assistive tech. Above the table the restaurant tier shows
+// the season's price and demand effects and the trend with its advice as plain text.
 //
 // Price input: type dollars, Enter or leaving the field commits, Escape reverts. Invalid
 // text shows an inline error and is NOT dispatched. The hint line under the input (allowed
@@ -21,7 +22,7 @@ import { checkPriceText, menuView } from './menuView.ts'
 import type { MenuRow } from './menuView.ts'
 import { centsToInput } from './money.ts'
 import { CostArrow, SeasonTagView } from './seasonParts.tsx'
-import { costTitle } from './seasonView.ts'
+import { costTitle, seasonEffects, seasonView } from './seasonView.ts'
 import { recipeSteps } from './recipeView.ts'
 import type { RecipeStep } from './recipeView.ts'
 import type { Snapshot } from './store.ts'
@@ -237,6 +238,7 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
   }
 
   const trend = trendView(snap.state, ctx.store.defs)
+  const season = seasonView(snap.state, ctx.store.defs)
   const full = view.count >= view.cap
   const lockedLeft = view.rows.some((row) => row.locked)
   return (
@@ -251,12 +253,27 @@ export default function MenuPanel({ ctx, snap }: { ctx: Ctx; snap: Snapshot }) {
         {view.note === null ? 'Edit the menu and prices, then open for service.' : `🔒 ${view.note}.`}
         {lockedLeft ? ' Locked dishes are on the Upgrades tab.' : ''}
       </p>
+      {season !== null && (
+        <div className="season-banner">
+          <p className="season-title num">
+            <span aria-hidden="true">{season.emoji}</span> {season.name}, {season.progress.toLowerCase()}
+          </p>
+          <dl className="kv">
+            {seasonEffects(season).map((r) => (
+              <div key={r.label} className="kv-row">
+                <dt>{r.label}</dt>
+                <dd className="num">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
       {trend !== null && (
         <div className="trend-banner" role="status">
           <p className="trend-text">
             <span aria-hidden="true">🔥</span> {trend.text}
           </p>
-          <p className="trend-hint">{trend.hint ?? (trend.onMenu ? 'On your menu.' : ' ')}</p>
+          <p className="trend-hint">{trend.hint ?? 'On your menu.'}</p>
         </div>
       )}
       <table className="menu-table" role="table" aria-label="Dishes" ref={tableRef}>

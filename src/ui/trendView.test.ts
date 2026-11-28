@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFS } from '../content/index.ts'
 import { createGame } from '../sim/game.ts'
 import { currentTrend } from '../sim/trend.ts'
-import { trendSummary, trendView } from './trendView.ts'
+import { trendDetails, trendSummary, trendView } from './trendView.ts'
 
 function restaurant() {
   const s = createGame(DEFS, 'demo')
@@ -28,6 +28,14 @@ describe('trendView', () => {
     expect(v?.hint).toContain('add')
     s.menu.push({ dish, price: DEFS.dishes[dish].refPrice })
     expect(trendView(s, DEFS)?.hint).toBeNull()
+    expect(trendDetails(trendView(s, DEFS)!)).toEqual([v?.text, 'On your menu.'])
+  })
+  it('still advises during service, when the menu is locked', () => {
+    const s = restaurant()
+    const dish = currentTrend(s, DEFS) as string
+    s.menu = s.menu.filter((m) => m.dish !== dish)
+    s.phase = 'service'
+    expect(trendView(s, DEFS)?.hint).toContain('once the menu unlocks')
   })
   it('summarises the finished day', () => {
     const s = restaurant()

@@ -2,7 +2,7 @@
 // phase only) and the speed segmented control (pause / 1x / 2x / 4x). The closing and critic cues share a
 // live region: a reserved row on wide screens, an overlay below the day bar on phones.
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { DAY_PHASE_STARTS, DAY_TICKS } from '../sim/constants.ts'
 import { reputationOf } from '../sim/customers.ts'
 import { togglePantriesAction } from './actions.ts'
@@ -14,8 +14,9 @@ import SettingsMenu from './SettingsMenu.tsx'
 import { SPEEDS } from './store.ts'
 import type { GameStore, Snapshot, Speed } from './store.ts'
 import { criticCueKey, criticNotice } from './criticView.ts'
-import { seasonView } from './seasonView.ts'
-import { trendView } from './trendView.ts'
+import { seasonDetails, seasonView } from './seasonView.ts'
+import StatDisclosure from './StatDisclosure.tsx'
+import { trendDetails, trendView } from './trendView.ts'
 
 const SPEED_LABEL: Record<Speed, string> = { 0: 'Pause', 1: '1×', 2: '2×', 4: '4×' }
 
@@ -40,6 +41,15 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
   // Phones only (CSS): the cue lies over the content below the day bar, so the critic notice can be closed.
   const [hiddenCue, setHiddenCue] = useState<string | null>(null)
   const criticKey = critic === null ? null : criticCueKey(s.day, critic)
+  // Stat details: one open at a time.
+  const [openStat, setOpenStat] = useState<string | null>(null)
+  const closeStat = useCallback(() => setOpenStat(null), [])
+  const disclosure = (id: string) => ({
+    id,
+    open: openStat === id,
+    onToggle: () => setOpenStat((cur) => (cur === id ? null : id)),
+    onClose: closeStat,
+  })
   const repLabel = `Reputation ${rep.text} stars${rep.dir === null ? '' : rep.dir === 'up' ? ', up since day start' : ', down since day start'}`
   return (
     <header className="topbar">
@@ -59,37 +69,28 @@ export default function TopBar({ ctx, store, snap, run, onNewGame }: { ctx: Ctx;
           <Money cents={s.money} />
         </dd>
       </dl>
-      <dl className="stat" title={repLabel}>
-        <dt>Rating</dt>
-        <dd className="num rep">
-          <span aria-hidden="true">{rep.text}★</span>
-          <span className="sr-only">{repLabel}</span>
-          <span className={`rep-delta${rep.dir === null ? '' : ` ${rep.dir}`}`} aria-hidden="true">
-            {rep.dir === 'up' ? '▲' : rep.dir === 'down' ? '▼' : ''}
-          </span>
-        </dd>
-      </dl>
+      <StatDisclosure {...disclosure('rating')} label="Rating" lines={[repLabel]} valueClass="rep">
+        <span aria-hidden="true">{rep.text}★</span>
+        <span className="sr-only">{repLabel}</span>
+        <span className={`rep-delta${rep.dir === null ? '' : ` ${rep.dir}`}`} aria-hidden="true">
+          {rep.dir === 'up' ? '▲' : rep.dir === 'down' ? '▼' : ''}
+        </span>
+      </StatDisclosure>
       <dl className="stat">
         <dt>Time</dt>
         <dd className="num clock">{clockText(s.dayTick)}</dd>
       </dl>
       {season !== null && (
-        <dl className="stat stat-season" title={[season.progress, ...season.costChanges, ...season.tasteChanges].join(', ')}>
-          <dt>Season</dt>
-          <dd className="num">
-            <span aria-hidden="true">{season.emoji}</span> {season.short}
-            <span className="sr-only">: {season.progress}</span>
-          </dd>
-        </dl>
+        <StatDisclosure {...disclosure('season')} label="Season" lines={seasonDetails(season)} className="stat-season">
+          <span aria-hidden="true">{season.emoji}</span> {season.short}
+          <span className="sr-only">: {season.progress}</span>
+        </StatDisclosure>
       )}
       {trend !== null && (
-        <dl className="stat stat-trend" title={`${trend.text}. Add it to the menu to catch the demand.`}>
-          <dt>Trend</dt>
-          <dd>
-            <span aria-hidden="true">🔥</span> {trend.short}
-            <span className="sr-only">: {trend.text}</span>
-          </dd>
-        </dl>
+        <StatDisclosure {...disclosure('trend')} label="Trend" lines={trendDetails(trend)} className="stat-trend">
+          <span aria-hidden="true">🔥</span> {trend.short}
+          <span className="sr-only">: {trend.text}</span>
+        </StatDisclosure>
       )}
       <span className="phase-badge" role="status" aria-label={`Phase: ${phase.word}`}>
         <span aria-hidden="true">{phase.icon}</span> {phase.word}

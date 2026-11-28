@@ -59,6 +59,20 @@ export function seasonView(state: SeasonState, defs: Defs): SeasonView | null {
   }
 }
 
+/** The season's effects as key-value rows, for the Menu tab. */
+export function seasonEffects(view: Pick<SeasonView, 'costChanges' | 'tasteChanges'>): { label: string; value: string }[] {
+  const rows = [
+    { label: 'Prices', value: view.costChanges.join(', ') },
+    { label: 'Demand', value: view.tasteChanges.join(', ') },
+  ].filter((r) => r.value !== '')
+  return rows.length > 0 ? rows : [{ label: 'Effects', value: 'None this season' }]
+}
+
+/** The lines behind the top bar's season stat. */
+export function seasonDetails(view: SeasonView): string[] {
+  return [`${view.name}: ${view.progress.toLowerCase()}`, ...view.costChanges, ...view.tasteChanges]
+}
+
 export type SeasonForecast = {
   name: string
   emoji: string

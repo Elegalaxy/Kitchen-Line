@@ -14,8 +14,13 @@ export type TrendView = {
   /** Short form for the top bar: "Fries ×2". */
   short: string
   onMenu: boolean
-  /** Extra hint line: add it to the menu (build phase only) or null. */
+  /** What to do about it while the dish is off the menu (it can only be added in the build phase), else null. */
   hint: string | null
+}
+
+/** The lines behind the top bar's trend stat. */
+export function trendDetails(view: TrendView): string[] {
+  return [view.text, view.hint ?? 'On your menu.']
 }
 
 /** The trend of the day in progress (build or service), or null at the stall / with fewer than 2 unlocked dishes. */
@@ -32,7 +37,11 @@ export function trendView(state: GameState, defs: Defs): TrendView | null {
     text: `Today's trend: ${name}, ${TREND_WEIGHT_FACTOR}x demand`,
     short: `${name} ×${TREND_WEIGHT_FACTOR}`,
     onMenu,
-    hint: onMenu ? null : state.phase === 'build' ? `Not on your menu yet: add ${name} to catch the demand.` : null,
+    hint: onMenu
+      ? null
+      : state.phase === 'build'
+        ? `Not on your menu yet: add ${name} to catch the demand.`
+        : `Not on your menu. Add ${name} to catch the demand once the menu unlocks.`,
   }
 }
 

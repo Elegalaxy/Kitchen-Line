@@ -33,6 +33,7 @@ body {
 }
 
 .topbar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -61,6 +62,71 @@ body {
 .stat .money {
   color: var(--money);
   min-width: 9ch;
+}
+
+/* Stats with details (Rating, Season, Trend): a button that looks like its neighbours, marked
+   as pressable by the dotted underline on its label. The 44px target only adds 4px of layout. */
+.stat.stat-btn {
+  min-height: 44px;
+  margin-block: -4px;
+  padding: 0 4px;
+  margin-inline: -4px;
+  align-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.stat-btn:hover,
+.stat-btn[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.stat-btn:active {
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.stat-value {
+  min-width: 3ch;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Opens under its stat; the top bar is the containing block, so it never leaves the screen. */
+.stat-pop {
+  position: absolute;
+  z-index: 30;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, 100%);
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--text-faint);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+@media (max-width: 600px) {
+  .stat-pop {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+  }
 }
 
 /* Speed and settings wrap as one block, so the gear never lands alone on a row. */
@@ -2053,10 +2119,28 @@ kbd {
   white-space: nowrap;
 }
 
-.stat-trend dd {
+.stat-trend .stat-value {
   font-size: 1rem;
   min-width: 0;
   white-space: nowrap;
+}
+
+/* Season and trend as text in the Menu tab (the top bar only has the short forms). */
+.season-banner {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--info);
+  border-radius: 6px;
+  background: var(--surface-raised);
+}
+
+.season-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.season-banner .kv-row {
+  font-size: 0.8rem;
 }
 
 .sum-trend {
@@ -2294,7 +2378,7 @@ kbd {
 }
 
 /* Seasons (GAME_DESIGN 9): restaurant tier only. Tags carry a word, colour is a second cue. */
-.stat-season dd {
+.stat-season .stat-value {
   font-size: 1rem;
   min-width: 0;
   white-space: nowrap;

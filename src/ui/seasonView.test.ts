@@ -8,7 +8,7 @@ import { createGame } from '../sim/game.ts'
 import { itemCost } from '../sim/season.ts'
 import type { GameState } from '../sim/types.ts'
 import { menuView } from './menuView.ts'
-import { seasonForecast, seasonTag, seasonView } from './seasonView.ts'
+import { seasonDetails, seasonEffects, seasonForecast, seasonTag, seasonView } from './seasonView.ts'
 
 function at(day: number, tier: GameState['tier'] = 'restaurant'): GameState {
   const s = createGame(DEFS, 'seasons-ui')
@@ -31,6 +31,15 @@ describe('seasonView', () => {
     expect(v.costChanges).toContain('Tomato +25%')
     expect(v.tasteChanges).toContain('Soup more popular')
     expect(v.tasteChanges).toContain('Salad less popular')
+  })
+  it('gives the effects as rows for the Menu tab and lines for the top bar', () => {
+    const v = seasonView(at(17), DEFS)!
+    const rows = seasonEffects(v)
+    expect(rows.map((r) => r.label)).toEqual(['Prices', 'Demand'])
+    expect(rows[0].value).toContain('Potato -25%')
+    expect(seasonDetails(v)[0]).toBe('Autumn: day 3 of 7')
+    expect(seasonDetails(v)).toContain('Soup more popular')
+    expect(seasonEffects({ costChanges: [], tasteChanges: [] })).toEqual([{ label: 'Effects', value: 'None this season' }])
   })
   it('wraps around after winter', () => {
     expect(seasonView(at(29), DEFS)!.name).toBe('Spring')
